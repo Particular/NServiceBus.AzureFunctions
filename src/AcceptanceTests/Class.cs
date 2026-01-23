@@ -1,0 +1,3 @@
+namespace NServiceBus.AzureFunctions.AcceptanceTests;
+
+

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/test/">
+    <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
+    <Project Path="IntegrationTests/IntegrationTests.csproj" />
+    <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
+  </Folder>
+  <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
+  <Project Path="NServiceBus.AzureFunctions/NServiceBus.AzureFunctions.csproj" />
+  <Project Path="NServiceBus.MultiHosting/NServiceBus.MultiHosting.csproj" />
+</Solution>

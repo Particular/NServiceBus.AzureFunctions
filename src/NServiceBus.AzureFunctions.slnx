@@ -4,9 +4,7 @@
     <Project Path="IntegrationTest/IntegrationTest.csproj" />
     <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
   </Folder>
-  <Project Path="NServiceBus.AzureFunctions.Analyzer.Tests/NServiceBus.AzureFunctions.Analyzer.Tests.csproj" Id="e9492d7a-5424-49b9-9c7e-a15d5efdd8b8" />
   <Project Path="NServiceBus.AzureFunctions.Analyzer/NServiceBus.AzureFunctions.Analyzer.csproj" />
-  <Project Path="NServiceBus.AzureFunctions.AzureServiceBus.Tests/NServiceBus.AzureFunctions.AzureServiceBus.Tests.csproj" Id="4d00ada6-c82f-4d71-ab5d-eee42e4b698a" />
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
   <Project Path="NServiceBus.AzureFunctions.CodeFixes/NServiceBus.AzureFunctions.CodeFixes.csproj" Id="9a1ed8e3-513b-45f4-95ce-b3df5ef9171c" />
   <Project Path="NServiceBus.AzureFunctions/NServiceBus.AzureFunctions.csproj" />

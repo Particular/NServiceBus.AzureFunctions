@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 
 using System;
 using System.Threading;
@@ -9,7 +9,14 @@ using NServiceBus.Extensibility;
 using NServiceBus.Transport;
 using NServiceBus.Transport.AzureServiceBus;
 
-class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) : IMessageReceiver, IMessageProcessor
+interface IInternalMessageProcessor
+{
+    Task Process(ServiceBusReceivedMessage message,
+        ServiceBusMessageActions messageActions,
+        CancellationToken cancellationToken = default);
+}
+
+class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) : IMessageReceiver, IInternalMessageProcessor
 {
     public Task Initialize(PushRuntimeSettings limitations, OnMessage onMessage, OnError onError,
         CancellationToken cancellationToken = default)

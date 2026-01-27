@@ -1,15 +1,16 @@
 namespace NServiceBus.AzureFunctions.AzureServiceBus;
 
 using Logging;
+using MultiHosting;
 using MultiHosting.Services;
 using Serverless.TransportWrapper;
 
-sealed class EndpointStarter(
+public class EndpointStarter(
     IStartableEndpointWithExternallyManagedContainer startableEndpoint,
     IServiceProvider serviceProvider,
     ServerlessTransport serverlessTransport,
     string serviceKey,
-    KeyedServiceCollectionAdapter services) : IAsyncDisposable
+    KeyedServiceCollectionAdapter services) : IEndpointStarter
 {
     public string ServiceKey => serviceKey;
 

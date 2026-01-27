@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 
 using System;
 using System.Threading;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 
-class SendOnlyMessageProcessor : IMessageProcessor
+class SendOnlyMessageProcessor : IInternalMessageProcessor
 {
     public Task Process(ServiceBusReceivedMessage message,
         ServiceBusMessageActions messageActions,

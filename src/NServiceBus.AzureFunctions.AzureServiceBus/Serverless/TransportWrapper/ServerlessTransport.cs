@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus.Transport;
 
-class ServerlessTransport(AzureServiceBusTransport transport, string connectionString, string connectionName) : TransportDefinition(
+public class ServerlessTransport(AzureServiceBusTransport transport, string connectionString, string connectionName) : TransportDefinition(
     TransportTransactionMode.ReceiveOnly,
     transport.SupportsDelayedDelivery,
     transport.SupportsPublishSubscribe,
@@ -21,7 +21,7 @@ class ServerlessTransport(AzureServiceBusTransport transport, string connectionS
     const string MainReceiverId = "Main";
     const string SendOnlyConfigKey = "Endpoint.SendOnly";
 
-    public IMessageProcessor MessageProcessor { get; private set; }
+    internal IInternalMessageProcessor MessageProcessor { get; private set; }
 
     public IServiceProvider ServiceProvider { get; set; }
 
@@ -47,7 +47,7 @@ class ServerlessTransport(AzureServiceBusTransport transport, string connectionS
 
         MessageProcessor = isSendOnly
             ? new SendOnlyMessageProcessor()
-            : (IMessageProcessor)serverlessTransportInfrastructure.Receivers[MainReceiverId];
+            : (IInternalMessageProcessor)serverlessTransportInfrastructure.Receivers[MainReceiverId];
 
         return serverlessTransportInfrastructure;
     }

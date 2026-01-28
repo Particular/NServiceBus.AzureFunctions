@@ -1,4 +1,4 @@
-namespace NServiceBus.AzureFunctions.AzureServiceBus.Logging;
+namespace NServiceBus.AzureFunctions;
 
 using Microsoft.Extensions.Logging;
 using NServiceBus.Logging;

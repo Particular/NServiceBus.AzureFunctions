@@ -1,7 +1,7 @@
 using IntegrationTest;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using NServiceBus.AzureFunctions.AzureServiceBus.Logging;
+using NServiceBus.AzureFunctions;
 using NServiceBus.Logging;
 using HostingAbstractionsHostExtensions = Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions;
 
@@ -20,7 +20,7 @@ var host = builder.Build();
 
 
 
-//// single 
+//// single
 //builder.UseNServiceBus()
 //    .AddEndpoint("SampleEndpoint", config =>
 //    {
@@ -52,7 +52,6 @@ namespace IntegrationTest
     using Microsoft.Extensions.Hosting;
     using NServiceBus;
     using NServiceBus.AzureFunctions.AzureServiceBus;
-    using NServiceBus.AzureFunctions.AzureServiceBus.Logging;
     using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
     using NServiceBus.MultiHosting;
     using NServiceBus.MultiHosting.Services;

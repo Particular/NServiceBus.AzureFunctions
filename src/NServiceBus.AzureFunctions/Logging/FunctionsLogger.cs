@@ -1,4 +1,4 @@
-namespace NServiceBus.AzureFunctions.AzureServiceBus.Logging;
+namespace NServiceBus.AzureFunctions;
 
 using System.Collections.Concurrent;
 using NServiceBus.Logging;

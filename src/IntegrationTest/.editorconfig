@@ -1,0 +1,4 @@
+[*.cs]
+
+# Add a CancellationToken - not a library
+dotnet_diagnostic.PS0018.severity = none

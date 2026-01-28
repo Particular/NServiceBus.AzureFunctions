@@ -15,6 +15,7 @@ class HttpSender([FromKeyedServices("SenderEndpoint")] IMessageSession session, 
         [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestData req,
         FunctionContext executionContext)
     {
+        _ = executionContext; // For now
         logger.LogInformation("C# HTTP trigger function received a request.");
 
         await session.Send("ReceiverEndpoint", new TriggerMessage()).ConfigureAwait(false);

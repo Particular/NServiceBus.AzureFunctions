@@ -1,12 +1,14 @@
 <Solution>
-  <Folder Name="/test/">
+  <Folder Name="/Analyzer/">
+    <Project Path="NServiceBus.AzureFunctions.Analyzer/NServiceBus.AzureFunctions.Analyzer.csproj" />
+    <Project Path="NServiceBus.AzureFunctions.CodeFixes/NServiceBus.AzureFunctions.CodeFixes.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
     <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
     <Project Path="IntegrationTest/IntegrationTest.csproj" />
     <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
   </Folder>
-  <Project Path="NServiceBus.AzureFunctions.Analyzer/NServiceBus.AzureFunctions.Analyzer.csproj" />
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
-  <Project Path="NServiceBus.AzureFunctions.CodeFixes/NServiceBus.AzureFunctions.CodeFixes.csproj" />
   <Project Path="NServiceBus.AzureFunctions/NServiceBus.AzureFunctions.csproj" />
   <Project Path="NServiceBus.MultiHosting/NServiceBus.MultiHosting.csproj" />
 </Solution>

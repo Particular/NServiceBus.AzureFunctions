@@ -4,9 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
-using NServiceBus.AzureFunctions.AzureServiceBus.Logging;
 using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
-using NServiceBus.MultiHosting;
 
 
 public class MessageProcessor(ServerlessTransport transport, EndpointStarter endpointStarter) : IMessageProcessor

@@ -124,6 +124,10 @@ public class AzureServiceBusServerlessTransport : ServerlessTransport
         return transport;
     }
 
+    // As a temporary workaround we are accessing the properties of the AzureServiceBusTransport using UnsafeAccessor
+    // This is another blocker to AoT but we are already using the execution assembly in the code base anyway
+    // Furthermore this allows us to still comply with initializing the transport as late as possible without having to
+    // expose the properties on the transport itself which would pollute the public API for not much added value.
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<ConnectionString>k__BackingField")]
     static extern ref string GetConnectionStringRef(AzureServiceBusTransport transport);
 

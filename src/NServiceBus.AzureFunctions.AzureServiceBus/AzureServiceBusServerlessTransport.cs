@@ -1,4 +1,4 @@
-namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus;
 
 using System;
 using System.Collections.Generic;
@@ -9,21 +9,40 @@ using Azure.Core;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NServiceBus.AzureFunctions.AzureServiceBus;
+using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 using NServiceBus.Transport;
 
-public class ServerlessTransport(AzureServiceBusTransport transport, string connectionString, string connectionName) : TransportDefinition(
-    TransportTransactionMode.ReceiveOnly,
-    transport.SupportsDelayedDelivery,
-    transport.SupportsPublishSubscribe,
-    transport.SupportsTTBR)
+public class AzureServiceBusServerlessTransport : ServerlessTransport
 {
-    // HINT: This constant is defined in NServiceBus but is not exposed
-    const string MainReceiverId = "Main";
-    const string SendOnlyConfigKey = "Endpoint.SendOnly";
+    readonly AzureServiceBusTransport innerTransport;
+    readonly string? connectionString;
+    readonly string connectionName;
 
-    internal IInternalMessageProcessor MessageProcessor { get; private set; }
+    public AzureServiceBusServerlessTransport(TopicTopology topology, string? connection = null)
+        : base(TransportTransactionMode.ReceiveOnly,
+               supportsDelayedDelivery: true,
+               supportsPublishSubscribe: true,
+               supportsTtbr: true)
+    {
+        innerTransport = new AzureServiceBusTransport("TransportWillBeInitializedCorrectlyLater", topology)
+        {
+            TransportTransactionMode = TransportTransactionMode.ReceiveOnly
+        };
 
-    public IServiceProvider ServiceProvider { get; set; }
+        if (connection != null && connection.Contains(';'))
+        {
+            connectionString = connection;
+            connectionName = DefaultServiceBusConnectionName;
+        }
+        else
+        {
+            connectionString = null;
+            connectionName = connection ?? DefaultServiceBusConnectionName;
+        }
+    }
+
+    internal IInternalMessageProcessor MessageProcessor { get; private set; } = null!;
 
     public override async Task<TransportInfrastructure> Initialize(
         HostSettings hostSettings,
@@ -31,7 +50,11 @@ public class ServerlessTransport(AzureServiceBusTransport transport, string conn
         string[] sendingAddresses,
         CancellationToken cancellationToken = default)
     {
-        var configuredTransport = ConfigureTransportConnection(connectionString, connectionName, ServiceProvider.GetRequiredService<IConfiguration>(), transport,
+        var configuredTransport = ConfigureTransportConnection(
+            connectionString,
+            connectionName,
+            ServiceProvider!.GetRequiredService<IConfiguration>(),
+            innerTransport,
             ServiceProvider.GetRequiredService<AzureComponentFactory>());
 
         var baseTransportInfrastructure = await configuredTransport.Initialize(
@@ -54,8 +77,18 @@ public class ServerlessTransport(AzureServiceBusTransport transport, string conn
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
 
-    static AzureServiceBusTransport ConfigureTransportConnection(string connectionString, string connectionName, IConfiguration configuration,
-        AzureServiceBusTransport transport, AzureComponentFactory azureComponentFactory)
+    public override void RegisterServices(IServiceCollection services, string endpointName)
+    {
+        services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
+            new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.AzureFunctions.EndpointStarter>(endpointName)));
+    }
+
+    static AzureServiceBusTransport ConfigureTransportConnection(
+        string? connectionString,
+        string connectionName,
+        IConfiguration configuration,
+        AzureServiceBusTransport transport,
+        AzureComponentFactory azureComponentFactory)
     {
         if (connectionString != null)
         {
@@ -67,7 +100,7 @@ public class ServerlessTransport(AzureServiceBusTransport transport, string conn
             IConfigurationSection connectionSection = configuration.GetSection(serviceBusConnectionName);
             if (!connectionSection.Exists())
             {
-                throw new Exception($"Azure Service Bus connection string/section has not been configured. Specify a connection string through IConfiguration, an environment variable named {serviceBusConnectionName} or passing it to `UseNServiceBus(ENDPOINTNAME,CONNECTIONSTRING)`");
+                throw new Exception($"Azure Service Bus connection string/section has not been configured. Specify a connection string through IConfiguration, an environment variable named {serviceBusConnectionName} or passing it to the transport constructor.");
             }
 
             if (!string.IsNullOrWhiteSpace(connectionSection.Value))
@@ -76,7 +109,7 @@ public class ServerlessTransport(AzureServiceBusTransport transport, string conn
             }
             else
             {
-                string fullyQualifiedNamespace = connectionSection["fullyQualifiedNamespace"];
+                string? fullyQualifiedNamespace = connectionSection["fullyQualifiedNamespace"];
                 if (string.IsNullOrWhiteSpace(fullyQualifiedNamespace))
                 {
                     throw new Exception("Connection should have an 'fullyQualifiedNamespace' property or be a string representing a connection string.");
@@ -104,6 +137,8 @@ public class ServerlessTransport(AzureServiceBusTransport transport, string conn
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TokenCredential>k__BackingField")]
     static extern ref TokenCredential GetTokenCredentialRef(AzureServiceBusTransport transport);
 
+    const string MainReceiverId = "Main";
+    const string SendOnlyConfigKey = "Endpoint.SendOnly";
     internal const string DefaultServiceBusConnectionName = "AzureWebJobsServiceBus";
 
     readonly TransportTransactionMode[] supportedTransactionModes = [TransportTransactionMode.ReceiveOnly];

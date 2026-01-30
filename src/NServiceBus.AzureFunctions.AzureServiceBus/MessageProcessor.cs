@@ -4,10 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
-using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+using NServiceBus.AzureFunctions;
 
-
-public class MessageProcessor(ServerlessTransport transport, EndpointStarter endpointStarter) : IMessageProcessor
+public class MessageProcessor(AzureServiceBusServerlessTransport transport, EndpointStarter endpointStarter) : IMessageProcessor
 {
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions,
         FunctionContext functionContext, CancellationToken cancellationToken = default)

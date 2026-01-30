@@ -1,9 +1,8 @@
-namespace NServiceBus.AzureFunctions.AzureServiceBus;
+namespace NServiceBus.AzureFunctions;
 
-using Logging;
-using MultiHosting;
-using MultiHosting.Services;
-using Serverless.TransportWrapper;
+using NServiceBus.Logging;
+using NServiceBus.MultiHosting;
+using NServiceBus.MultiHosting.Services;
 
 public class EndpointStarter(
     IStartableEndpointWithExternallyManagedContainer startableEndpoint,

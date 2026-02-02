@@ -44,7 +44,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
             var messageContext = CreateMessageContext(message, messageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
-            await onMessage(messageContext, cancellationToken).ConfigureAwait(false);
+            await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
             azureServiceBusTransportTransaction.Commit();
         }
@@ -57,7 +57,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
             var errorContext = CreateErrorContext(message, exception, messageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
-            var errorHandleResult = await onError.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
+            var errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
 
             if (errorHandleResult == ErrorHandleResult.Handled)
             {
@@ -88,6 +88,6 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
     public string Id => baseTransportReceiver.Id;
     public string ReceiveAddress => baseTransportReceiver.ReceiveAddress;
 
-    OnMessage onMessage;
-    OnError onError;
+    OnMessage? onMessage;
+    OnError? onError;
 }

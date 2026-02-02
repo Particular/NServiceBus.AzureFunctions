@@ -10,16 +10,20 @@ public class FunctionsLoggerFactory : ILoggerFactory
     {
     }
 
-    public static FunctionsLoggerFactory Instance = new();
+    public static readonly FunctionsLoggerFactory Instance = new();
 
-    ConcurrentDictionary<string, FunctionsLogger> loggers = new();
-    ConcurrentDictionary<string, NameSlot> slots = new();
+    readonly ConcurrentDictionary<string, FunctionsLogger> loggers = new();
+    readonly ConcurrentDictionary<string, NameSlot> slots = new();
     readonly AsyncLocal<NameSlot> slot = new();
     Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory;
 
-    public ILog GetLogger(Type type) => loggers.GetOrAdd(type.FullName, name => new FunctionsLogger(slot, loggerFactory, name));
+    public ILog GetLogger(Type type)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(type.FullName);
+        return loggers.GetOrAdd(type.FullName, name => new FunctionsLogger(slot, loggerFactory, name));
+    }
 
-    public ILog GetLogger(string name) => loggers.GetOrAdd(name, name => new FunctionsLogger(slot, loggerFactory, name));
+    public ILog GetLogger(string name) => loggers.GetOrAdd(name, newName => new FunctionsLogger(slot, loggerFactory, newName));
 
     public void SetLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory loggerFactory) => this.loggerFactory = loggerFactory;
 
@@ -44,10 +48,10 @@ public class FunctionsLoggerFactory : ILoggerFactory
         return new NameScope(this, slot, previous);
     }
 
-    public readonly struct NameScope(FunctionsLoggerFactory factory, AsyncLocal<NameSlot> slot, NameSlot previous) : IDisposable
+    public readonly struct NameScope(FunctionsLoggerFactory factory, AsyncLocal<NameSlot> slot, NameSlot? previous) : IDisposable
     {
         public void Flush() => factory.Flush();
 
-        public void Dispose() => slot.Value = previous;
+        public void Dispose() => slot.Value = previous!;
     }
 }

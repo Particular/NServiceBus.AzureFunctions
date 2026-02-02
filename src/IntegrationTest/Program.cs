@@ -2,7 +2,6 @@ using IntegrationTest;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NServiceBus;
 using NServiceBus.AzureFunctions;
 using NServiceBus.Logging;
 

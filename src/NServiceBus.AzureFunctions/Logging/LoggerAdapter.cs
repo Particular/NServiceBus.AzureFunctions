@@ -106,9 +106,9 @@ class LoggerAdapter(ILogger logger, AsyncLocal<NameSlot> slot) : ILog
         logger.LogCritical(format, args);
     }
 
-    sealed class NullScope :IDisposable
+    sealed class NullScope : IDisposable
     {
-        public static NullScope Instance = new();
+        public static readonly NullScope Instance = new();
 
         public void Dispose()
         {

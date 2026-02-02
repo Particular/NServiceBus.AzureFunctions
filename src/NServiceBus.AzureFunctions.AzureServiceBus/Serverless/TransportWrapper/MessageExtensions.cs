@@ -10,9 +10,9 @@ static class MessageExtensions
 {
     extension(ServiceBusReceivedMessage message)
     {
-        public Dictionary<string, string> GetNServiceBusHeaders()
+        public Dictionary<string, string?> GetNServiceBusHeaders()
         {
-            var headers = new Dictionary<string, string>(message.ApplicationProperties.Count);
+            var headers = new Dictionary<string, string?>(message.ApplicationProperties.Count);
 
             foreach (var kvp in message.ApplicationProperties)
             {
@@ -49,7 +49,7 @@ static class MessageExtensions
             }
 
             using var reader = XmlDictionaryReader.CreateBinaryReader(body.ToStream(), XmlDictionaryReaderQuotas.Max);
-            var bodyBytes = (byte[])Deserializer.ReadObject(reader);
+            var bodyBytes = (byte[])Deserializer.ReadObject(reader)!;
             return new BinaryData(bodyBytes);
         }
     }

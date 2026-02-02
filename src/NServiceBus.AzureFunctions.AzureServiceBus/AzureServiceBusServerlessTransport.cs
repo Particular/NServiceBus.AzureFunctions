@@ -50,6 +50,16 @@ public class AzureServiceBusServerlessTransport : ServerlessTransport
         string[] sendingAddresses,
         CancellationToken cancellationToken = default)
     {
+        if (ServiceProvider is null)
+        {
+            throw new Exception("ServiceProvider not configured.");
+        }
+
+        if (hostSettings.CoreSettings is null)
+        {
+            throw new Exception("CoreSettings not provided in host settings");
+        }
+
         var configuredTransport = ConfigureTransportConnection(
             connectionString,
             connectionName,

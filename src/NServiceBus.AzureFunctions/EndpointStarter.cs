@@ -1,6 +1,5 @@
 namespace NServiceBus.AzureFunctions;
 
-using NServiceBus.Logging;
 using NServiceBus.MultiHosting;
 using NServiceBus.MultiHosting.Services;
 

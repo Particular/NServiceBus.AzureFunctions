@@ -3,6 +3,9 @@
     <Project Path="NServiceBus.AzureFunctions.Analyzer/NServiceBus.AzureFunctions.Analyzer.csproj" />
     <Project Path="NServiceBus.AzureFunctions.CodeFixes/NServiceBus.AzureFunctions.CodeFixes.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Custom.Build.props" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
     <Project Path="IntegrationTest/IntegrationTest.csproj" />

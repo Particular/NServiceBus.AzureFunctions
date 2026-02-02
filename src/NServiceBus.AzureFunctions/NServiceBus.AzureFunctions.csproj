@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.AzureFunctions.CodeFixes\NServiceBus.AzureFunctions.CodeFixes.csproj" />
     <ProjectReference Include="..\NServiceBus.MultiHosting\NServiceBus.MultiHosting.csproj" />
   </ItemGroup>
 

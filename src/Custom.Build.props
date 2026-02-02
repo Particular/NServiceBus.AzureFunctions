@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <AnalyzerTargetFramework>netstandard2.0</AnalyzerTargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
 </Project>

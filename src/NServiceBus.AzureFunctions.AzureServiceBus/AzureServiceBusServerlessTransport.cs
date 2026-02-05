@@ -13,7 +13,7 @@ using NServiceBus.AzureFunctions.AzureServiceBus;
 using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 using NServiceBus.Transport;
 
-public class AzureServiceBusServerlessTransport : ServerlessTransport
+public class AzureServiceBusServerlessTransport : TransportDefinition
 {
     readonly AzureServiceBusTransport innerTransport;
     readonly string? connectionString;
@@ -23,7 +23,7 @@ public class AzureServiceBusServerlessTransport : ServerlessTransport
         : base(TransportTransactionMode.ReceiveOnly,
                supportsDelayedDelivery: true,
                supportsPublishSubscribe: true,
-               supportsTtbr: true)
+               supportsTTBR: true)
     {
         innerTransport = new AzureServiceBusTransport("TransportWillBeInitializedCorrectlyLater", topology)
         {
@@ -50,9 +50,9 @@ public class AzureServiceBusServerlessTransport : ServerlessTransport
         string[] sendingAddresses,
         CancellationToken cancellationToken = default)
     {
-        if (ServiceProvider is null)
+        if (hostSettings.ServiceProvider is null)
         {
-            throw new Exception("ServiceProvider not configured.");
+            throw new Exception("ServiceProvider not available in host settings.");
         }
 
         if (hostSettings.CoreSettings is null)
@@ -63,9 +63,9 @@ public class AzureServiceBusServerlessTransport : ServerlessTransport
         var configuredTransport = ConfigureTransportConnection(
             connectionString,
             connectionName,
-            ServiceProvider!.GetRequiredService<IConfiguration>(),
+            hostSettings.ServiceProvider.GetRequiredService<IConfiguration>(),
             innerTransport,
-            ServiceProvider.GetRequiredService<AzureComponentFactory>());
+            hostSettings.ServiceProvider.GetRequiredService<AzureComponentFactory>());
 
         var baseTransportInfrastructure = await configuredTransport.Initialize(
                 hostSettings,
@@ -87,10 +87,10 @@ public class AzureServiceBusServerlessTransport : ServerlessTransport
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
 
-    public override void RegisterServices(IServiceCollection services, string endpointName)
+    public void RegisterServices(IServiceCollection services, string endpointName)
     {
         services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
-            new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.AzureFunctions.EndpointStarter>(endpointName)));
+            new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.MultiHosting.EndpointStarter>(endpointName)));
     }
 
     static AzureServiceBusTransport ConfigureTransportConnection(

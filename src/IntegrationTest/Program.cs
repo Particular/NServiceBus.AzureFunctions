@@ -17,7 +17,6 @@ builder.AddNServiceBusFunction("SenderEndpoint",
     endpoint =>
 {
     endpoint.SendOnly();
-    endpoint.UsePersistence<LearningPersistence>();
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 
@@ -35,7 +34,10 @@ builder.AddNServiceBusFunction("ReceiverEndpoint",
 });
 
 builder.AddNServiceBusFunction("AnotherReceiverEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default),
+    new AzureServiceBusServerlessTransport(TopicTopology.Default)
+    {
+        ConnectionName = "AnotherServiceBusConnection"
+    },
     endpoint =>
 {
     endpoint.EnableInstallers();

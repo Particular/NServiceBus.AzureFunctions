@@ -16,10 +16,8 @@ using NServiceBus.Transport;
 public class AzureServiceBusServerlessTransport : TransportDefinition
 {
     readonly AzureServiceBusTransport innerTransport;
-    readonly string? connectionString;
-    readonly string connectionName;
 
-    public AzureServiceBusServerlessTransport(TopicTopology topology, string? connection = null)
+    public AzureServiceBusServerlessTransport(TopicTopology topology)
         : base(TransportTransactionMode.ReceiveOnly,
                supportsDelayedDelivery: true,
                supportsPublishSubscribe: true,
@@ -29,18 +27,9 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         {
             TransportTransactionMode = TransportTransactionMode.ReceiveOnly
         };
-
-        if (connection != null && connection.Contains(';'))
-        {
-            connectionString = connection;
-            connectionName = DefaultServiceBusConnectionName;
-        }
-        else
-        {
-            connectionString = null;
-            connectionName = connection ?? DefaultServiceBusConnectionName;
-        }
     }
+
+    public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
     internal IInternalMessageProcessor MessageProcessor { get; private set; } = null!;
 
@@ -61,8 +50,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         }
 
         var configuredTransport = ConfigureTransportConnection(
-            connectionString,
-            connectionName,
+            ConnectionName,
             hostSettings.ServiceProvider.GetRequiredService<IConfiguration>(),
             innerTransport,
             hostSettings.ServiceProvider.GetRequiredService<AzureComponentFactory>());
@@ -94,41 +82,33 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     static AzureServiceBusTransport ConfigureTransportConnection(
-        string? connectionString,
         string connectionName,
         IConfiguration configuration,
         AzureServiceBusTransport transport,
         AzureComponentFactory azureComponentFactory)
     {
-        if (connectionString != null)
+        var resolvedName = string.IsNullOrWhiteSpace(connectionName) ? DefaultServiceBusConnectionName : connectionName;
+        IConfigurationSection connectionSection = configuration.GetSection(resolvedName);
+        if (!connectionSection.Exists())
         {
-            GetConnectionStringRef(transport) = connectionString;
+            throw new Exception($"Azure Service Bus connection has not been configured. Add a configuration section named '{resolvedName}' with a connection string or fullyQualifiedNamespace.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(connectionSection.Value))
+        {
+            GetConnectionStringRef(transport) = connectionSection.Value;
         }
         else
         {
-            var serviceBusConnectionName = string.IsNullOrWhiteSpace(connectionName) ? DefaultServiceBusConnectionName : connectionName;
-            IConfigurationSection connectionSection = configuration.GetSection(serviceBusConnectionName);
-            if (!connectionSection.Exists())
+            string? fullyQualifiedNamespace = connectionSection["fullyQualifiedNamespace"];
+            if (string.IsNullOrWhiteSpace(fullyQualifiedNamespace))
             {
-                throw new Exception($"Azure Service Bus connection string/section has not been configured. Specify a connection string through IConfiguration, an environment variable named {serviceBusConnectionName} or passing it to the transport constructor.");
+                throw new Exception($"Configuration section '{resolvedName}' should have a 'fullyQualifiedNamespace' property or be a string representing a connection string.");
             }
 
-            if (!string.IsNullOrWhiteSpace(connectionSection.Value))
-            {
-                GetConnectionStringRef(transport) = connectionSection.Value;
-            }
-            else
-            {
-                string? fullyQualifiedNamespace = connectionSection["fullyQualifiedNamespace"];
-                if (string.IsNullOrWhiteSpace(fullyQualifiedNamespace))
-                {
-                    throw new Exception("Connection should have an 'fullyQualifiedNamespace' property or be a string representing a connection string.");
-                }
-
-                var credential = azureComponentFactory.CreateTokenCredential(connectionSection);
-                GetFullyQualifiedNamespaceRef(transport) = fullyQualifiedNamespace;
-                GetTokenCredentialRef(transport) = credential;
-            }
+            var credential = azureComponentFactory.CreateTokenCredential(connectionSection);
+            GetFullyQualifiedNamespaceRef(transport) = fullyQualifiedNamespace;
+            GetTokenCredentialRef(transport) = credential;
         }
 
         return transport;

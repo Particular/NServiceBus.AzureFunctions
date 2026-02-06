@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 public static class FunctionsHostApplicationBuilderExtensions
 {
-    public static void AddNServiceBus(
+    public static void AddNServiceBusFunction(
         this FunctionsApplicationBuilder builder,
         string endpointName,
         AzureServiceBusServerlessTransport transport,

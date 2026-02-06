@@ -12,7 +12,7 @@ LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);
 
 builder.Services.AddHostedService<InitializeLogger>();
 
-builder.AddNServiceBus("SenderEndpoint",
+builder.AddNServiceBusFunction("SenderEndpoint",
     new AzureServiceBusServerlessTransport(TopicTopology.Default),
     endpoint =>
 {
@@ -21,7 +21,7 @@ builder.AddNServiceBus("SenderEndpoint",
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 
-builder.AddNServiceBus("ReceiverEndpoint",
+builder.AddNServiceBusFunction("ReceiverEndpoint",
     new AzureServiceBusServerlessTransport(TopicTopology.Default),
     endpoint =>
 {
@@ -34,7 +34,7 @@ builder.AddNServiceBus("ReceiverEndpoint",
     endpoint.AddHandler<SomeEventMessageHandler>();
 });
 
-builder.AddNServiceBus("AnotherReceiverEndpoint",
+builder.AddNServiceBusFunction("AnotherReceiverEndpoint",
     new AzureServiceBusServerlessTransport(TopicTopology.Default),
     endpoint =>
 {

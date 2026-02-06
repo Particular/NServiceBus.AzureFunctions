@@ -1,17 +1,17 @@
-namespace NServiceBus.AzureFunctions;
+namespace NServiceBus.MultiHosting;
 
 using System.Collections.Concurrent;
 using NServiceBus.Logging;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
 using LogLevel = NServiceBus.Logging.LogLevel;
 
-class FunctionsLogger : ILog
+class MultiEndpointLogger : ILog
 {
     LoggerAdapter? logger;
     readonly AsyncLocal<NameSlot> slot;
     readonly string loggerName;
 
-    public FunctionsLogger(AsyncLocal<NameSlot> slot, ILoggerFactory? loggerFactory, string loggerName)
+    public MultiEndpointLogger(AsyncLocal<NameSlot> slot, ILoggerFactory? loggerFactory, string loggerName)
     {
         this.slot = slot;
         this.loggerName = loggerName;

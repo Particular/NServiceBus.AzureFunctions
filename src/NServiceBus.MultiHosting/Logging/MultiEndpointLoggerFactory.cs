@@ -1,18 +1,18 @@
-namespace NServiceBus.AzureFunctions;
+namespace NServiceBus.MultiHosting;
 
 using System.Collections.Concurrent;
 using NServiceBus.Logging;
 using ILoggerFactory = NServiceBus.Logging.ILoggerFactory;
 
-public class FunctionsLoggerFactory : ILoggerFactory
+public class MultiEndpointLoggerFactory : ILoggerFactory
 {
-    FunctionsLoggerFactory()
+    MultiEndpointLoggerFactory()
     {
     }
 
-    public static readonly FunctionsLoggerFactory Instance = new();
+    public static readonly MultiEndpointLoggerFactory Instance = new();
 
-    readonly ConcurrentDictionary<string, FunctionsLogger> loggers = new();
+    readonly ConcurrentDictionary<string, MultiEndpointLogger> loggers = new();
     readonly ConcurrentDictionary<string, NameSlot> slots = new();
     readonly AsyncLocal<NameSlot> slot = new();
     Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory;
@@ -20,10 +20,10 @@ public class FunctionsLoggerFactory : ILoggerFactory
     public ILog GetLogger(Type type)
     {
         ArgumentException.ThrowIfNullOrEmpty(type.FullName);
-        return loggers.GetOrAdd(type.FullName, name => new FunctionsLogger(slot, loggerFactory, name));
+        return loggers.GetOrAdd(type.FullName, name => new MultiEndpointLogger(slot, loggerFactory, name));
     }
 
-    public ILog GetLogger(string name) => loggers.GetOrAdd(name, newName => new FunctionsLogger(slot, loggerFactory, newName));
+    public ILog GetLogger(string name) => loggers.GetOrAdd(name, newName => new MultiEndpointLogger(slot, loggerFactory, newName));
 
     public void SetLoggerFactory(Microsoft.Extensions.Logging.ILoggerFactory loggerFactory) => this.loggerFactory = loggerFactory;
 
@@ -48,7 +48,7 @@ public class FunctionsLoggerFactory : ILoggerFactory
         return new NameScope(this, slot, previous);
     }
 
-    public readonly struct NameScope(FunctionsLoggerFactory factory, AsyncLocal<NameSlot> slot, NameSlot? previous) : IDisposable
+    public readonly struct NameScope(MultiEndpointLoggerFactory factory, AsyncLocal<NameSlot> slot, NameSlot? previous) : IDisposable
     {
         public void Flush() => factory.Flush();
 

@@ -1,4 +1,4 @@
-namespace NServiceBus.AzureFunctions;
+namespace NServiceBus.MultiHosting;
 
 using Microsoft.Extensions.Logging;
 using NServiceBus.Logging;

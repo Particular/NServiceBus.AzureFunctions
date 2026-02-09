@@ -18,11 +18,10 @@ class HttpSender([FromKeyedServices("SenderEndpoint")] IMessageSession session, 
         _ = executionContext; // For now
         logger.LogInformation("C# HTTP trigger function received a request.");
 
-        await session.Send("ReceiverEndpoint", new TriggerMessage()).ConfigureAwait(false);
+        await session.StartTestWithMessage("FirstTest", "ReceiverEndpoint", new TriggerMessage());
 
         var r = req.CreateResponse(HttpStatusCode.OK);
-        await r.WriteStringAsync($"{nameof(TriggerMessage)} sent.")
-            .ConfigureAwait(false);
+        await r.WriteStringAsync($"{nameof(TriggerMessage)} sent.");
         return r;
     }
 }

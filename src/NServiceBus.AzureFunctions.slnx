@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
+    <Project Path="IntegrationTest.Contracts/IntegrationTest.Contracts.csproj" />
     <Project Path="IntegrationTest/IntegrationTest.csproj" />
     <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
   </Folder>

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NServiceBus.AzureFunctions;
+using NServiceBus.MultiHosting;
 
 public class InitializeLogger(ILoggerFactory loggerFactory) : IHostedLifecycleService
 {
@@ -10,7 +10,7 @@ public class InitializeLogger(ILoggerFactory loggerFactory) : IHostedLifecycleSe
 
     public Task StartingAsync(CancellationToken cancellationToken = default)
     {
-        FunctionsLoggerFactory.Instance.SetLoggerFactory(loggerFactory);
+        MultiEndpointLoggerFactory.Instance.SetLoggerFactory(loggerFactory);
         return Task.CompletedTask;
     }
 

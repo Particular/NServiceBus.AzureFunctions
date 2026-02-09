@@ -16,6 +16,7 @@ using NServiceBus.Transport;
 public class AzureServiceBusServerlessTransport : TransportDefinition
 {
     readonly AzureServiceBusTransport innerTransport;
+    string? assignedToEndpoint;
 
     public AzureServiceBusServerlessTransport(TopicTopology topology)
         : base(TransportTransactionMode.ReceiveOnly,
@@ -77,6 +78,13 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
 
     public void RegisterServices(IServiceCollection services, string endpointName)
     {
+        if (assignedToEndpoint is not null && assignedToEndpoint != endpointName)
+        {
+            throw new InvalidOperationException(
+                $"This AzureServiceBusServerlessTransport instance is already used by endpoint '{assignedToEndpoint}'. Each endpoint requires its own transport instance.");
+        }
+        assignedToEndpoint = endpointName;
+
         services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
             new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.MultiHosting.EndpointStarter>(endpointName)));
     }

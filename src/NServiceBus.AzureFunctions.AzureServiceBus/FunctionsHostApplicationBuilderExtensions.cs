@@ -1,6 +1,7 @@
 namespace NServiceBus;
 
 using System;
+using AzureFunctions.AzureServiceBus;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ public static class FunctionsHostApplicationBuilderExtensions
             configure(endpoint);
         });
 
-        transport.RegisterServices(builder.Services, endpointName);
+        builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
+            new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
     }
 }

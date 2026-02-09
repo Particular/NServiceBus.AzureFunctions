@@ -76,13 +76,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
-
-    public void RegisterServices(IServiceCollection services, string endpointName)
-    {
-        services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
-            new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.MultiHosting.EndpointStarter>(endpointName)));
-    }
-
+ 
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
         IConfiguration configuration,

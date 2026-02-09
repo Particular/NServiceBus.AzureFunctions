@@ -12,40 +12,53 @@ LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);
 
 builder.Services.AddHostedService<InitializeLogger>();
 
+//TODO: What happens if this is reused for multiple endpoints?
+var sharedTransport = new AzureServiceBusServerlessTransport(TopicTopology.Default);
+
+//senderTransport.Routing.RouteToEndpoint(typeof(TriggerMessageHandler), "SenderEndpoint");
+//
 builder.AddNServiceBusFunction("SenderEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default),
+    sharedTransport,
     endpoint =>
-{
-    endpoint.SendOnly();
-    endpoint.UseSerialization<SystemJsonSerializer>();
-});
+    {
+        var routing2 = endpoint.UseTransport(sharedTransport);
+        endpoint.SendOnly();
+        endpoint.UseSerialization<SystemJsonSerializer>();
+    },
+    routing => routing.RouteToEndpoint(typeof(TriggerMessage), "ReceiverEndpoint"));
+
+builder.AddNServiceBusFunctionAltB("SenderEndpoint",
+    endpoint =>
+    {
+        var routing = endpoint.UseTransport(sharedTransport);
+        routing.RouteToEndpoint(typeof(TriggerMessage), "ReceiverEndpoint");
+        endpoint.SendOnly();
+        endpoint.UseSerialization<SystemJsonSerializer>();
+    });
 
 builder.AddNServiceBusFunction("ReceiverEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default),
+    sharedTransport,
     endpoint =>
-{
-    endpoint.EnableInstallers();
-    endpoint.UsePersistence<LearningPersistence>();
-    endpoint.UseSerialization<SystemJsonSerializer>();
+    {
+        endpoint.EnableInstallers();
+        endpoint.UsePersistence<LearningPersistence>();
+        endpoint.UseSerialization<SystemJsonSerializer>();
 
-    endpoint.AddHandler<TriggerMessageHandler>();
-    endpoint.AddHandler<SomeOtherMessageHandler>();
-    endpoint.AddHandler<SomeEventMessageHandler>();
-});
+        endpoint.AddHandler<TriggerMessageHandler>();
+        endpoint.AddHandler<SomeOtherMessageHandler>();
+        endpoint.AddHandler<SomeEventMessageHandler>();
+    });
 
 builder.AddNServiceBusFunction("AnotherReceiverEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default)
-    {
-        ConnectionName = "AnotherServiceBusConnection"
-    },
+    sharedTransport,
     endpoint =>
-{
-    endpoint.EnableInstallers();
-    endpoint.UsePersistence<LearningPersistence>();
-    endpoint.UseSerialization<SystemJsonSerializer>();
+    {
+        endpoint.EnableInstallers();
+        endpoint.UsePersistence<LearningPersistence>();
+        endpoint.UseSerialization<SystemJsonSerializer>();
 
-    endpoint.AddHandler<SomeEventMessageHandler>();
-});
+        endpoint.AddHandler<SomeEventMessageHandler>();
+    });
 
 var host = builder.Build();
 

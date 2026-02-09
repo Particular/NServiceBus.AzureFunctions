@@ -9,29 +9,24 @@ using Azure.Core;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NServiceBus.AzureFunctions.AzureServiceBus;
 using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 using NServiceBus.Transport;
+using Settings;
 
-public class AzureServiceBusServerlessTransport : TransportDefinition
+public class AzureServiceBusServerlessTransport(TopicTopology topology) : TransportDefinition(TransportTransactionMode.ReceiveOnly,
+    supportsDelayedDelivery: true,
+    supportsPublishSubscribe: true,
+    supportsTTBR: true)
 {
-    readonly AzureServiceBusTransport innerTransport;
-
-    public AzureServiceBusServerlessTransport(TopicTopology topology)
-        : base(TransportTransactionMode.ReceiveOnly,
-               supportsDelayedDelivery: true,
-               supportsPublishSubscribe: true,
-               supportsTTBR: true)
-    {
-        innerTransport = new AzureServiceBusTransport("TransportWillBeInitializedCorrectlyLater", topology)
-        {
-            TransportTransactionMode = TransportTransactionMode.ReceiveOnly
-        };
-    }
-
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
     internal IInternalMessageProcessor MessageProcessor { get; private set; } = null!;
+
+//    public RoutingSettings<AzureServiceBusTransport> Routing => new(Settings);
+//
+//    internal SettingsHolder Settings { get; } = new SettingsHolder();
+
+    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
 
     public override async Task<TransportInfrastructure> Initialize(
         HostSettings hostSettings,
@@ -39,23 +34,22 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         string[] sendingAddresses,
         CancellationToken cancellationToken = default)
     {
-        if (hostSettings.ServiceProvider is null)
+        if (!hostSettings.SupportsDependencyInjection)
         {
-            throw new Exception("ServiceProvider not available in host settings.");
+            throw new Exception("Dependency injection is required.");
         }
 
-        if (hostSettings.CoreSettings is null)
+        if (hostSettings.IsRawMode)
         {
-            throw new Exception("CoreSettings not provided in host settings");
+            throw new Exception("Raw mode is not supported.");
         }
 
-        var configuredTransport = ConfigureTransportConnection(
+        ConfigureTransportConnection(
             ConnectionName,
             hostSettings.ServiceProvider.GetRequiredService<IConfiguration>(),
-            innerTransport,
             hostSettings.ServiceProvider.GetRequiredService<AzureComponentFactory>());
 
-        var baseTransportInfrastructure = await configuredTransport.Initialize(
+        var baseTransportInfrastructure = await innerTransport.Initialize(
                 hostSettings,
                 receivers,
                 sendingAddresses,
@@ -75,16 +69,9 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
 
-    public void RegisterServices(IServiceCollection services, string endpointName)
-    {
-        services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
-            new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.MultiHosting.EndpointStarter>(endpointName)));
-    }
-
-    static AzureServiceBusTransport ConfigureTransportConnection(
+    void ConfigureTransportConnection(
         string connectionName,
         IConfiguration configuration,
-        AzureServiceBusTransport transport,
         AzureComponentFactory azureComponentFactory)
     {
         var resolvedName = string.IsNullOrWhiteSpace(connectionName) ? DefaultServiceBusConnectionName : connectionName;
@@ -96,7 +83,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
 
         if (!string.IsNullOrWhiteSpace(connectionSection.Value))
         {
-            GetConnectionStringRef(transport) = connectionSection.Value;
+            GetConnectionStringRef(innerTransport) = connectionSection.Value;
         }
         else
         {
@@ -107,11 +94,9 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
             }
 
             var credential = azureComponentFactory.CreateTokenCredential(connectionSection);
-            GetFullyQualifiedNamespaceRef(transport) = fullyQualifiedNamespace;
-            GetTokenCredentialRef(transport) = credential;
+            GetFullyQualifiedNamespaceRef(innerTransport) = fullyQualifiedNamespace;
+            GetTokenCredentialRef(innerTransport) = credential;
         }
-
-        return transport;
     }
 
     // As a temporary workaround we are accessing the properties of the AzureServiceBusTransport using UnsafeAccessor
@@ -131,5 +116,6 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     const string SendOnlyConfigKey = "Endpoint.SendOnly";
     internal const string DefaultServiceBusConnectionName = "AzureWebJobsServiceBus";
 
-    readonly TransportTransactionMode[] supportedTransactionModes = [TransportTransactionMode.ReceiveOnly];
+    readonly AzureServiceBusTransport innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
+    static readonly TransportTransactionMode[] supportedTransactionModes = [TransportTransactionMode.ReceiveOnly];
 }

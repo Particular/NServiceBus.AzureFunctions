@@ -29,6 +29,8 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         };
     }
 
+    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
+
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
     internal IInternalMessageProcessor MessageProcessor { get; private set; } = null!;

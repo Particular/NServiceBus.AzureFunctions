@@ -16,6 +16,7 @@ using NServiceBus.Transport;
 public class AzureServiceBusServerlessTransport : TransportDefinition
 {
     readonly AzureServiceBusTransport innerTransport;
+    string? assignedToEndpoint;
 
     public AzureServiceBusServerlessTransport(TopicTopology topology)
         : base(TransportTransactionMode.ReceiveOnly,
@@ -76,7 +77,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
-
+ 
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
         IConfiguration configuration,

@@ -6,6 +6,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Settings;
+using Transport;
 
 public static class FunctionsHostApplicationBuilderExtensions
 {
@@ -24,7 +25,9 @@ public static class FunctionsHostApplicationBuilderExtensions
 
         builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
         {
-            var transport = sp.GetRequiredKeyedService<IReadOnlySettings>(endpointName).Get<AzureServiceBusServerlessTransport>();
+            var settings = sp.GetRequiredKeyedService<IReadOnlySettings>(endpointName);
+            var transport = settings.Get<TransportDefinition>() as AzureServiceBusServerlessTransport
+                ?? throw new InvalidOperationException($"Endpoint '{endpointName}' must be configured with an AzureServiceBusServerlessTransport.");
             return new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName));
         });
     }

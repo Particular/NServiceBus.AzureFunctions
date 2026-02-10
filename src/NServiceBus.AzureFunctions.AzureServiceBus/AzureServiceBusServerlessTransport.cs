@@ -16,7 +16,6 @@ using NServiceBus.Transport;
 public class AzureServiceBusServerlessTransport : TransportDefinition
 {
     readonly AzureServiceBusTransport innerTransport;
-    string? assignedToEndpoint;
 
     public AzureServiceBusServerlessTransport(TopicTopology topology)
         : base(TransportTransactionMode.ReceiveOnly,

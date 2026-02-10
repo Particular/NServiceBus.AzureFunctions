@@ -29,6 +29,8 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         };
     }
 
+    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
+
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
     internal IInternalMessageProcessor MessageProcessor { get; private set; } = null!;
@@ -74,13 +76,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
-
-    public void RegisterServices(IServiceCollection services, string endpointName)
-    {
-        services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
-            new MessageProcessor(this, sp.GetRequiredKeyedService<NServiceBus.MultiHosting.EndpointStarter>(endpointName)));
-    }
-
+ 
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
         IConfiguration configuration,

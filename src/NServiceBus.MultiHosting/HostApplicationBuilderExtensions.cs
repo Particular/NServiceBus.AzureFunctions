@@ -5,15 +5,23 @@ using Microsoft.Extensions.Hosting;
 using NServiceBus.MultiHosting;
 using NServiceBus.MultiHosting.Services;
 
-public static class ServiceCollectionExtensions
+public static class HostApplicationBuilderExtensions
 {
     public static void AddNServiceBusEndpoint(
-        this IServiceCollection services,
+        this IHostApplicationBuilder builder,
         string endpointName,
         Action<EndpointConfiguration> configure)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
         ArgumentNullException.ThrowIfNull(configure);
+
+        var endpointKey = $"NServiceBus.Endpoint.{endpointName}";
+        if (builder.Properties.ContainsKey(endpointKey))
+        {
+            throw new InvalidOperationException(
+                $"An endpoint with the name '{endpointName}' has already been registered.");
+        }
+        builder.Properties[endpointKey] = true;
 
         using var _ = MultiEndpointLoggerFactory.Instance.PushName(endpointName);
 
@@ -22,17 +30,17 @@ public static class ServiceCollectionExtensions
 
         configure(endpointConfiguration);
 
-        var keyedServices = new KeyedServiceCollectionAdapter(services, endpointName);
+        var keyedServices = new KeyedServiceCollectionAdapter(builder.Services, endpointName);
         var startableEndpoint = EndpointWithExternallyManagedContainer.Create(
             endpointConfiguration, keyedServices);
 
-        services.AddKeyedSingleton(endpointName, (sp, _) =>
+        builder.Services.AddKeyedSingleton(endpointName, (sp, _) =>
             new EndpointStarter(startableEndpoint, sp, endpointName, keyedServices));
 
-        services.AddSingleton<IHostedService, NServiceBusHostedService>(sp =>
+        builder.Services.AddSingleton<IHostedService, NServiceBusHostedService>(sp =>
             new NServiceBusHostedService(sp.GetRequiredKeyedService<EndpointStarter>(endpointName)));
 
-        services.AddKeyedSingleton<IMessageSession>(endpointName, (sp, key) =>
+        builder.Services.AddKeyedSingleton<IMessageSession>(endpointName, (sp, key) =>
             new HostAwareMessageSession(sp.GetRequiredKeyedService<EndpointStarter>(key)));
     }
 }

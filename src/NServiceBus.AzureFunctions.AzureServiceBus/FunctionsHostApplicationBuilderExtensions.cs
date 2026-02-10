@@ -23,20 +23,11 @@ public static class FunctionsHostApplicationBuilderExtensions
             throw new InvalidOperationException(
                 $"This transport instance is already used by endpoint '{existingEndpoint}'. Each endpoint requires its own transport instance.");
         }
-
-        var endpointKey = $"NServiceBus.Endpoint.{endpointName}";
-        if (builder.Properties.ContainsKey(endpointKey))
-        {
-            throw new InvalidOperationException(
-                $"An endpoint with the name '{endpointName}' has already been registered.");
-        }
-
         builder.Properties[transportKey] = endpointName;
-        builder.Properties[endpointKey] = true;
 
         builder.Services.AddAzureClientsCore();
 
-        builder.Services.AddNServiceBusEndpoint(endpointName, endpoint =>
+        builder.AddNServiceBusEndpoint(endpointName, endpoint =>
         {
             endpoint.UseTransport(transport);
             configure(endpoint);

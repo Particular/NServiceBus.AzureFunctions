@@ -41,14 +41,14 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         string[] sendingAddresses,
         CancellationToken cancellationToken = default)
     {
-        if (hostSettings.ServiceProvider is null)
+        if (!hostSettings.SupportsDependencyInjection)
         {
-            throw new Exception("ServiceProvider not available in host settings.");
+            throw new Exception("AzureServiceBusServerlessTransport requires a host that provides an initialized service provider so it can resolve dependencies.");
         }
 
-        if (hostSettings.CoreSettings is null)
+        if (hostSettings.IsRawMode)
         {
-            throw new Exception("CoreSettings not provided in host settings");
+            throw new Exception("AzureServiceBusServerlessTransport must be hosted inside an NServiceBus endpoint; raw mode is not supported.");
         }
 
         var configuredTransport = ConfigureTransportConnection(

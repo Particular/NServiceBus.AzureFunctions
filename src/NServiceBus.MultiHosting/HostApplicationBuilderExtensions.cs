@@ -1,9 +1,12 @@
 namespace NServiceBus;
 
+using System.Runtime.CompilerServices;
+using Configuration.AdvancedExtensibility;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NServiceBus.MultiHosting;
-using NServiceBus.MultiHosting.Services;
+using MultiHosting;
+using MultiHosting.Services;
+using Transport;
 
 public static class HostApplicationBuilderExtensions
 {
@@ -29,6 +32,15 @@ public static class HostApplicationBuilderExtensions
         endpointConfiguration.AssemblyScanner().Disable = true;
 
         configure(endpointConfiguration);
+
+        var transport = endpointConfiguration.GetSettings().Get<TransportDefinition>();
+        var transportKey = $"NServiceBus.Transport.{RuntimeHelpers.GetHashCode(transport)}";
+        if (builder.Properties.TryGetValue(transportKey, out var existingEndpoint))
+        {
+            throw new InvalidOperationException(
+                $"This transport instance is already used by endpoint '{existingEndpoint}'. Each endpoint requires its own transport instance.");
+        }
+        builder.Properties[transportKey] = endpointName;
 
         var keyedServices = new KeyedServiceCollectionAdapter(builder.Services, endpointName);
         var startableEndpoint = EndpointWithExternallyManagedContainer.Create(

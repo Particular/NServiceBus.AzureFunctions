@@ -8,14 +8,14 @@ using Microsoft.Azure.Functions.Worker.Http;
 class TestDataFunction(GlobalTestStorage storage)
 {
     [Function(nameof(GetTestData))]
-    public Payload GetTestData([HttpTrigger(AuthorizationLevel.Function, "get", Route = "testing/data/{testName}")] HttpRequestData _, string testName)
+    public Payload GetTestData([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "testing/data/{testName}")] HttpRequestData _, string testName)
     {
         var payload = storage.CreatePayload(testName);
         return payload;
     }
 
     [Function(nameof(ClearTestData))]
-    public IActionResult ClearTestData([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "testing/data/{testName}")] HttpRequestData _, string testName)
+    public IActionResult ClearTestData([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "testing/data/{testName}")] HttpRequestData _, string testName)
     {
         storage.Clear(testName);
         return new OkResult();

@@ -39,16 +39,15 @@ jobs:
       - name: Build
         run: dotnet build src --configuration Release
       - name: Publish IntegrationTest
-        run: dotnet publish src/IntegrationTest --configuration Release --no-build
+        run: dotnet publish src/IntegrationTest --configuration Release --no-build -r win-x64
       - name: Upload packages
         if: matrix.name == 'Windows'
         uses: actions/upload-artifact@v6.0.0
         with:
           name: NuGet packages
           path: nugets/
-          retention-days: 7
+          retention-days: 1
       - name: Upload integration test package
-        if: matrix.name == 'Linux'
         uses: actions/upload-artifact@v6.0.0
         with:
           name: IntegrationTest-${{ matrix.name }}

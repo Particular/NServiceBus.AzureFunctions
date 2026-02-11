@@ -6,8 +6,15 @@ static partial class FunctionsRegistry
 
     public static IReadOnlyList<FunctionManifest> GetAll()
     {
-        var list = new List<FunctionManifest>();
-        AddGeneratedFunctions(list);
-        return list;
+        if (allFunctions is not null)
+        {
+            return allFunctions;
+        }
+
+        allFunctions = [];
+        AddGeneratedFunctions(allFunctions);
+        return allFunctions;
     }
+
+    static List<FunctionManifest>? allFunctions;
 }

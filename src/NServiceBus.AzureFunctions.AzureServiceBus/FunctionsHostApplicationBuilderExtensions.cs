@@ -6,6 +6,7 @@ using Configuration.AdvancedExtensibility;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Settings;
 using Transport;
 
@@ -49,6 +50,10 @@ public static class FunctionsHostApplicationBuilderExtensions
             transport.ConnectionName = functionManifest.ConnectionName;
 
             builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
+
+            functionManifest.Configured = true;
+
+            builder.Services.AddHostedService<FunctionConfigurationValidator>();
         });
     }
 

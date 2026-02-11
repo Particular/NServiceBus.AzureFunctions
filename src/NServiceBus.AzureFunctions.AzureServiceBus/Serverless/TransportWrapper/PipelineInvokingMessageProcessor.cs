@@ -22,9 +22,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             cancellationToken) ?? Task.CompletedTask;
     }
 
-    public async Task Process(ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
-        CancellationToken cancellationToken = default)
+    public async Task Process(ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
     {
         var messageId = message.GetMessageId();
         var body = message.GetBody();

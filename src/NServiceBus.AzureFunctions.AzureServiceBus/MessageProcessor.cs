@@ -8,8 +8,7 @@ using NServiceBus.MultiHosting;
 
 public class MessageProcessor(AzureServiceBusServerlessTransport transport, EndpointStarter endpointStarter) : IMessageProcessor
 {
-    public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions,
-        FunctionContext functionContext, CancellationToken cancellationToken = default)
+    public async Task Process(ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
     {
         using var _ = MultiEndpointLoggerFactory.Instance.PushName(endpointStarter.ServiceKey);
         await endpointStarter.GetOrStart(cancellationToken).ConfigureAwait(false);
@@ -21,6 +20,6 @@ public class MessageProcessor(AzureServiceBusServerlessTransport transport, Endp
                 $"This endpoint cannot process messages because it is configured in send-only mode.");
         }
 
-        await transport.MessageProcessor.Process(message, messageActions, cancellationToken).ConfigureAwait(false);
+        await transport.MessageProcessor.Process(message, cancellationToken).ConfigureAwait(false);
     }
 }

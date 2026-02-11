@@ -20,7 +20,9 @@ builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
         ConnectionName = "AzureWebJobsServiceBus"
     };
 
-    endpoint.UseTransport(transport);
+    var routing = endpoint.UseTransport(transport);
+
+    routing.RouteToEndpoint(typeof(TriggerMessage), "ReceiverEndpoint");
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 

@@ -44,7 +44,7 @@ builder.AddNServiceBusFunction("AnotherReceiverEndpoint", endpoint =>
     CommonEndpointSettings(endpoint);
     endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default)
     {
-        ConnectionName = "AnotherServiceBusConnection"
+        //ConnectionName = "AnotherServiceBusConnection"
     });
 
     endpoint.AddHandler<SomeEventMessageHandler>();

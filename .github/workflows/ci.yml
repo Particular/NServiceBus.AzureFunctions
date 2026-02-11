@@ -39,7 +39,7 @@ jobs:
       - name: Build
         run: dotnet build src --configuration Release
       - name: Publish IntegrationTest
-        run: dotnet publish src/IntegrationTest --configuration Release --no-build -r win-x64
+        run: dotnet publish src/IntegrationTest --configuration Release --no-build
       - name: Upload packages
         if: matrix.name == 'Windows'
         uses: actions/upload-artifact@v6.0.0

@@ -22,17 +22,31 @@ public static class FunctionsHostApplicationBuilderExtensions
 
         builder.Services.AddAzureClientsCore();
 
-        builder.AddNServiceBusEndpoint(endpointName, c =>
+        builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
         {
-            configure(c);
+            configure(endpointConfiguration);
 
-            var settings = c.GetSettings();
+            var settings = endpointConfiguration.GetSettings();
             if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
             {
                 throw new InvalidOperationException($"Functions can't be send only endpoints, use {nameof(AddSendOnlyNServiceBusEndpoint)}");
             }
 
+            var functionManifest = FunctionsRegistry.GetAll().SingleOrDefault(f => f.Name.Equals(endpointName, StringComparison.InvariantCultureIgnoreCase));
+
+            if (functionManifest is null)
+            {
+                throw new InvalidOperationException($"No function with name {endpointName} found");
+            }
+
+            if (functionManifest.Name != functionManifest.Queue)
+            {
+                endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
+            }
+
             var transport = GetTransport(settings);
+
+            transport.ConnectionName = functionManifest.ConnectionName;
 
             builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
         });
@@ -47,14 +61,14 @@ public static class FunctionsHostApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(endpointName);
         ArgumentNullException.ThrowIfNull(configure);
 
-        builder.AddNServiceBusEndpoint(endpointName, c =>
+        builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
         {
-            configure(c);
+            configure(endpointConfiguration);
 
-            c.SendOnly();
+            endpointConfiguration.SendOnly();
 
             // Make sure that the correct transport is used
-            _ = GetTransport(c.GetSettings());
+            _ = GetTransport(endpointConfiguration.GetSettings());
         });
     }
 

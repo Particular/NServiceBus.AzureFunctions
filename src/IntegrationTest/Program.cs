@@ -14,7 +14,13 @@ builder.Services.AddHostedService<InitializeLogger>();
 
 builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
 {
-    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
+    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default)
+    {
+        //send only endpoints might need to set the connection name
+        ConnectionName = "AzureWebJobsServiceBus"
+    };
+
+    endpoint.UseTransport(transport);
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 

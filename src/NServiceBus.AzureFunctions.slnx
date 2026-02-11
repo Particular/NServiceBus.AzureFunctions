@@ -4,6 +4,8 @@
     <Project Path="NServiceBus.AzureFunctions.CodeFixes/NServiceBus.AzureFunctions.CodeFixes.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="..\.github\workflows\ci.yml" />
+    <File Path="..\global.json" />
     <File Path="Custom.Build.props" />
   </Folder>
   <Folder Name="/Tests/">

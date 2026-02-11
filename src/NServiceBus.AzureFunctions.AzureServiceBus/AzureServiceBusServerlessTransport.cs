@@ -9,22 +9,15 @@ using Azure.Core;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NServiceBus.AzureFunctions.AzureServiceBus;
 using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 using NServiceBus.Transport;
 
-public class AzureServiceBusServerlessTransport : TransportDefinition
+public class AzureServiceBusServerlessTransport(TopicTopology topology) : TransportDefinition(TransportTransactionMode.ReceiveOnly,
+    supportsDelayedDelivery: true,
+    supportsPublishSubscribe: true,
+    supportsTTBR: true)
 {
-    readonly AzureServiceBusTransport innerTransport;
-
-    public AzureServiceBusServerlessTransport(TopicTopology topology)
-        : base(TransportTransactionMode.ReceiveOnly,
-            supportsDelayedDelivery: true,
-            supportsPublishSubscribe: true,
-            supportsTTBR: true)
-    {
-        innerTransport = new AzureServiceBusTransport("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
-    }
+    readonly AzureServiceBusTransport innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
 
     protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
 

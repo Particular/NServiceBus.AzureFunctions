@@ -33,27 +33,30 @@ public static class FunctionsHostApplicationBuilderExtensions
                 throw new InvalidOperationException($"Functions can't be send only endpoints, use {nameof(AddSendOnlyNServiceBusEndpoint)}");
             }
 
-            var functionManifest = FunctionsRegistry.GetAll().SingleOrDefault(f => f.Name.Equals(endpointName, StringComparison.InvariantCultureIgnoreCase));
-
-            if (functionManifest is null)
-            {
-                throw new InvalidOperationException($"No function with name {endpointName} found");
-            }
-
-            if (functionManifest.Name != functionManifest.Queue)
-            {
-                endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
-            }
-
             var transport = GetTransport(settings);
 
-            transport.ConnectionName = functionManifest.ConnectionName;
+            if (FunctionsRegistry.SourceGeneratorEnabled)
+            {
+                var functionManifest = FunctionsRegistry.GetAll().SingleOrDefault(f => f.Name.Equals(endpointName, StringComparison.InvariantCultureIgnoreCase));
+
+                if (functionManifest is null)
+                {
+                    throw new InvalidOperationException($"No function with name {endpointName} found");
+                }
+
+                if (functionManifest.Name != functionManifest.Queue)
+                {
+                    endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
+                }
+
+                transport.ConnectionName = functionManifest.ConnectionName;
+
+                functionManifest.Configured = true;
+
+                builder.Services.AddHostedService<FunctionConfigurationValidator>();
+            }
 
             builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
-
-            functionManifest.Configured = true;
-
-            builder.Services.AddHostedService<FunctionConfigurationValidator>();
         });
     }
 

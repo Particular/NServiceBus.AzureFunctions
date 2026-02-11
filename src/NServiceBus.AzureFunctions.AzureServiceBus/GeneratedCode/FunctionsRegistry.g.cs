@@ -6,5 +6,7 @@ static partial class FunctionsRegistry
     {
         entries.Add(new("ReceiverEndpoint", "ReceiverEndpoint", "AzureWebJobsServiceBus"));
         entries.Add(new("AnotherReceiverEndpoint", "AnotherReceiverEndpoint", "AzureWebJobsServiceBus"));
+
+        SourceGeneratorEnabled = true;
     }
 }

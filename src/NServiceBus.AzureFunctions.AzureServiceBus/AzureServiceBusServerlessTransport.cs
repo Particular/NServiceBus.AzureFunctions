@@ -17,8 +17,6 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
     supportsPublishSubscribe: true,
     supportsTTBR: true)
 {
-    readonly AzureServiceBusTransport innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
-
     protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
 
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
@@ -66,7 +64,7 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
         return serverlessTransportInfrastructure;
     }
 
-    public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
+    public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => [TransportTransactionMode.ReceiveOnly];
 
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
@@ -114,9 +112,9 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TokenCredential>k__BackingField")]
     static extern ref TokenCredential GetTokenCredentialRef(AzureServiceBusTransport transport);
 
+    readonly AzureServiceBusTransport innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
+
     const string MainReceiverId = "Main";
     internal const string SendOnlyConfigKey = "Endpoint.SendOnly";
     internal const string DefaultServiceBusConnectionName = "AzureWebJobsServiceBus";
-
-    readonly TransportTransactionMode[] supportedTransactionModes = [TransportTransactionMode.ReceiveOnly];
 }

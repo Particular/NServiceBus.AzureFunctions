@@ -19,21 +19,18 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
 
     public AzureServiceBusServerlessTransport(TopicTopology topology)
         : base(TransportTransactionMode.ReceiveOnly,
-               supportsDelayedDelivery: true,
-               supportsPublishSubscribe: true,
-               supportsTTBR: true)
+            supportsDelayedDelivery: true,
+            supportsPublishSubscribe: true,
+            supportsTTBR: true)
     {
-        innerTransport = new AzureServiceBusTransport("TransportWillBeInitializedCorrectlyLater", topology)
-        {
-            TransportTransactionMode = TransportTransactionMode.ReceiveOnly
-        };
+        innerTransport = new AzureServiceBusTransport("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
     }
 
     protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
 
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
-    internal IInternalMessageProcessor MessageProcessor { get; private set; } = null!;
+    internal PipelineInvokingMessageProcessor? MessageProcessor { get; private set; }
 
     public override async Task<TransportInfrastructure> Initialize(
         HostSettings hostSettings,
@@ -68,15 +65,16 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
 
         var isSendOnly = hostSettings.CoreSettings.GetOrDefault<bool>(SendOnlyConfigKey);
 
-        MessageProcessor = isSendOnly
-            ? new SendOnlyMessageProcessor()
-            : (IInternalMessageProcessor)serverlessTransportInfrastructure.Receivers[MainReceiverId];
+        if (!isSendOnly)
+        {
+            MessageProcessor = (PipelineInvokingMessageProcessor)serverlessTransportInfrastructure.Receivers[MainReceiverId];
+        }
 
         return serverlessTransportInfrastructure;
     }
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
- 
+
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
         IConfiguration configuration,
@@ -124,7 +122,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     static extern ref TokenCredential GetTokenCredentialRef(AzureServiceBusTransport transport);
 
     const string MainReceiverId = "Main";
-    const string SendOnlyConfigKey = "Endpoint.SendOnly";
+    internal const string SendOnlyConfigKey = "Endpoint.SendOnly";
     internal const string DefaultServiceBusConnectionName = "AzureWebJobsServiceBus";
 
     readonly TransportTransactionMode[] supportedTransactionModes = [TransportTransactionMode.ReceiveOnly];

@@ -12,10 +12,9 @@ LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);
 
 builder.Services.AddHostedService<InitializeLogger>();
 
-builder.AddNServiceBusFunction("SenderEndpoint", endpoint =>
+builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
 {
     endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
-    endpoint.SendOnly();
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 

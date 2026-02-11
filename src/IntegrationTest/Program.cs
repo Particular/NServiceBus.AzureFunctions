@@ -12,18 +12,16 @@ LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);
 
 builder.Services.AddHostedService<InitializeLogger>();
 
-builder.AddNServiceBusFunction("SenderEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default),
-    endpoint =>
+builder.AddNServiceBusFunction("SenderEndpoint", endpoint =>
 {
+    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
     endpoint.SendOnly();
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 
-builder.AddNServiceBusFunction("ReceiverEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default),
-    endpoint =>
+builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 {
+    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
     endpoint.EnableInstallers();
     endpoint.UsePersistence<LearningPersistence>();
     endpoint.UseSerialization<SystemJsonSerializer>();
@@ -33,13 +31,12 @@ builder.AddNServiceBusFunction("ReceiverEndpoint",
     endpoint.AddHandler<SomeEventMessageHandler>();
 });
 
-builder.AddNServiceBusFunction("AnotherReceiverEndpoint",
-    new AzureServiceBusServerlessTransport(TopicTopology.Default)
+builder.AddNServiceBusFunction("AnotherReceiverEndpoint", endpoint =>
+{
+    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default)
     {
         ConnectionName = "AnotherServiceBusConnection"
-    },
-    endpoint =>
-{
+    });
     endpoint.EnableInstallers();
     endpoint.UsePersistence<LearningPersistence>();
     endpoint.UseSerialization<SystemJsonSerializer>();

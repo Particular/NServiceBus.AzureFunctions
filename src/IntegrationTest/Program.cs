@@ -33,10 +33,7 @@ builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 
 builder.AddNServiceBusFunction("AnotherReceiverEndpoint", endpoint =>
 {
-    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default)
-    {
-        ConnectionName = "AnotherServiceBusConnection"
-    });
+    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
     endpoint.EnableInstallers();
     endpoint.UsePersistence<LearningPersistence>();
     endpoint.UseSerialization<SystemJsonSerializer>();

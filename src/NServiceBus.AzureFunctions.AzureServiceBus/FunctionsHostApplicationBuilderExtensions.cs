@@ -2,10 +2,10 @@ namespace NServiceBus;
 
 using System;
 using AzureFunctions.AzureServiceBus;
+using Configuration.AdvancedExtensibility;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
-using Settings;
 using Transport;
 
 public static class FunctionsHostApplicationBuilderExtensions
@@ -21,14 +21,21 @@ public static class FunctionsHostApplicationBuilderExtensions
 
         builder.Services.AddAzureClientsCore();
 
-        builder.AddNServiceBusEndpoint(endpointName, configure);
-
-        builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) =>
+        builder.AddNServiceBusEndpoint(endpointName, c =>
         {
-            var settings = sp.GetRequiredKeyedService<IReadOnlySettings>(endpointName);
-            var transport = settings.Get<TransportDefinition>() as AzureServiceBusServerlessTransport
-                ?? throw new InvalidOperationException($"Endpoint '{endpointName}' must be configured with an AzureServiceBusServerlessTransport.");
-            return new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName));
+            configure(c);
+
+            if (!c.GetSettings().TryGet(out TransportDefinition transport))
+            {
+                throw new InvalidOperationException("No transport has been defined.");
+            }
+
+            if (transport is not AzureServiceBusServerlessTransport serverlessTransport)
+            {
+                throw new InvalidOperationException($"Endpoint '{endpointName}' must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
+            }
+
+            builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(serverlessTransport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
         });
     }
 }

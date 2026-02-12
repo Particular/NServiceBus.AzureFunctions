@@ -12,6 +12,8 @@ LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);
 
 builder.Services.AddHostedService<InitializeLogger>();
 
+builder.UseNServiceBusFunctions();
+
 // Send-only using a separate API since they are not "functions"
 builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
 {

@@ -49,7 +49,7 @@ builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 });
 
 //option 2: Pass in a manifest that we have source genned
-builder.AddNServiceBusFunction(NServiceBusEndpoints.AnotherEndpoint, configuration =>
+builder.AddNServiceBusFunction(NServiceBusEndpoints.AnotherReceiverEndpoint, configuration =>
 {
     configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
     configuration.EnableInstallers();
@@ -60,7 +60,18 @@ builder.AddNServiceBusFunction(NServiceBusEndpoints.AnotherEndpoint, configurati
 });
 
 //option 3: Use a type that we have source genned
-builder.AddNServiceBusFunction<AnotherEndpoint2>(configuration =>
+builder.AddNServiceBusFunction<AnotherReceiverEndpoint2>(configuration =>
+{
+    configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
+    configuration.EnableInstallers();
+    configuration.UsePersistence<LearningPersistence>();
+    configuration.UseSerialization<SystemJsonSerializer>();
+
+    configuration.AddHandler<SomeEventMessageHandler>();
+});
+
+//option 4: Use source genned method
+builder.AddAnotherEndpoint3NServiceBusFunction(configuration =>
 {
     configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
     configuration.EnableInstallers();

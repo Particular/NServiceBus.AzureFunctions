@@ -42,13 +42,22 @@ public class AnotherReceiverEndpoint2Function([FromKeyedServices("AnotherReceive
 }
 
 //IDEA: Can we somehow use these as both the runtime hook and the manifest? Ie so that users can do; builder.AddNServiceBusFunction<AnotherReceiverEndpoint3Function>(c=>...)
-public class AnotherReceiverEndpoint3Function([FromKeyedServices("AnotherReceiverEndpoint3")] IMessageProcessor processor)
+public class AnotherReceiverEndpoint3Function
 {
     [Function("AnotherReceiverEndpoint3")]
     public Task Receiver(
         [ServiceBusTrigger("AnotherReceiverEndpoint3", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
-        ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
+        ServiceBusReceivedMessage message, FunctionContext functionContext, CancellationToken cancellationToken = default)
     {
+        //demo using service locator to avoid having to add a ctor
+        var processor = functionContext.InstanceServices.GetKeyedService<IMessageProcessor>("AnotherReceiverEndpoint3");
+
+        if (processor is null)
+        {
+            //which also allows us to throw a better exception
+            throw new InvalidOperationException("AnotherReceiverEndpoint3 is not configured, please add AddBlahBla to your program.cs");
+        }
+
         return processor.Process(message, cancellationToken);
     }
 }

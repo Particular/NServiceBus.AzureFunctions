@@ -1,11 +1,11 @@
-namespace IntegrationTest;
+namespace IntegrationTest.Business;
 
 using NServiceBus;
 using NServiceBus.AzureFunctions.AzureServiceBus;
 
-public static class CommonEndpointConfig
+public abstract class EndpointConfigBase
 {
-    public static void Apply(EndpointConfiguration endpoint)
+    public virtual void Configure(EndpointConfiguration endpoint)
     {
         endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
         endpoint.EnableInstallers();

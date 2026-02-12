@@ -12,7 +12,7 @@ namespace NServiceBus
 
     public record AnotherReceiverEndpoint3() : FunctionManifest("AnotherReceiverEndpoint3", "AnotherReceiverEndpoint3", "AzureWebJobsServiceBus");
 
-    public static class FunctionsHostApplicationBuilderExtensions
+    public static class GeneratedFunctionsExtensions
     {
         public static void AddAnotherEndpoint3NServiceBusFunction(
             this FunctionsApplicationBuilder builder,
@@ -20,59 +20,32 @@ namespace NServiceBus
             builder.AddNServiceBusFunction<AnotherReceiverEndpoint3>(configure);
     }
 
-    // --- Fake source gen for class-based endpoint model ---
-    // A real source generator would discover all [NServiceBusEndpoint] classes,
-    // generate the function stubs below, and emit UseNServiceBusFunctions.
-
-    public static class NServiceBusFunctionsRegistration
-    {
-        public static void UseNServiceBusFunctions(this FunctionsApplicationBuilder builder)
-        {
-            builder.AddNServiceBusFunction("SalesEndpoint", IntegrationTest.SalesEndpoint.Configure);
-            builder.AddNServiceBusFunction("BillingEndpoint", IntegrationTest.BillingEndpoint.Configure);
-        }
-    }
-}
-
-// --- Generated function stubs (one partial per [NServiceBusEndpoint] class) ---
-// The user never writes these - source gen creates them from the attribute.
-
-namespace IntegrationTest
-{
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Azure.Messaging.ServiceBus;
-    using Microsoft.Azure.Functions.Worker;
-    using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.AzureFunctions.AzureServiceBus;
-
-    public partial class SalesEndpoint
-    {
-        [Function("SalesEndpoint")]
-        public Task ProcessMessage(
-            [ServiceBusTrigger("SalesEndpoint", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
-            ServiceBusReceivedMessage message,
-            FunctionContext functionContext,
-            CancellationToken cancellationToken = default)
-        {
-            var processor = functionContext.InstanceServices
-                .GetRequiredKeyedService<IMessageProcessor>("SalesEndpoint");
-            return processor.Process(message, cancellationToken);
-        }
-    }
-
-    public partial class BillingEndpoint
-    {
-        [Function("BillingEndpoint")]
-        public Task ProcessMessage(
-            [ServiceBusTrigger("BillingEndpoint", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
-            ServiceBusReceivedMessage message,
-            FunctionContext functionContext,
-            CancellationToken cancellationToken = default)
-        {
-            var processor = functionContext.InstanceServices
-                .GetRequiredKeyedService<IMessageProcessor>("BillingEndpoint");
-            return processor.Process(message, cancellationToken);
-        }
-    }
+    // public static class NServiceBusFunctionsRegistration
+    // {
+    //     public static void UseNServiceBusFunctions(this FunctionsApplicationBuilder builder)
+    //     {
+    //         builder.Services.AddSingleton(new ExpectedNServiceBusFunction("SalesEndpoint"));
+    //         builder.Services.AddSingleton(new ExpectedNServiceBusFunction("BillingEndpoint"));
+    //
+    //         builder.AddNServiceBusFunction<IntegrationTest.SalesEndpoint>("SalesEndpoint");
+    //         builder.AddNServiceBusFunction<IntegrationTest.BillingEndpoint>("BillingEndpoint");
+    //
+    //         builder.Services.AddHostedService<FunctionConfigurationValidator>();
+    //     }
+    // }
+    //
+    // public partial class SalesEndpoint
+    // {
+    //     [Function("SalesEndpoint")]
+    //     public Task ProcessMessage(
+    //         [ServiceBusTrigger("SalesEndpoint", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
+    //         ServiceBusReceivedMessage message,
+    //         FunctionContext functionContext,
+    //         CancellationToken cancellationToken = default)
+    //     {
+    //         var processor = functionContext.InstanceServices
+    //             .GetRequiredKeyedService<IMessageProcessor>("SalesEndpoint");
+    //         return processor.Process(message, cancellationToken);
+    //     }
+    // }
 }

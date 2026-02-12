@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using NServiceBus;
 using NServiceBus.Logging;
 
-public class SomeEventMessageHandler : IHandleMessages<SomeEvent>
+public partial class SomeEventMessageHandler : IHandleMessages<SomeEvent>
 {
     // using static logger here deliberately
     static readonly ILog Log = LogManager.GetLogger<SomeOtherMessageHandler>();

@@ -19,6 +19,14 @@ public static class FunctionsHostApplicationBuilderExtensions
         builder.AddNServiceBusFunction(manifest, configure);
     }
 
+    public static void AddNServiceBusFunction<TEndpoint>(
+        this FunctionsApplicationBuilder builder,
+        string endpointName) where TEndpoint : IFunctionConfig, new()
+    {
+        var config = new TEndpoint();
+        builder.AddNServiceBusFunction(endpointName, config.Configure);
+    }
+
     public static void AddNServiceBusFunction(
         this FunctionsApplicationBuilder builder,
         string endpointName,

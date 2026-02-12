@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.AzureFunctions.AzureServiceBus\NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.CodeFixes\NServiceBus.AzureFunctions.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

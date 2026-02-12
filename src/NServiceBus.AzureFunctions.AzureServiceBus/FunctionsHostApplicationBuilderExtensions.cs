@@ -6,7 +6,6 @@ using Configuration.AdvancedExtensibility;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Settings;
 using Transport;
 
@@ -15,14 +14,21 @@ public static class FunctionsHostApplicationBuilderExtensions
     public static void AddNServiceBusFunction(
         this FunctionsApplicationBuilder builder,
         string endpointName,
+        Action<EndpointConfiguration> configure) =>
+        builder.AddNServiceBusFunction(new FunctionManifest(endpointName, endpointName, AzureServiceBusServerlessTransport.DefaultServiceBusConnectionName), configure);
+
+    public static void AddNServiceBusFunction(
+        this FunctionsApplicationBuilder builder,
+        FunctionManifest functionManifest,
         Action<EndpointConfiguration> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(endpointName);
+        ArgumentNullException.ThrowIfNull(functionManifest);
         ArgumentNullException.ThrowIfNull(configure);
 
         builder.Services.AddAzureClientsCore();
 
+        var endpointName = functionManifest.Name;
         builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
         {
             configure(endpointConfiguration);
@@ -35,26 +41,17 @@ public static class FunctionsHostApplicationBuilderExtensions
 
             var transport = GetTransport(settings);
 
-            if (FunctionsRegistry.SourceGeneratorEnabled)
+
+            if (functionManifest.Name != functionManifest.Queue)
             {
-                var functionManifest = FunctionsRegistry.GetAll().SingleOrDefault(f => f.Name.Equals(endpointName, StringComparison.InvariantCultureIgnoreCase));
-
-                if (functionManifest is null)
-                {
-                    throw new InvalidOperationException($"No function with name {endpointName} found");
-                }
-
-                if (functionManifest.Name != functionManifest.Queue)
-                {
-                    endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
-                }
-
-                transport.ConnectionName = functionManifest.ConnectionName;
-
-                functionManifest.Configured = true;
-
-                builder.Services.AddHostedService<FunctionConfigurationValidator>();
+                endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
             }
+
+            transport.ConnectionName = functionManifest.ConnectionName;
+
+            functionManifest.Configured = true;
+
+            builder.Services.AddHostedService<FunctionConfigurationValidator>();
 
             builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
         });

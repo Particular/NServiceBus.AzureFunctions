@@ -26,9 +26,14 @@ builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 
+//option 1: No source gen on the configuration side, name, queue and connection name needs to match the function definition
 builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 {
-    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
+    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
+
+    // if they differ this needs to be done
+    endpoint.OverrideLocalAddress("ReceiverEndpoint");
+    endpoint.UseTransport(transport);
     endpoint.EnableInstallers();
     endpoint.UsePersistence<LearningPersistence>();
     endpoint.UseSerialization<SystemJsonSerializer>();
@@ -38,14 +43,15 @@ builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
     endpoint.AddHandler<SomeEventMessageHandler>();
 });
 
-builder.AddNServiceBusFunction("AnotherReceiverEndpoint", endpoint =>
+//option 2: Pass in a manifest that we have source genned
+builder.AddNServiceBusFunction(NServiceBusEndpoints.AnotherEndpoint, configuration =>
 {
-    endpoint.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
-    endpoint.EnableInstallers();
-    endpoint.UsePersistence<LearningPersistence>();
-    endpoint.UseSerialization<SystemJsonSerializer>();
+    configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
+    configuration.EnableInstallers();
+    configuration.UsePersistence<LearningPersistence>();
+    configuration.UseSerialization<SystemJsonSerializer>();
 
-    endpoint.AddHandler<SomeEventMessageHandler>();
+    configuration.AddHandler<SomeEventMessageHandler>();
 });
 
 var host = builder.Build();

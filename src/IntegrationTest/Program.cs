@@ -27,6 +27,9 @@ builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 
+
+//NOTE: forgetting to register a function leads to "Exception: Unable to resolve service for type 'NServiceBus.AzureFunctions.AzureServiceBus.IMessageProcessor' while attempting to activate 'IntegrationTest.AnotherReceiverEndpoint3Function'."
+
 //option 1: No source gen on the configuration side, user needs to use correct name, queue and connection name as the function definition
 builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 {

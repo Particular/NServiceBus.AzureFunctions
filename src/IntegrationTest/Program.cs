@@ -12,6 +12,7 @@ LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);
 
 builder.Services.AddHostedService<InitializeLogger>();
 
+// Send-only using a separate API since they are not "functions"
 builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
 {
     var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default)
@@ -26,10 +27,14 @@ builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 
-//option 1: No source gen on the configuration side, name, queue and connection name needs to match the function definition
+//option 1: No source gen on the configuration side, user needs to use correct name, queue and connection name as the function definition
 builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 {
-    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
+    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default)
+    {
+        //this needs to match
+        ConnectionName = "AzureWebJobsServiceBus"
+    };
 
     // if they differ this needs to be done
     endpoint.OverrideLocalAddress("ReceiverEndpoint");
@@ -45,6 +50,17 @@ builder.AddNServiceBusFunction("ReceiverEndpoint", endpoint =>
 
 //option 2: Pass in a manifest that we have source genned
 builder.AddNServiceBusFunction(NServiceBusEndpoints.AnotherEndpoint, configuration =>
+{
+    configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
+    configuration.EnableInstallers();
+    configuration.UsePersistence<LearningPersistence>();
+    configuration.UseSerialization<SystemJsonSerializer>();
+
+    configuration.AddHandler<SomeEventMessageHandler>();
+});
+
+//option 3: Use a type that we have source genned
+builder.AddNServiceBusFunction<AnotherEndpoint2>(configuration =>
 {
     configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
     configuration.EnableInstallers();

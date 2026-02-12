@@ -11,6 +11,14 @@ using Transport;
 
 public static class FunctionsHostApplicationBuilderExtensions
 {
+    public static void AddNServiceBusFunction<TFunctionManifest>(
+        this FunctionsApplicationBuilder builder,
+        Action<EndpointConfiguration> configure) where TFunctionManifest : FunctionManifest, new()
+    {
+        var manifest = new TFunctionManifest();
+        builder.AddNServiceBusFunction(manifest, configure);
+    }
+
     public static void AddNServiceBusFunction(
         this FunctionsApplicationBuilder builder,
         string endpointName,

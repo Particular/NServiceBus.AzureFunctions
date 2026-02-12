@@ -29,3 +29,14 @@ public class AnotherReceiverEndpoint([FromKeyedServices("AnotherReceiverEndpoint
         return processor.Process(message, cancellationToken);
     }
 }
+
+public class AnotherReceiverEndpoint2([FromKeyedServices("AnotherReceiverEndpoint2")] IMessageProcessor processor)
+{
+    [Function("AnotherReceiverEndpoint2")]
+    public Task Receiver(
+        [ServiceBusTrigger("AnotherReceiverEndpoint2", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
+        ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
+    {
+        return processor.Process(message, cancellationToken);
+    }
+}

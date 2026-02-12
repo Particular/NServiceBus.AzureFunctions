@@ -6,14 +6,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 public class FunctionConfigurationValidator(
-    IEnumerable<ExpectedNServiceBusFunction> expectedFunctions,
+    string[] endpointNames,
     IServiceProvider serviceProvider) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken = default)
     {
-        var unconfigured = expectedFunctions
-            .Where(f => serviceProvider.GetKeyedService<IMessageProcessor>(f.Name) is null)
-            .Select(f => f.Name)
+        var unconfigured = endpointNames
+            .Where(name => serviceProvider.GetKeyedService<IMessageProcessor>(name) is null)
             .ToArray();
 
         if (unconfigured.Length > 0)
@@ -28,9 +27,4 @@ public class FunctionConfigurationValidator(
     }
 
     public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-}
-
-public class ExpectedNServiceBusFunction(string name)
-{
-    public string Name => name;
 }

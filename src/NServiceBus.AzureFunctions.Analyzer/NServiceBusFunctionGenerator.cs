@@ -317,18 +317,12 @@ namespace NServiceBus.AzureFunctions.Analyzers
             sb.AppendLine("{");
             sb.AppendLine("    using Microsoft.Azure.Functions.Worker.Builder;");
             sb.AppendLine("    using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine("    using Microsoft.Extensions.Hosting;");
             sb.AppendLine();
             sb.AppendLine("    public static class NServiceBusFunctionsRegistration");
             sb.AppendLine("    {");
             sb.AppendLine("        public static void UseNServiceBusFunctions(this FunctionsApplicationBuilder builder)");
             sb.AppendLine("        {");
-
-            foreach (var endpoint in endpoints)
-            {
-                sb.AppendLine($"            builder.Services.AddSingleton(new ExpectedNServiceBusFunction(\"{endpoint.EndpointName}\"));");
-            }
-
-            sb.AppendLine();
 
             foreach (var endpoint in endpoints)
             {
@@ -347,7 +341,10 @@ namespace NServiceBus.AzureFunctions.Analyzers
             }
 
             sb.AppendLine();
-            sb.AppendLine("            builder.Services.AddHostedService<FunctionConfigurationValidator>();");
+
+            var names = string.Join(", ", endpoints.Select(e => $"\"{e.EndpointName}\""));
+            sb.AppendLine($"            builder.Services.AddHostedService(sp => new FunctionConfigurationValidator(new[] {{ {names} }}, sp));");
+
             sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("}");

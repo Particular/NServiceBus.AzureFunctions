@@ -41,6 +41,7 @@ public class AnotherReceiverEndpoint2Function([FromKeyedServices("AnotherReceive
     }
 }
 
+//IDEA: Can we somehow use these as both the runtime hook and the manifest? Ie so that users can do; builder.AddNServiceBusFunction<AnotherReceiverEndpoint3Function>(c=>...)
 public class AnotherReceiverEndpoint3Function([FromKeyedServices("AnotherReceiverEndpoint3")] IMessageProcessor processor)
 {
     [Function("AnotherReceiverEndpoint3")]

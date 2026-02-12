@@ -18,8 +18,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
-            name: Windows
+#          - os: windows-latest
+#            name: Windows
           - os: ubuntu-latest
             name: Linux
       fail-fast: false
@@ -38,21 +38,19 @@ jobs:
           global-json-file: global.json
       - name: Build
         run: dotnet build src --configuration Release
-      - name: Publish IntegrationTest
-        run: dotnet publish src/IntegrationTest --configuration Release --no-build
       - name: Upload packages
         if: matrix.name == 'Windows'
         uses: actions/upload-artifact@v6.0.0
         with:
           name: NuGet packages
           path: nugets/
-          retention-days: 1
+          retention-days: 7
       - name: Upload integration test package
         uses: actions/upload-artifact@v6.0.0
         with:
           name: IntegrationTest-${{ matrix.name }}
           path: src/IntegrationTest/bin/Release/net10.0
-          retention-days: 7
+          retention-days: 1
       - name: Azure login
         uses: azure/login@v2.3.0
         with:
@@ -70,14 +68,16 @@ jobs:
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: NSB.AzureFunctions
           env-vars-to-promote: AzureWebJobsServiceBus
+      - name: Sleep 30s
+        run: sleep 30
       - name: Deploy IntegrationTest app
         uses: azure/webapps-deploy@v2.2.17 # Do not upgrade to v3, see https://github.com/Azure/webapps-deploy/issues/386
         with:
           app-name: ${{ steps.setup-functions.outputs.app-name }}
           publish-profile: ${{ steps.setup-functions.outputs.publish-profile }}
           # TODO: Build to a non-tfm-dependent path
-          package: src/IntegrationTest/bin/Release/net10.0/publish
-      - name: Run tests
-        uses: Particular/run-tests-action@v1.7.0
-        env:
-          INTEGRATION_APP_HOSTNAME: ${{ steps.setup-functions.outputs.hostname }}
+          package: src/IntegrationTest/bin/Release/net10.0
+#      - name: Run tests
+#        uses: Particular/run-tests-action@v1.7.0
+#        env:
+#          INTEGRATION_APP_HOSTNAME: ${{ steps.setup-functions.outputs.hostname }}

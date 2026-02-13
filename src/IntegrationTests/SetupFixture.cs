@@ -2,6 +2,7 @@
 using IntegrationTest.Contracts;
 using NUnit.Framework;
 
+[SetUpFixture]
 public class SetupFixture
 {
     public static readonly string AppBaseUrl;
@@ -25,16 +26,32 @@ public class SetupFixture
         const int timeout = 30;
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
 
-        while (!cts.IsCancellationRequested)
+        try
         {
-            var info = await http.GetFromJsonAsync<InfoResult>(versionUrl, cts.Token);
-
-            if (info is not null && info.Uptime > TimeSpan.Zero)
+            while (!cts.IsCancellationRequested)
             {
-                return;
+                try
+                {
+
+                    var info = await http.GetFromJsonAsync<InfoResult>(versionUrl, cts.Token);
+
+                    if (info is not null && info.Uptime > TimeSpan.Zero)
+                    {
+                        return;
+                    }
+
+                    await TestContext.Error.WriteLineAsync($"Got null from {versionUrl}, will retry after 2s delay");
+                }
+                catch (HttpRequestException e)
+                {
+                    await TestContext.Error.WriteLineAsync($"Got {e.GetType().Name} accessing {versionUrl}, will retry after 2s delay");
+                }
+                await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
             }
         }
-
-        Assert.Fail($"/api/testing failed to respond within {timeout}s");
+        catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
+        {
+            Assert.Fail($"/api/testing failed to respond within {timeout}s");
+        }
     }
 }

@@ -45,7 +45,7 @@ public class FirstTest
                 await Task.Delay(1000, cts.Token);
             }
         }
-        catch (OperationCanceledException e) when (cts.Token.IsCancellationRequested)
+        catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
         {
             var msg = $"Test {timeout}s timeout elapsed after {attempts} get attempts. ";
             var payloadInfo = payload is null

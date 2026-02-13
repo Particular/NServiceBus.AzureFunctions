@@ -4,6 +4,7 @@ using Azure.Messaging.ServiceBus;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
+// Pattern for multiple endpoints in one class with separate configs
 public partial class BillingFunctions
 {
     [Function("BillingApi")]

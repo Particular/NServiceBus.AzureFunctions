@@ -36,15 +36,20 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         }
 
         var attr = context.Attributes[0];
-        if (attr.ConstructorArguments.Length == 0 || attr.ConstructorArguments[0].Value is not INamedTypeSymbol configType)
-        {
-            return ImmutableArray<FunctionInfo>.Empty;
-        }
 
-        var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        // Extract explicit config type from typeof() argument, if provided
+        INamedTypeSymbol? explicitConfigType = null;
+        if (attr.ConstructorArguments.Length > 0)
+        {
+            explicitConfigType = attr.ConstructorArguments[0].Value as INamedTypeSymbol;
+        }
 
         if (context.TargetSymbol is INamedTypeSymbol classSymbol)
         {
+            // Class-level: infer config type from the class itself when no typeof()
+            var configType = explicitConfigType ?? classSymbol;
+            var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
             var results = ImmutableArray.CreateBuilder<FunctionInfo>();
             foreach (var member in classSymbol.GetMembers())
             {
@@ -63,6 +68,10 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
         if (context.TargetSymbol is IMethodSymbol methodSymbol)
         {
+            // Method-level: infer config type from the containing class when no typeof()
+            var configType = explicitConfigType ?? methodSymbol.ContainingType;
+            var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
             var info = TryExtractFromMethod(methodSymbol, configTypeFullName);
             return info is not null
                 ? ImmutableArray.Create(info.Value)

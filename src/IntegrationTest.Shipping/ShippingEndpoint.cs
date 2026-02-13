@@ -4,7 +4,7 @@ using Azure.Messaging.ServiceBus;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
-[NServiceBusFunction(typeof(ShippingEndpoint))]
+[NServiceBusFunction]
 public partial class ShippingEndpoint : IEndpointConfiguration
 {
     [Function("Shipping")]

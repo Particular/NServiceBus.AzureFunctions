@@ -4,8 +4,9 @@ using Azure.Messaging.ServiceBus;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
-[NServiceBusFunction(typeof(SalesEndpoint))]
-public partial class SalesEndpoint : IEndpointConfiguration
+// Cleanest pattern for single-function endpoints
+[NServiceBusFunction]
+public partial class SalesEndpoint : EndpointConfigBase
 {
     [Function("Sales")]
     public partial Task ProcessMessage(
@@ -14,9 +15,9 @@ public partial class SalesEndpoint : IEndpointConfiguration
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public void Configure(EndpointConfiguration endpoint)
+    public override void Configure(EndpointConfiguration configuration)
     {
-        CommonEndpointConfig.Apply(endpoint);
-        endpoint.AddHandler<Handlers.AcceptOrderHandler>();
+        base.Configure(configuration);
+        configuration.AddHandler<Handlers.AcceptOrderHandler>();
     }
 }

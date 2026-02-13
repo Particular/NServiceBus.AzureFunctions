@@ -1,6 +1,14 @@
 namespace NServiceBus;
 
-public class NServiceBusFunctionAttribute(Type configurationType) : Attribute
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public class NServiceBusFunctionAttribute : Attribute
 {
-    public Type ConfigurationType { get; } = configurationType;
+    public NServiceBusFunctionAttribute() { }
+
+    public NServiceBusFunctionAttribute(Type configurationType)
+    {
+        ConfigurationType = configurationType;
+    }
+
+    public Type? ConfigurationType { get; }
 }

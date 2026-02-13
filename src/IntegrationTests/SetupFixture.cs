@@ -16,10 +16,8 @@ public class SetupFixture
     [OneTimeSetUp]
     public async Task Setup()
     {
-        var http = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(2)
-        };
+        using var http = new HttpClient();
+        http.Timeout = TimeSpan.FromSeconds(2);
 
         var versionUrl = $"{AppBaseUrl}/api/testing";
 
@@ -42,7 +40,12 @@ public class SetupFixture
 
                     await TestContext.Error.WriteLineAsync($"Got null from {versionUrl}, will retry after 2s delay");
                 }
-                catch (HttpRequestException e)
+                catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
+                {
+                    await TestContext.Error.WriteLineAsync("Got cancellation signal");
+                    throw;
+                }
+                catch (Exception e) when (e is HttpRequestException or TimeoutException or TaskCanceledException or IOException or ObjectDisposedException)
                 {
                     await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: {e.Message}\" accessing {versionUrl}, will retry after 2s delay");
                 }

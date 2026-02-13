@@ -1,7 +1,7 @@
-namespace IntegrationTest;
+namespace IntegrationTest.Billing;
 
 using Azure.Messaging.ServiceBus;
-using ITOps;
+using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
 public partial class BillingFunctions
@@ -18,10 +18,8 @@ public partial class BillingFunctions
     {
         public void Configure(EndpointConfiguration configuration)
         {
-            CommonConfig.Apply(configuration);
-
-            configuration.AddHandler<TriggerMessageHandler>();
-            configuration.AddHandler<SomeOtherMessageHandler>();
+            CommonEndpointConfig.Apply(configuration);
+            configuration.AddHandler<Handlers.ProcessPaymentHandler>();
         }
     }
 
@@ -37,10 +35,8 @@ public partial class BillingFunctions
     {
         public void Configure(EndpointConfiguration configuration)
         {
-            CommonConfig.Apply(configuration);
-
-            configuration.AddHandler<SomeEventMessageHandler>();
-            configuration.AddHandler<SomeOtherMessageHandler>();
+            CommonEndpointConfig.Apply(configuration);
+            // different handlers for the backend queue
         }
     }
 }

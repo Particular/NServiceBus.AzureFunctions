@@ -1,6 +1,6 @@
-namespace ITOps;
+namespace IntegrationTest.Shared;
 
-public class CommonConfig
+public static class CommonEndpointConfig
 {
     public static void Apply(EndpointConfiguration configuration)
     {

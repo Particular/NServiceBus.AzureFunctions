@@ -2,6 +2,7 @@ namespace IntegrationTest;
 
 using System.Net;
 using System.Threading.Tasks;
+using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,10 +19,10 @@ class HttpSender([FromKeyedServices("SenderEndpoint")] IMessageSession session, 
         _ = executionContext; // For now
         logger.LogInformation("C# HTTP trigger function received a request.");
 
-        await session.Send(new TriggerMessage()).ConfigureAwait(false);
+        await session.Send(new SubmitOrder()).ConfigureAwait(false);
 
         var r = req.CreateResponse(HttpStatusCode.OK);
-        await r.WriteStringAsync($"{nameof(TriggerMessage)} sent.")
+        await r.WriteStringAsync($"{nameof(SubmitOrder)} sent.")
             .ConfigureAwait(false);
         return r;
     }

@@ -1,4 +1,4 @@
-using IntegrationTest;
+using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
 
@@ -17,7 +17,7 @@ builder.AddSendOnlyNServiceBusEndpoint("SenderEndpoint", endpoint =>
 
     var routing = endpoint.UseTransport(transport);
 
-    routing.RouteToEndpoint(typeof(TriggerMessage), "billing-api");
+    routing.RouteToEndpoint(typeof(SubmitOrder), "sales");
     endpoint.UseSerialization<SystemJsonSerializer>();
 });
 

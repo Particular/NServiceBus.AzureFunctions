@@ -4,12 +4,20 @@
     <TargetFramework>net10.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <OutputType>Exe</OutputType>
+    <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);NServiceBus</InterceptorsPreviewNamespaces>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.AzureFunctions.AzureServiceBus\NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\IntegrationTest.Shared\IntegrationTest.Shared.csproj" />
+    <ProjectReference Include="..\IntegrationTest.Sales\IntegrationTest.Sales.csproj" />
+    <ProjectReference Include="..\IntegrationTest.Billing\IntegrationTest.Billing.csproj" />
+    <ProjectReference Include="..\IntegrationTest.Shipping\IntegrationTest.Shipping.csproj" />
   </ItemGroup>
 
   <ItemGroup>

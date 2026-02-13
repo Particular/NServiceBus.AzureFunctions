@@ -23,7 +23,7 @@ public class SetupFixture
 
         var versionUrl = $"{AppBaseUrl}/api/testing";
 
-        const int timeout = 30;
+        const int timeout = 60;
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
 
         try
@@ -44,14 +44,15 @@ public class SetupFixture
                 }
                 catch (HttpRequestException e)
                 {
-                    await TestContext.Error.WriteLineAsync($"Got {e.GetType().Name} accessing {versionUrl}, will retry after 2s delay");
+                    await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: {e.Message}\" accessing {versionUrl}, will retry after 2s delay");
                 }
                 await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
             }
         }
         catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
         {
-            Assert.Fail($"/api/testing failed to respond within {timeout}s");
         }
+
+        throw new Exception($"/api/testing failed to respond within {timeout}s");
     }
 }

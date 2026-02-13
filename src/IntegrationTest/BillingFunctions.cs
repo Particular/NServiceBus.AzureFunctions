@@ -1,6 +1,7 @@
 namespace IntegrationTest;
 
 using Azure.Messaging.ServiceBus;
+using ITOps;
 using Microsoft.Azure.Functions.Worker;
 
 public partial class BillingFunctions
@@ -40,16 +41,6 @@ public partial class BillingFunctions
 
             configuration.AddHandler<SomeEventMessageHandler>();
             configuration.AddHandler<SomeOtherMessageHandler>();
-        }
-    }
-    public class CommonConfig
-    {
-        public static void Apply(EndpointConfiguration configuration)
-        {
-            configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
-            configuration.EnableInstallers();
-            configuration.UsePersistence<LearningPersistence>();
-            configuration.UseSerialization<SystemJsonSerializer>();
         }
     }
 }

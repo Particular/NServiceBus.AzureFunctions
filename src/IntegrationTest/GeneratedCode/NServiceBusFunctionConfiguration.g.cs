@@ -29,8 +29,9 @@ public static class NServiceBusFunctionsHostApplicationBuilderExtensions
         }
     }
 
-    static List<FunctionManifest> AllFunctions = [new BillingApi(), new BillingBackend()];
+    static List<FunctionManifest> AllFunctions = [new BillingApi(), new BillingBackend(), new Shipping()];
     
     record BillingApi() : FunctionManifest("BillingApi", "billing-api", "AzureWebJobsServiceBus", new BillingFunctions.ApiConfig());
     record BillingBackend() : FunctionManifest("BillingBackend", "billing-backend", "AzureWebJobsServiceBus", new BillingFunctions.BackendConfig());
+    record Shipping() : FunctionManifest("Shipping", "shipping", "AzureWebJobsServiceBus", new IntegrationTest.Shipping());
 }

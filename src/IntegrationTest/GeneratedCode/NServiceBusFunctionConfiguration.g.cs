@@ -25,7 +25,7 @@ public static class NServiceBusFunctionsHostApplicationBuilderExtensions
 
         foreach (var manifest in AllFunctions)
         {
-            builder.AddNServiceBusFunction(manifest, manifest.EndpointConfiguration);   
+            builder.AddNServiceBusFunction(manifest);   
         }
     }
 

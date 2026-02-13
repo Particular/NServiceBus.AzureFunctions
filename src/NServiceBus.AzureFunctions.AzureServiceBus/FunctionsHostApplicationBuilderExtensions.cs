@@ -13,19 +13,17 @@ public static class FunctionsHostApplicationBuilderExtensions
 {
     public static void AddNServiceBusFunction(
         this FunctionsApplicationBuilder builder,
-        FunctionManifest functionManifest,
-        IEndpointConfiguration configuration)
+        FunctionManifest functionManifest)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(functionManifest);
-        ArgumentNullException.ThrowIfNull(configuration);
 
         builder.Services.AddAzureClientsCore();
 
         var endpointName = functionManifest.Name;
         builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
         {
-            configuration.Configure(endpointConfiguration);
+            functionManifest.EndpointConfiguration.Configure(endpointConfiguration);
 
             var settings = endpointConfiguration.GetSettings();
             if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
@@ -34,7 +32,6 @@ public static class FunctionsHostApplicationBuilderExtensions
             }
 
             var transport = GetTransport(settings);
-
 
             if (functionManifest.Name != functionManifest.Queue)
             {

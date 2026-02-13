@@ -41,6 +41,6 @@ public partial class BillingFunctions
         return processor.Process(message, cancellationToken);
     }
     
-    const string ApiEndpointName = "billing-api";
-    const string BackendEndpointName = "billing-backend";
+    const string ApiEndpointName = "BillingApi";
+    const string BackendEndpointName = "BillingBackend";
 }

@@ -5,7 +5,7 @@ using Microsoft.Azure.Functions.Worker;
 
 public partial class BillingFunctions
 {
-    [Function("billing-api")]
+    [Function("BillingApi")]
     [NServiceBusFunction(typeof(ApiConfig))]
     public partial Task Api(
         [ServiceBusTrigger("billing-api", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
@@ -24,7 +24,7 @@ public partial class BillingFunctions
         }
     }
 
-    [Function("billing-backend")]
+    [Function("BillingBackend")]
     [NServiceBusFunction(typeof(BackendConfig))]
     public partial Task Backend(
         [ServiceBusTrigger("billing-backend", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]

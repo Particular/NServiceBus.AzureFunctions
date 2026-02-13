@@ -77,7 +77,7 @@ jobs:
           publish-profile: ${{ steps.setup-functions.outputs.publish-profile }}
           # TODO: Build to a non-tfm-dependent path
           package: src/IntegrationTest/bin/Release/net10.0
-#      - name: Run tests
-#        uses: Particular/run-tests-action@v1.7.0
-#        env:
-#          INTEGRATION_APP_HOSTNAME: ${{ steps.setup-functions.outputs.hostname }}
+      - name: Run tests
+        uses: Particular/run-tests-action@v1.7.0
+        env:
+          INTEGRATION_APP_HOSTNAME: ${{ steps.setup-functions.outputs.hostname }}

@@ -17,12 +17,12 @@ namespace NServiceBus
     {
         public AzureServiceBusServerlessTransport(NServiceBus.TopicTopology topology) { }
         public string ConnectionName { get; set; }
+        protected override void ConfigureServicesCore(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override System.Collections.Generic.IReadOnlyCollection<NServiceBus.TransportTransactionMode> GetSupportedTransactionModes() { }
         public override System.Threading.Tasks.Task<NServiceBus.Transport.TransportInfrastructure> Initialize(NServiceBus.Transport.HostSettings hostSettings, NServiceBus.Transport.ReceiveSettings[] receivers, string[] sendingAddresses, System.Threading.CancellationToken cancellationToken = default) { }
-        public void RegisterServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services, string endpointName) { }
     }
     public static class FunctionsHostApplicationBuilderExtensions
     {
-        public static void AddNServiceBusFunction(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, NServiceBus.AzureServiceBusServerlessTransport transport, System.Action<NServiceBus.EndpointConfiguration> configure) { }
+        public static void AddNServiceBusFunction(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, System.Action<NServiceBus.EndpointConfiguration> configure) { }
     }
 }

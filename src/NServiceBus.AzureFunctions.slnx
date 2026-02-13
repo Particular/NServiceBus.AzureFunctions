@@ -12,6 +12,7 @@
     <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
     <Project Path="IntegrationTest.Contracts/IntegrationTest.Contracts.csproj" />
     <Project Path="IntegrationTest/IntegrationTest.csproj" />
+    <Project Path="IntegrationTests/IntegrationTests.csproj" />
     <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
   </Folder>
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />

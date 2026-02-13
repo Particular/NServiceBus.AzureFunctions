@@ -1,0 +1,28 @@
+{
+  "MessagesReceived": [
+    {
+      "MessageType": "IntegrationTest.TriggerMessage",
+      "Order": 1,
+      "SendingEndpoint": "SenderEndpoint",
+      "ReceivingEndpoint": "ReceiverEndpoint"
+    },
+    {
+      "MessageType": "IntegrationTest.SomeEvent",
+      "Order": 2,
+      "SendingEndpoint": "ReceiverEndpoint",
+      "ReceivingEndpoint": "AnotherReceiverEndpoint"
+    },
+    {
+      "MessageType": "IntegrationTest.SomeEvent",
+      "Order": 2,
+      "SendingEndpoint": "ReceiverEndpoint",
+      "ReceivingEndpoint": "ReceiverEndpoint"
+    },
+    {
+      "MessageType": "IntegrationTest.SomeOtherMessage",
+      "Order": 2,
+      "SendingEndpoint": "ReceiverEndpoint",
+      "ReceivingEndpoint": "ReceiverEndpoint"
+    }
+  ]
+}

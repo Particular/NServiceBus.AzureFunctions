@@ -1,13 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.AzureFunctions.AzureServiceBus\NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
+    <ProjectReference Include="..\IntegrationTest.Contracts\IntegrationTest.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,7 +17,6 @@
     <PackageReference Include="NUnit.Analyzers" Version="4.11.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.1.0" />
     <PackageReference Include="Particular.Approvals" Version="2.0.1" />
-    <PackageReference Include="PublicApiGenerator" Version="11.5.4" />
   </ItemGroup>
 
 </Project>

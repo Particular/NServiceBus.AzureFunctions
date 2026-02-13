@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,22 +15,10 @@
     <PackageReference Include="NUnit.Analyzers" Version="4.11.2" PrivateAssets="All" />
     <PackageReference Include="NUnit3TestAdapter" Version="6.1.0" PrivateAssets="All" />
     <PackageReference Include="Particular.Approvals" Version="2.0.1" PrivateAssets="All" />
-    <PackageReference Include="Particular.Packaging" Version="4.5.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="NServiceBus.AcceptanceTesting" Version="10.1.0" />
-  </ItemGroup>
-
-  <PropertyGroup>
-    <PackageId>NServiceBus.AzureFunctions.AcceptanceTests.Sources</PackageId>
-    <Description>Acceptance tests for NServiceBus Azure Functions functionality</Description>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
-    <IncludeSourceFilesInPackage>true</IncludeSourceFilesInPackage>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <RemoveSourceFileFromPackage Include="AssemblyInfo.cs" />
   </ItemGroup>
 
 </Project>

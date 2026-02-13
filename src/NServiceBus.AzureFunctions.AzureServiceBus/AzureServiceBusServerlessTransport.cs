@@ -76,7 +76,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => supportedTransactionModes;
- 
+
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
         IConfiguration configuration,

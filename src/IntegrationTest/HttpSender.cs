@@ -12,17 +12,16 @@ class HttpSender([FromKeyedServices("SenderEndpoint")] IMessageSession session, 
 {
     [Function("HttpSenderV4")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequestData req,
         FunctionContext executionContext)
     {
         _ = executionContext; // For now
         logger.LogInformation("C# HTTP trigger function received a request.");
 
-        await session.Send("ReceiverEndpoint", new TriggerMessage()).ConfigureAwait(false);
+        await session.StartTestWithMessage("FirstTest", "ReceiverEndpoint", new TriggerMessage());
 
         var r = req.CreateResponse(HttpStatusCode.OK);
-        await r.WriteStringAsync($"{nameof(TriggerMessage)} sent.")
-            .ConfigureAwait(false);
+        await r.WriteStringAsync($"{nameof(TriggerMessage)} sent.");
         return r;
     }
 }

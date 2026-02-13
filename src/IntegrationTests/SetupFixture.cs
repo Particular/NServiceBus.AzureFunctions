@@ -58,4 +58,14 @@ public class SetupFixture
 
         throw new Exception($"/api/testing failed to respond within {timeout}s");
     }
+
+    [OneTimeTearDown]
+    public async Task GetErrors()
+    {
+        using var http = new HttpClient();
+        var errorsUrl = $"{AppBaseUrl}/api/testing/errors";
+        await TestContext.Error.WriteLineAsync("Fetching exception traces from site");
+        var errors = await http.GetStringAsync(errorsUrl);
+        await TestContext.Error.WriteLineAsync(errors);
+    }
 }

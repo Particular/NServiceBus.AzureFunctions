@@ -10,7 +10,7 @@ public class FirstTest
     [Test]
     public async Task TestIntegrationTestApp()
     {
-        var http = new HttpClient();
+        using var http = new HttpClient();
 
         var invokeUrl = $"{SetupFixture.AppBaseUrl}/api/HttpSenderV4";
 

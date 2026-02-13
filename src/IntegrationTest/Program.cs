@@ -7,6 +7,7 @@ using NServiceBus.Logging;
 using NServiceBus.MultiHosting;
 
 var builder = FunctionsApplication.CreateBuilder(args);
+builder.UseWhen<ExceptionTrackingMiddleware>(_ => true);
 
 // as early as possible
 LogManager.UseFactory(MultiEndpointLoggerFactory.Instance);

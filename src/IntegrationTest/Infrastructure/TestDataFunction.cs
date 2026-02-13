@@ -41,4 +41,8 @@ class TestDataFunction(GlobalTestStorage storage)
         var result = new InfoResult(InformationalVersion, DateTime.UtcNow - StartTime);
         return result;
     }
+
+    [Function(nameof(GetErrors))]
+    public ExceptionInfo[] GetErrors([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "testing/errors")] HttpRequestData _)
+        => ExceptionTrackingMiddleware.GetErrors();
 }

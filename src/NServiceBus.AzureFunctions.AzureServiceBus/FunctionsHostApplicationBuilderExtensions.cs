@@ -11,35 +11,21 @@ using Transport;
 
 public static class FunctionsHostApplicationBuilderExtensions
 {
-    public static void AddNServiceBusFunction<TFunctionManifest>(
-        this FunctionsApplicationBuilder builder,
-        Action<EndpointConfiguration> configure) where TFunctionManifest : FunctionManifest, new()
-    {
-        var manifest = new TFunctionManifest();
-        builder.AddNServiceBusFunction(manifest, configure);
-    }
-
-    public static void AddNServiceBusFunction(
-        this FunctionsApplicationBuilder builder,
-        string endpointName,
-        Action<EndpointConfiguration> configure) =>
-        builder.AddNServiceBusFunction(new FunctionManifest(endpointName, endpointName, AzureServiceBusServerlessTransport.DefaultServiceBusConnectionName), configure);
-
     public static void AddNServiceBusFunction(
         this FunctionsApplicationBuilder builder,
         FunctionManifest functionManifest,
-        Action<EndpointConfiguration> configure)
+        IEndpointConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(functionManifest);
-        ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         builder.Services.AddAzureClientsCore();
 
         var endpointName = functionManifest.Name;
         builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
         {
-            configure(endpointConfiguration);
+            configuration.Configure(endpointConfiguration);
 
             var settings = endpointConfiguration.GetSettings();
             if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
@@ -56,10 +42,6 @@ public static class FunctionsHostApplicationBuilderExtensions
             }
 
             transport.ConnectionName = functionManifest.ConnectionName;
-
-            functionManifest.Configured = true;
-
-            builder.Services.AddHostedService<FunctionConfigurationValidator>();
 
             builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
         });

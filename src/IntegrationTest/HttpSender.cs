@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
 
+[NServiceBusSendOnlyEndpoint(endpointName: "SenderEndpoint", configurationType: typeof(Config))]
 class HttpSender([FromKeyedServices("SenderEndpoint")] IMessageSession session, ILogger<HttpSender> logger)
 {
     [Function("HttpSenderV4")]
@@ -25,5 +26,21 @@ class HttpSender([FromKeyedServices("SenderEndpoint")] IMessageSession session, 
         await r.WriteStringAsync($"{nameof(SubmitOrder)} sent.")
             .ConfigureAwait(false);
         return r;
+    }
+
+    public class Config : IEndpointConfiguration
+    {
+        public void Configure(EndpointConfiguration configuration)
+        {
+            var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default)
+            {
+                ConnectionName = "AzureWebJobsServiceBus"
+            };
+
+            var routing = configuration.UseTransport(transport);
+
+            routing.RouteToEndpoint(typeof(SubmitOrder), "sales");
+            configuration.UseSerialization<SystemJsonSerializer>();
+        }
     }
 }

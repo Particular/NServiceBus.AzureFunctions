@@ -74,6 +74,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                     }
                 }
             }
+
             return results.ToImmutable();
         }
 
@@ -107,9 +108,18 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             endpointName = attr.ConstructorArguments[0].Value as string;
         }
 
+        // Extract explicit config type from typeof() argument, if provided
+        INamedTypeSymbol? explicitConfigType = null;
+        if (attr.ConstructorArguments.Length > 1)
+        {
+            explicitConfigType = attr.ConstructorArguments[1].Value as INamedTypeSymbol;
+        }
+
         endpointName ??= classSymbol.Name;
 
-        var configTypeFullName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var configType = explicitConfigType ?? classSymbol;
+
+        var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         return new SendOnlyEndpointInfo(endpointName, configTypeFullName);
     }
@@ -155,6 +165,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                     {
                         queueName = pAttr.ConstructorArguments[0].Value as string;
                     }
+
                     foreach (var namedArg in pAttr.NamedArguments)
                     {
                         if (namedArg.Key == "Connection")
@@ -162,6 +173,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                             connectionName = namedArg.Value.Value as string;
                         }
                     }
+
                     messageParamName = param.Name;
                 }
             }
@@ -244,6 +256,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 {
                     sb.AppendLine();
                 }
+
                 first = false;
 
                 sb.AppendLine($"        {func.Accessibility} partial {func.ReturnType} {func.MethodName}(");

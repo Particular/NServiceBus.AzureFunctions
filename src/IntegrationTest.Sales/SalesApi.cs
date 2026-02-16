@@ -15,10 +15,8 @@ class SalesApi([FromKeyedServices("SalesApi")] IMessageSession session, ILogger<
     [Function("SalesApi")]
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestData req,
-        FunctionContext executionContext,
         CancellationToken cancellationToken)
     {
-        _ = executionContext; // For now
         logger.LogInformation("C# HTTP trigger function received a request.");
 
         await session.Send(new SubmitOrder(), cancellationToken).ConfigureAwait(false);

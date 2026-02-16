@@ -1,16 +1,14 @@
 namespace IntegrationTest.Shipping.Handlers;
 
 using IntegrationTest.Shared;
+using Microsoft.Extensions.Logging;
 using NServiceBus;
-using NServiceBus.Logging;
 
-public class ShipOrderHandler : IHandleMessages<PaymentCleared>
+public class ShipOrderHandler(ILogger<ShipOrderHandler> logger) : IHandleMessages<PaymentCleared>
 {
-    static readonly ILog Log = LogManager.GetLogger<ShipOrderHandler>();
-
     public Task Handle(PaymentCleared message, IMessageHandlerContext context)
     {
-        Log.Warn($"Handling {nameof(PaymentCleared)} in {nameof(ShipOrderHandler)}");
+        logger.LogWarning($"Handling {nameof(PaymentCleared)} in {nameof(ShipOrderHandler)}");
 
         return Task.CompletedTask;
     }

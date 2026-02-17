@@ -263,7 +263,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 sb.AppendLine($"            {func.ParameterList})");
                 sb.AppendLine("        {");
                 sb.AppendLine($"            var processor = {func.FunctionContextParamName}.InstanceServices");
-                sb.AppendLine($"                .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.IMessageProcessor>(\"{func.FunctionName}\");");
+                sb.AppendLine($"                .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.MessageProcessor>(\"{func.FunctionName}\");");
                 sb.AppendLine("            if (processor is null)");
                 sb.AppendLine("            {");
                 sb.AppendLine($"                throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");

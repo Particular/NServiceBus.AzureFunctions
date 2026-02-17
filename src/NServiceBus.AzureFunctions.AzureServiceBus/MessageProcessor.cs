@@ -6,7 +6,7 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using NServiceBus.MultiHosting;
 
-public class MessageProcessor(AzureServiceBusServerlessTransport transport, EndpointStarter endpointStarter) : IMessageProcessor
+public class MessageProcessor(AzureServiceBusServerlessTransport transport, EndpointStarter endpointStarter)
 {
     public async Task Process(ServiceBusReceivedMessage message, FunctionContext functionContext, CancellationToken cancellationToken = default)
     {

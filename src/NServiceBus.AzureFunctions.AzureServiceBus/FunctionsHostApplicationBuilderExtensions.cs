@@ -40,7 +40,7 @@ public static class FunctionsHostApplicationBuilderExtensions
 
             transport.ConnectionName = functionManifest.ConnectionName;
 
-            builder.Services.AddKeyedSingleton<IMessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
+            builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
         });
     }
 

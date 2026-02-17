@@ -268,7 +268,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 sb.AppendLine("            {");
                 sb.AppendLine($"                throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");
                 sb.AppendLine("            }");
-                sb.AppendLine($"            return processor.Process({func.MessageParamName}, {func.CancellationTokenParamName});");
+                sb.AppendLine($"            return processor.Process({func.MessageParamName}, {func.FunctionContextParamName}, {func.CancellationTokenParamName});");
                 sb.AppendLine("        }");
             }
 

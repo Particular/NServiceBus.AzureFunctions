@@ -1,3 +1,3 @@
 namespace NServiceBus;
 
-public record SendOnlyManifest(string Name, IEndpointConfiguration EndpointConfiguration);
+public record SendOnlyManifest(string Name, Action<EndpointConfiguration> EndpointConfiguration);

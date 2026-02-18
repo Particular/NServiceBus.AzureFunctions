@@ -297,7 +297,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         {
             sb.AppendLine($"            yield return new global::NServiceBus.FunctionManifest(");
             sb.AppendLine($"                \"{func.FunctionName}\", \"{func.QueueName}\", \"{func.ConnectionName}\",");
-            sb.AppendLine($"                new {func.ConfigTypeFullName}());");
+            sb.AppendLine($"                ec=>{func.ConfigTypeFullName}.Configure{func.FunctionName}(ec));");
         }
 
         sb.AppendLine("            yield break;");
@@ -310,7 +310,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         foreach (var endpoint in sendOnlyEndpoints)
         {
             sb.AppendLine($"            yield return new global::NServiceBus.SendOnlyManifest(");
-            sb.AppendLine($"                \"{endpoint.EndpointName}\", new {endpoint.ConfigTypeFullName}());");
+            sb.AppendLine($"                \"{endpoint.EndpointName}\", ec=>{endpoint.ConfigTypeFullName}.Configure{endpoint.EndpointName}(ec));");
         }
 
         sb.AppendLine("            yield break;");

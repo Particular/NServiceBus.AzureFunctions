@@ -23,7 +23,7 @@ public static class FunctionsHostApplicationBuilderExtensions
         var endpointName = functionManifest.Name;
         builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
         {
-            functionManifest.EndpointConfiguration.Configure(endpointConfiguration);
+            functionManifest.EndpointConfiguration(endpointConfiguration);
 
             var settings = endpointConfiguration.GetSettings();
             if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))

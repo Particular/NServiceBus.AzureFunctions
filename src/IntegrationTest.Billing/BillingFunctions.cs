@@ -8,36 +8,30 @@ using Microsoft.Azure.Functions.Worker;
 public partial class BillingFunctions
 {
     [Function("BillingApi")]
-    [NServiceBusFunction(typeof(ApiConfig))]
-    public partial Task Api(
+    [NServiceBusFunction]
+    public partial Task BillingApi(
         [ServiceBusTrigger("billing-api", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public class ApiConfig : IEndpointConfiguration
+    public static void ConfigureBillingApi(EndpointConfiguration configuration)
     {
-        public void Configure(EndpointConfiguration configuration)
-        {
-            CommonEndpointConfig.Apply(configuration);
-            configuration.AddHandler<Handlers.ProcessPaymentHandler>();
-        }
+        CommonEndpointConfig.Apply(configuration);
+        configuration.AddHandler<Handlers.ProcessPaymentHandler>();
     }
 
     [Function("BillingBackend")]
-    [NServiceBusFunction(typeof(BackendConfig))]
-    public partial Task Backend(
+    [NServiceBusFunction]
+    public partial Task BillingBackend(
         [ServiceBusTrigger("billing-backend", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public class BackendConfig : IEndpointConfiguration
+    public static void ConfigureBillingBackend(EndpointConfiguration configuration)
     {
-        public void Configure(EndpointConfiguration configuration)
-        {
-            CommonEndpointConfig.Apply(configuration);
-            // different handlers for the backend queue
-        }
+        CommonEndpointConfig.Apply(configuration);
+        // different handlers for the backend queue
     }
 }

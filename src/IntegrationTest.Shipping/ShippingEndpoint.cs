@@ -5,7 +5,7 @@ using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
 [NServiceBusFunction]
-public partial class ShippingEndpoint : IEndpointConfiguration
+public partial class ShippingEndpoint
 {
     [Function("Shipping")]
     public partial Task ProcessMessage(
@@ -14,7 +14,7 @@ public partial class ShippingEndpoint : IEndpointConfiguration
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public void Configure(EndpointConfiguration endpoint)
+    public static void Configure(EndpointConfiguration endpoint)
     {
         CommonEndpointConfig.Apply(endpoint);
         endpoint.AddHandler<Handlers.ShipOrderHandler>();

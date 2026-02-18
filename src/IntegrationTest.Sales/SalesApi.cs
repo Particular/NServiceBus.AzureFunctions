@@ -9,12 +9,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
 
-[NServiceBusSendOnlyEndpoint(configurationType: typeof(Config))]
+[NServiceBusSendOnlyEndpoint]
 class SalesApi([FromKeyedServices("SalesApi")] IMessageSession session, ILogger<SalesApi> logger)
 {
     [Function("SalesApi")]
-    public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestData req,
+    public async Task<HttpResponseData> Api(
+        [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]
+        HttpRequestData req,
         CancellationToken cancellationToken)
     {
         logger.LogInformation("C# HTTP trigger function received a request.");
@@ -26,19 +27,13 @@ class SalesApi([FromKeyedServices("SalesApi")] IMessageSession session, ILogger<
         return r;
     }
 
-    public class Config : IEndpointConfiguration
+    public static void ConfigureSalesApi(EndpointConfiguration configuration)
     {
-        public void Configure(EndpointConfiguration configuration)
-        {
-            var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default)
-            {
-                ConnectionName = "AzureWebJobsServiceBus"
-            };
+        var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
 
-            var routing = configuration.UseTransport(transport);
+        var routing = configuration.UseTransport(transport);
 
-            routing.RouteToEndpoint(typeof(SubmitOrder), "sales");
-            configuration.UseSerialization<SystemJsonSerializer>();
-        }
+        routing.RouteToEndpoint(typeof(SubmitOrder), "sales");
+        configuration.UseSerialization<SystemJsonSerializer>();
     }
 }

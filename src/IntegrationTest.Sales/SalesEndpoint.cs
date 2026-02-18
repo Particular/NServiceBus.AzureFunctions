@@ -6,18 +6,18 @@ using Microsoft.Azure.Functions.Worker;
 
 // Cleanest pattern for single-function endpoints
 [NServiceBusFunction]
-public partial class SalesEndpoint : EndpointConfigBase
+public partial class SalesEndpoint
 {
     [Function("Sales")]
-    public partial Task ProcessMessage(
+    public partial Task Sales(
         [ServiceBusTrigger("sales", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public override void Configure(EndpointConfiguration configuration)
+    public static void ConfigureSales(EndpointConfiguration configuration)
     {
-        base.Configure(configuration);
+        CommonEndpointConfig.Apply(configuration);
         configuration.AddHandler<Handlers.AcceptOrderHandler>();
     }
 }

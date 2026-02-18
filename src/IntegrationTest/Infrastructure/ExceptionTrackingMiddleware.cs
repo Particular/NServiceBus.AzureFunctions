@@ -33,5 +33,4 @@ public class ExceptionTrackingMiddleware : IFunctionsWorkerMiddleware
 
         return [.. collectedExceptions];
     }
-
 }

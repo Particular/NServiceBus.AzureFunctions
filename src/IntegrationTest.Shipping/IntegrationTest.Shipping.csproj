@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
-    <OutputType>Exe</OutputType>
     <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);NServiceBus</InterceptorsPreviewNamespaces>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)\GeneratedFiles</CompilerGeneratedFilesOutputPath>
@@ -15,19 +13,11 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\IntegrationTest.Shared\IntegrationTest.Shared.csproj" />
-    <ProjectReference Include="..\IntegrationTest.Sales\IntegrationTest.Sales.csproj" />
-    <ProjectReference Include="..\IntegrationTest.Billing\IntegrationTest.Billing.csproj" />
-    <ProjectReference Include="..\IntegrationTest.Shipping\IntegrationTest.Shipping.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
-    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="host.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="local.settings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
   </ItemGroup>
 
 </Project>

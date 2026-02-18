@@ -4,19 +4,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
-using Microsoft.Azure.Functions.Worker;
 using NServiceBus.Extensibility;
 using NServiceBus.Transport;
 using NServiceBus.Transport.AzureServiceBus;
 
-interface IInternalMessageProcessor
-{
-    Task Process(ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
-        CancellationToken cancellationToken = default);
-}
-
-class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) : IMessageReceiver, IInternalMessageProcessor
+class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) : IMessageReceiver
 {
     public Task Initialize(PushRuntimeSettings limitations, OnMessage onMessage, OnError onError,
         CancellationToken cancellationToken = default)
@@ -29,9 +21,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             cancellationToken) ?? Task.CompletedTask;
     }
 
-    public async Task Process(ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
-        CancellationToken cancellationToken = default)
+    public async Task Process(ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
     {
         var messageId = message.GetMessageId();
         var body = message.GetBody();

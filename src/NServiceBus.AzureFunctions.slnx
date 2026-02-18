@@ -9,6 +9,10 @@
   <Folder Name="/Tests/">
     <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
     <Project Path="IntegrationTest/IntegrationTest.csproj" />
+    <Project Path="IntegrationTest.Shared/IntegrationTest.Shared.csproj" />
+    <Project Path="IntegrationTest.Sales/IntegrationTest.Sales.csproj" />
+    <Project Path="IntegrationTest.Billing/IntegrationTest.Billing.csproj" />
+    <Project Path="IntegrationTest.Shipping/IntegrationTest.Shipping.csproj" />
     <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
   </Folder>
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />

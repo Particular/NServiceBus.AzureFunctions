@@ -8,6 +8,7 @@ static class DiagnosticIds
     public const string ClassMustBePartial = "NSBFUNC001";
     public const string ShouldNotImplementIHandleMessages = "NSBFUNC002";
     public const string MethodMustBePartial = "NSBFUNC003";
+    public const string MissingAddNServiceBusFunctionsCall = "NSBFUNC004";
 
     public static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -32,4 +33,13 @@ static class DiagnosticIds
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MissingAddNServiceBusFunctionsCallDescriptor = new(
+        id: MissingAddNServiceBusFunctionsCall,
+        title: "AddNServiceBusFunctions() is not called",
+        messageFormat: "This project has NServiceBus endpoint registrations but does not call builder.AddNServiceBusFunctions(). Endpoints will not be started.",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 }

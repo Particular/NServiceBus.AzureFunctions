@@ -9,7 +9,7 @@ public partial class ShippingEndpoint
 {
     [Function(nameof(Shipping))]
     public partial Task Shipping(
-        [ServiceBusTrigger("shipping", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
+        [ServiceBusTrigger("shipping", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);

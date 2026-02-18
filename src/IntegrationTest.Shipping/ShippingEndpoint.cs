@@ -7,8 +7,8 @@ using Microsoft.Azure.Functions.Worker;
 [NServiceBusFunction]
 public partial class ShippingEndpoint
 {
-    [Function("Shipping")]
-    public partial Task ProcessMessage(
+    [Function(nameof(Shipping))]
+    public partial Task Shipping(
         [ServiceBusTrigger("shipping", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
         FunctionContext functionContext,

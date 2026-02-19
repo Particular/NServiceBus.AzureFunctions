@@ -36,12 +36,12 @@ public static class HostApplicationBuilderExtensions
 
         var keyedServices = new KeyedServiceCollectionAdapter(builder.Services, endpointName);
 
-        settings.Set<IServiceCollection>(keyedServices);
-        settings.Set(builder);
+        settings.Set(keyedServices);
+        settings.Set(new HostConfiguration(builder));
 
         configure(endpointConfiguration);
 
-        var transport = endpointConfiguration.GetSettings().Get<TransportDefinition>();
+        var transport = settings.Get<TransportDefinition>();
         var transportKey = $"NServiceBus.Transport.{RuntimeHelpers.GetHashCode(transport)}";
         if (builder.Properties.TryGetValue(transportKey, out var existingEndpoint))
         {

@@ -15,9 +15,9 @@ public static class CommonEndpointConfig
 
         configuration.Services.AddSingleton(new MyComponent{ Endpoint = configuration.GetSettings().Get<string>("NServiceBus.Routing.EndpointName")});
 
-        if (configuration.Environment.EnvironmentName == Environments.Production)
+        if (configuration.Hosting.Environment.EnvironmentName == Environments.Production)
         {
-            configuration.AuditProcessedMessagesTo(configuration.Configuration["acme-audit-queue"] ?? "audit");
+            configuration.AuditProcessedMessagesTo(configuration.Hosting.Configuration["acme-audit-queue"] ?? "audit");
         }
     }
 }

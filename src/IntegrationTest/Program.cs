@@ -1,4 +1,5 @@
 using System.Text.Json;
+using IntegrationTest;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

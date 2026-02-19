@@ -1,4 +1,5 @@
 using System.Text.Json;
+using IntegrationTest;
 using IntegrationTest.Sales;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker.Builder;

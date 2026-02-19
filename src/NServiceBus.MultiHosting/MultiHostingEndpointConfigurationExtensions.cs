@@ -14,8 +14,8 @@ public static class MultiHostingEndpointConfigurationExtensions
         public HostConfiguration Hosting => endpointConfiguration.GetSettings().Get<HostConfiguration>();
 
         /// <summary>
-        /// Gets a collection of services for the application to compose. This is useful for adding user provided or framework provided services.
+        /// Gets the endpoint specific collection of services.
         /// </summary>
-        public IServiceCollection Services => endpointConfiguration.GetSettings().Get<KeyedServiceCollectionAdapter>();
+        public IServiceCollection EndpointSpecificServices => endpointConfiguration.GetSettings().Get<KeyedServiceCollectionAdapter>();
     }
 }

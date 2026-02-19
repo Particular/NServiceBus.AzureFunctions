@@ -13,7 +13,7 @@ public static class CommonEndpointConfig
         configuration.UsePersistence<LearningPersistence>();
         configuration.UseSerialization<SystemJsonSerializer>();
 
-        configuration.Services.AddSingleton(new MyComponent{ Endpoint = configuration.GetSettings().Get<string>("NServiceBus.Routing.EndpointName")});
+        configuration.EndpointSpecificServices.AddSingleton(new MyComponent{ Endpoint = configuration.GetSettings().Get<string>("NServiceBus.Routing.EndpointName")});
 
         if (configuration.Hosting.Environment.EnvironmentName == Environments.Production)
         {

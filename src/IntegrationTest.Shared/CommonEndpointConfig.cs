@@ -1,6 +1,8 @@
 namespace IntegrationTest.Shared;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using NServiceBus.Configuration.AdvancedExtensibility;
 
 public static class CommonEndpointConfig
 {
@@ -11,11 +13,11 @@ public static class CommonEndpointConfig
         configuration.UsePersistence<LearningPersistence>();
         configuration.UseSerialization<SystemJsonSerializer>();
 
-        configuration.Services.AddSingleton<MyComponent>();
+        configuration.Services.AddSingleton(new MyComponent{ Endpoint = configuration.GetSettings().Get<string>("NServiceBus.Routing.EndpointName")});
 
-        if (configuration.Environment.EnvironmentName == "Production")
+        if (configuration.Environment.EnvironmentName == Environments.Production)
         {
-            configuration.AuditProcessedMessagesTo(configuration.Configuration["my-audit-queue"] ?? "audit");
+            configuration.AuditProcessedMessagesTo(configuration.Configuration["acme-audit-queue"] ?? "audit");
         }
     }
 }

@@ -8,7 +8,7 @@ public class AcceptOrderHandler(ILogger<AcceptOrderHandler> logger, MyComponent 
 {
     public async Task Handle(SubmitOrder message, IMessageHandlerContext context)
     {
-        logger.LogWarning($"Handling {nameof(SubmitOrder)} in {nameof(AcceptOrderHandler)}");
+        logger.LogWarning($"Handling {nameof(SubmitOrder)} in {nameof(AcceptOrderHandler)} using component from endpoint {component.Endpoint}");
 
         await context.Publish(new OrderSubmitted()).ConfigureAwait(false);
     }

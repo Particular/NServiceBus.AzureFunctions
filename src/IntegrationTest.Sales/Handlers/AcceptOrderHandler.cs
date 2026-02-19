@@ -4,7 +4,7 @@ using IntegrationTest.Shared;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
 
-public class AcceptOrderHandler(ILogger<AcceptOrderHandler> logger) : IHandleMessages<SubmitOrder>
+public class AcceptOrderHandler(ILogger<AcceptOrderHandler> logger, MyComponent component) : IHandleMessages<SubmitOrder>
 {
     public async Task Handle(SubmitOrder message, IMessageHandlerContext context)
     {

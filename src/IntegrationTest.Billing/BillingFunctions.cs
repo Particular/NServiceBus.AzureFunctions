@@ -18,6 +18,7 @@ public partial class BillingFunctions
     public static void ConfigureBillingApi(EndpointConfiguration configuration)
     {
         CommonEndpointConfig.Apply(configuration);
+        
         configuration.AddHandler<Handlers.ProcessPaymentHandler>();
     }
 

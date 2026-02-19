@@ -1,13 +1,10 @@
 #nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 [Generator]
 public sealed class FunctionCompositionGenerator : IIncrementalGenerator
@@ -20,7 +17,7 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
             provider.GlobalOptions.TryGetValue("build_property.AzureFunctionsVersion", out var azureFunctionsVersion);
             provider.GlobalOptions.TryGetValue("build_property.RootNamespace", out var rootNamespace);
 
-            var isHost = string.Equals(outputType, "Exe", System.StringComparison.OrdinalIgnoreCase)
+            var isHost = string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrEmpty(azureFunctionsVersion);
 
             return new HostProjectInfo(isHost, rootNamespace);

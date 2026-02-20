@@ -21,9 +21,9 @@ public static class FunctionsHostApplicationBuilderExtensions
         builder.Services.AddAzureClientsCore();
 
         var endpointName = functionManifest.Name;
-        builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
+        builder.AddNServiceBusEndpoint(endpointName, (endpointConfiguration, services, configuration, hostEnvironment) =>
         {
-            functionManifest.EndpointConfiguration(endpointConfiguration);
+            functionManifest.Configuration(endpointConfiguration, services, configuration, hostEnvironment);
 
             var settings = endpointConfiguration.GetSettings();
             if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
@@ -46,16 +46,14 @@ public static class FunctionsHostApplicationBuilderExtensions
 
     public static void AddSendOnlyNServiceBusEndpoint(
         this FunctionsApplicationBuilder builder,
-        string endpointName,
-        Action<EndpointConfiguration> configure)
+        SendOnlyManifest sendOnlyManifest)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(endpointName);
-        ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(sendOnlyManifest);
 
-        builder.AddNServiceBusEndpoint(endpointName, endpointConfiguration =>
+        builder.AddNServiceBusEndpoint(sendOnlyManifest.Name, (endpointConfiguration, services, configuration, hostEnvironment) =>
         {
-            configure(endpointConfiguration);
+            sendOnlyManifest.Configuration(endpointConfiguration, services, configuration, hostEnvironment);
 
             endpointConfiguration.SendOnly();
 

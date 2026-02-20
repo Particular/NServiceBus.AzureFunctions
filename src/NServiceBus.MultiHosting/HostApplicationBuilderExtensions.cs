@@ -13,7 +13,7 @@ public static class HostApplicationBuilderExtensions
     public static void AddNServiceBusEndpoint(
         this IHostApplicationBuilder builder,
         string endpointName,
-        Action<EndpointConfiguration> configure)
+        MultiEndpointConfiguration configure)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
         ArgumentNullException.ThrowIfNull(configure);
@@ -24,14 +24,18 @@ public static class HostApplicationBuilderExtensions
             throw new InvalidOperationException(
                 $"An endpoint with the name '{endpointName}' has already been registered.");
         }
+
         builder.Properties[endpointKey] = true;
+
 
         using var _ = MultiEndpointLoggerFactory.Instance.PushName(endpointName);
 
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
 
-        configure(endpointConfiguration);
+        var keyedServices = new KeyedServiceCollectionAdapter(builder.Services, endpointName);
+
+        configure(endpointConfiguration, keyedServices, builder.Configuration, builder.Environment);
 
         var transport = endpointConfiguration.GetSettings().Get<TransportDefinition>();
         var transportKey = $"NServiceBus.Transport.{RuntimeHelpers.GetHashCode(transport)}";
@@ -40,9 +44,9 @@ public static class HostApplicationBuilderExtensions
             throw new InvalidOperationException(
                 $"This transport instance is already used by endpoint '{existingEndpoint}'. Each endpoint requires its own transport instance.");
         }
+
         builder.Properties[transportKey] = endpointName;
 
-        var keyedServices = new KeyedServiceCollectionAdapter(builder.Services, endpointName);
         var startableEndpoint = EndpointWithExternallyManagedContainer.Create(
             endpointConfiguration, keyedServices);
 

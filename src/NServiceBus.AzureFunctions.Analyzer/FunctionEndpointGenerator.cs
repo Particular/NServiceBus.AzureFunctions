@@ -46,28 +46,15 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             return ImmutableArray<FunctionInfo>.Empty;
         }
 
-        var attr = context.Attributes[0];
-
-        // Extract explicit config type from typeof() argument, if provided
-        INamedTypeSymbol? explicitConfigType = null;
-        if (attr.ConstructorArguments.Length > 0)
-        {
-            explicitConfigType = attr.ConstructorArguments[0].Value as INamedTypeSymbol;
-        }
-
         if (context.TargetSymbol is INamedTypeSymbol classSymbol)
         {
-            // Class-level: infer config type from the class itself when no typeof()
-            var configType = explicitConfigType ?? classSymbol;
-            var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
             var results = ImmutableArray.CreateBuilder<FunctionInfo>();
             foreach (var member in classSymbol.GetMembers())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (member is IMethodSymbol method)
                 {
-                    var info = TryExtractFromMethod(method, configTypeFullName);
+                    var info = TryExtractFromMethod(method);
                     if (info is not null)
                     {
                         results.Add(info.Value);
@@ -80,11 +67,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
         if (context.TargetSymbol is IMethodSymbol methodSymbol)
         {
-            // Method-level: infer config type from the containing class when no typeof()
-            var configType = explicitConfigType ?? methodSymbol.ContainingType;
-            var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-            var info = TryExtractFromMethod(methodSymbol, configTypeFullName);
+            var info = TryExtractFromMethod(methodSymbol);
             return info is not null
                 ? ImmutableArray.Create(info.Value)
                 : ImmutableArray<FunctionInfo>.Empty;
@@ -108,23 +91,73 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             endpointName = attr.ConstructorArguments[0].Value as string;
         }
 
-        // Extract explicit config type from typeof() argument, if provided
-        INamedTypeSymbol? explicitConfigType = null;
-        if (attr.ConstructorArguments.Length > 1)
-        {
-            explicitConfigType = attr.ConstructorArguments[1].Value as INamedTypeSymbol;
-        }
-
         endpointName ??= classSymbol.Name;
 
-        var configType = explicitConfigType ?? classSymbol;
+        var configureMethodInfo = GetConfigureMethodInfo(classSymbol, endpointName);
 
-        var configTypeFullName = configType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-        return new SendOnlyEndpointInfo(endpointName, configTypeFullName);
+        return new SendOnlyEndpointInfo(endpointName, configureMethodInfo);
     }
 
-    static FunctionInfo? TryExtractFromMethod(IMethodSymbol method, string configTypeFullName)
+    static IMethodSymbol GetConfigureMethodInfo(INamedTypeSymbol functionClassType, string endpointName)
+    {
+        var configureMethodName = $"Configure{endpointName}";
+
+        IMethodSymbol? configureMethod = null;
+        foreach (var member in functionClassType.GetMembers())
+        {
+            if (member is IMethodSymbol method)
+            {
+                if (method.Name == configureMethodName)
+                {
+                    if (configureMethod is not null)
+                    {
+                        throw new InvalidOperationException($"Multiple {configureMethodName} configuration methods found on {functionClassType.Name}");
+                    }
+
+                    configureMethod = method;
+                }
+            }
+        }
+
+        if (configureMethod is null)
+        {
+            throw new InvalidOperationException($"Method {configureMethodName} not found on {functionClassType.Name}");
+        }
+
+        var parameters = configureMethod.Parameters;
+
+        if (parameters.Length == 0)
+        {
+            throw new InvalidOperationException($"Method {configureMethodName} must have a `EndpointConfiguration` parameter");
+        }
+
+        if (parameters[0].Type.ToDisplayString() != "NServiceBus.EndpointConfiguration")
+        {
+            throw new InvalidOperationException($"Method {configureMethodName} must have `EndpointConfiguration` as the first parameter");
+        }
+
+        var optionalParameters = parameters.Skip(1);
+
+        foreach (var parameter in optionalParameters)
+        {
+            var parameterType = parameter.Type.ToDisplayString();
+            if (!allowedOptionalParameters.Contains(parameterType))
+            {
+                throw new InvalidOperationException($"Method {configureMethodName} contains unsupported parameter {parameterType}");
+            }
+        }
+
+        return configureMethod;
+    }
+
+    static readonly string[] allowedOptionalParameters =
+    [
+        "Microsoft.Extensions.DependencyInjection.IServiceCollection",
+        "Microsoft.Extensions.Configuration.IConfiguration",
+        "Microsoft.Extensions.Hosting.IHostEnvironment"
+    ];
+
+    static FunctionInfo? TryExtractFromMethod(IMethodSymbol method)
     {
         var functionAttr = method.GetAttributes()
             .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Microsoft.Azure.Functions.Worker.FunctionAttribute");
@@ -214,11 +247,13 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             _ => "public",
         };
 
+        var configureMethodInfo = GetConfigureMethodInfo(containingType, functionName);
+
         return new FunctionInfo(
             ns, className, accessibility, method.Name, returnType,
             paramList.ToString(), messageParamName, functionContextParamName,
             cancellationTokenParamName, functionName, queueName, connectionName,
-            configTypeFullName);
+            configureMethodInfo);
     }
 
     static void GenerateSource(SourceProductionContext spc, ImmutableArray<FunctionInfo> functions, ImmutableArray<SendOnlyEndpointInfo> sendOnlyEndpoints, string assemblyClassName)
@@ -297,7 +332,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         {
             sb.AppendLine($"            yield return new global::NServiceBus.FunctionManifest(");
             sb.AppendLine($"                \"{func.FunctionName}\", \"{func.QueueName}\", \"{func.ConnectionName}\",");
-            sb.AppendLine($"                ec=>{func.ConfigTypeFullName}.Configure{func.FunctionName}(ec));");
+            sb.AppendLine($"                {GenerateConfigureMethodCall(func.ConfigureMethod)});");
         }
 
         sb.AppendLine("            yield break;");
@@ -310,7 +345,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         foreach (var endpoint in sendOnlyEndpoints)
         {
             sb.AppendLine($"            yield return new global::NServiceBus.SendOnlyManifest(");
-            sb.AppendLine($"                \"{endpoint.EndpointName}\", ec=>{endpoint.ConfigTypeFullName}.Configure{endpoint.EndpointName}(ec));");
+            sb.AppendLine($"                \"{endpoint.EndpointName}\", {GenerateConfigureMethodCall(endpoint.ConfigureMethod)});");
         }
 
         sb.AppendLine("            yield break;");
@@ -319,6 +354,13 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         sb.AppendLine("}");
 
         spc.AddSource("FunctionRegistration.g.cs", sb.ToString());
+    }
+
+    static string GenerateConfigureMethodCall(IMethodSymbol configureMethod)
+    {
+        var parameterNames = configureMethod.Parameters.Select(p => p.Type.Name.ToLower()).ToArray();
+        var argumentList = string.Join(", ", parameterNames);
+        return $"(endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => {configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{configureMethod.Name}({argumentList})";
     }
 
     record struct FunctionInfo(
@@ -334,9 +376,9 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         string FunctionName,
         string QueueName,
         string ConnectionName,
-        string ConfigTypeFullName);
+        IMethodSymbol ConfigureMethod);
 
     record struct SendOnlyEndpointInfo(
         string EndpointName,
-        string ConfigTypeFullName);
+        IMethodSymbol ConfigureMethod);
 }

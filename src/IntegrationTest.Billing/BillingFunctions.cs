@@ -3,6 +3,8 @@ namespace IntegrationTest.Billing;
 using Azure.Messaging.ServiceBus;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 // Pattern for multiple endpoints in one class with separate configs
 public partial class BillingFunctions
@@ -29,9 +31,13 @@ public partial class BillingFunctions
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureBillingBackend(EndpointConfiguration configuration)
+    public static void ConfigureBillingBackend(EndpointConfiguration endpointConfiguration, IConfiguration configuration, IHostEnvironment environment)
     {
-        CommonEndpointConfig.Apply(configuration);
-        // different handlers for the backend queue
+        CommonEndpointConfig.Apply(endpointConfiguration);
+
+        if (environment.IsProduction())
+        {
+            endpointConfiguration.AuditProcessedMessagesTo(configuration["audit-queue"] ?? "audit");
+        }
     }
 }

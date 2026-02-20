@@ -23,7 +23,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         var sendOnlyInfos = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "NServiceBus.NServiceBusSendOnlyEndpointAttribute",
-                predicate: static (node, _) => node is ClassDeclarationSyntax or MethodDeclarationSyntax,
+                predicate: static (node, _) => node is ClassDeclarationSyntax,
                 transform: static (ctx, _) => ExtractSendOnlyInfo(ctx))
             .Where(static info => info is not null)
             .Select(static (info, _) => info!.Value);

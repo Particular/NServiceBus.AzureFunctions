@@ -46,14 +46,16 @@ public static class FunctionsHostApplicationBuilderExtensions
 
     public static void AddSendOnlyNServiceBusEndpoint(
         this FunctionsApplicationBuilder builder,
-        SendOnlyManifest sendOnlyManifest)
+        string endpointName,
+        Action<EndpointConfiguration> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(sendOnlyManifest);
+        ArgumentNullException.ThrowIfNull(endpointName);
+        ArgumentNullException.ThrowIfNull(configure);
 
-        builder.AddNServiceBusEndpoint(sendOnlyManifest.Name, (endpointConfiguration, services, configuration, hostEnvironment) =>
+        builder.AddNServiceBusEndpoint(endpointName, (endpointConfiguration, services, configuration, hostEnvironment) =>
         {
-            sendOnlyManifest.Configuration(endpointConfiguration, services, configuration, hostEnvironment);
+            configure(endpointConfiguration);
 
             endpointConfiguration.SendOnly();
 

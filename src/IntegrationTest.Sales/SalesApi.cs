@@ -5,11 +5,10 @@ using System.Threading.Tasks;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
 
-class SalesApi([FromKeyedServices("client")] IMessageSession session, ILogger<SalesApi> logger)
+class SalesApi([FromEndpoint("client")] IMessageSession session, ILogger<SalesApi> logger)
 {
     [Function("SalesApi")]
     public async Task<HttpResponseData> Api(

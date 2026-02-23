@@ -173,15 +173,6 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
             sb.AppendLine($"            foreach (var m in global::{regClass.FullClassName}.GetFunctionManifests())");
             sb.AppendLine($"                global::NServiceBus.FunctionsHostApplicationBuilderExtensions.AddNServiceBusFunction(builder, m);");
         }
-
-        sb.AppendLine();
-
-        foreach (var regClass in regClasses)
-        {
-            sb.AppendLine($"            foreach (var m in global::{regClass.FullClassName}.GetSendOnlyManifests())");
-            sb.AppendLine($"                global::NServiceBus.FunctionsHostApplicationBuilderExtensions.AddSendOnlyNServiceBusEndpoint(builder, m);");
-        }
-
         sb.AppendLine("        }");
         sb.AppendLine("    }");
         sb.AppendLine("}");

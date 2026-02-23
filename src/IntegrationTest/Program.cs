@@ -1,5 +1,8 @@
 using System.Text.Json;
+using IntegrationTest.Sales;
+using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +15,21 @@ builder.Logging.AddJsonConsole(o =>
     o.JsonWriterOptions = new JsonWriterOptions { Indented = true };
 });
 builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+builder.Services.AddSingleton(new MyComponent("global"));
+
 builder.AddNServiceBusFunctions();
+builder.AddSendOnlyNServiceBusEndpoint("client", (configuration, endpointServices) =>
+{
+    endpointServices.AddSingleton(new MyComponent("client"));
+
+    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
+
+    var routing = configuration.UseTransport(transport);
+
+    routing.RouteToEndpoint(typeof(SubmitOrder), "sales");
+    configuration.UseSerialization<SystemJsonSerializer>();
+});
 
 var host = builder.Build();
 

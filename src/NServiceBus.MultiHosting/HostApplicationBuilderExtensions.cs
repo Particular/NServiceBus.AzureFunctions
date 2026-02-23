@@ -13,7 +13,7 @@ public static class HostApplicationBuilderExtensions
     public static void AddNServiceBusEndpoint(
         this IHostApplicationBuilder builder,
         string endpointName,
-        MultiEndpointConfiguration configure)
+        Action<EndpointConfiguration, IServiceCollection> configure)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
         ArgumentNullException.ThrowIfNull(configure);
@@ -35,7 +35,7 @@ public static class HostApplicationBuilderExtensions
 
         var keyedServices = new KeyedServiceCollectionAdapter(builder.Services, endpointName);
 
-        configure(endpointConfiguration, keyedServices, builder.Configuration, builder.Environment);
+        configure(endpointConfiguration, keyedServices);
 
         var transport = endpointConfiguration.GetSettings().Get<TransportDefinition>();
         var transportKey = $"NServiceBus.Transport.{RuntimeHelpers.GetHashCode(transport)}";

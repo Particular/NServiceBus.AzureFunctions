@@ -14,7 +14,7 @@ builder.Logging.AddJsonConsole(o =>
 });
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 builder.AddNServiceBusFunctions();
-builder.AddSendOnlyNServiceBusEndpoint("client", configuration =>
+builder.AddSendOnlyNServiceBusEndpoint("client", (configuration, _) =>
 {
     var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
 

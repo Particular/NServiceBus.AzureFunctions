@@ -9,7 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
 
-class SalesApi([FromKeyedServices("client")] IMessageSession session, ILogger<SalesApi> logger)
+class SalesApi(
+    [FromKeyedServices("client")] IMessageSession session,
+    [FromKeyedServices("client")] MyComponent component,
+    MyComponent globalComponent,
+    ILogger<SalesApi> logger)
 {
     [Function("SalesApi")]
     public async Task<HttpResponseData> Api(
@@ -17,7 +21,7 @@ class SalesApi([FromKeyedServices("client")] IMessageSession session, ILogger<Sa
         HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("C# HTTP trigger function received a request.");
+        logger.LogInformation($"Sales HTTP api triggered. Injected component from: {component.EndpointName} and {globalComponent.EndpointName}");
 
         await session.Send(new SubmitOrder(), cancellationToken).ConfigureAwait(false);
 

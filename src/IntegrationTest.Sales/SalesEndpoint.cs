@@ -24,8 +24,3 @@ public partial class SalesEndpoint
         configuration.AddHandler<Handlers.AcceptOrderHandler>();
     }
 }
-
-public class MyComponent(string endpointName)
-{
-    public string EndpointName => endpointName;
-}

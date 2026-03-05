@@ -4,22 +4,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
-using NServiceBus.MultiHosting;
 
-public class MessageProcessor(AzureServiceBusServerlessTransport transport, EndpointStarter endpointStarter)
+public class MessageProcessor(AzureServiceBusServerlessTransport transport, string endpointName)
 {
     public async Task Process(ServiceBusReceivedMessage message, FunctionContext functionContext, CancellationToken cancellationToken = default)
     {
-        var endpointName = endpointStarter.ServiceKey;
-
         var logger = functionContext.GetLogger("MessageProcessor");
 
         //TODO: Should we add things like the MessageId?
         using var scope = logger.BeginScope(new Dictionary<string, object> { ["Endpoint"] = endpointName });
-
-        using var _ = MultiEndpointLoggerFactory.Instance.PushName(endpointStarter.ServiceKey);
-
-        await endpointStarter.GetOrStart(cancellationToken).ConfigureAwait(false);
 
         if (transport.MessageProcessor is null)
         {

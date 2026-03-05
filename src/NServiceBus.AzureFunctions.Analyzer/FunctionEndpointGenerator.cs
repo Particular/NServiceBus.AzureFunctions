@@ -121,7 +121,6 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
     static readonly string[] allowedOptionalParameters =
     [
-        "Microsoft.Extensions.DependencyInjection.IServiceCollection",
         "Microsoft.Extensions.Configuration.IConfiguration",
         "Microsoft.Extensions.Hosting.IHostEnvironment"
     ];
@@ -316,7 +315,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
     {
         var parameterNames = configureMethod.Parameters.Select(p => p.Type.Name.ToLower()).ToArray();
         var argumentList = string.Join(", ", parameterNames);
-        return $"(endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => {configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{configureMethod.Name}({argumentList})";
+        return $"(endpointconfiguration, iconfiguration, ihostenvironment) => {configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{configureMethod.Name}({argumentList})";
     }
 
     record struct FunctionInfo(

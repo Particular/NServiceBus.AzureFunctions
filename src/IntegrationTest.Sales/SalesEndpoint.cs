@@ -16,11 +16,11 @@ public partial class SalesEndpoint
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureSales(EndpointConfiguration configuration, IServiceCollection serviceCollection)
+    public static void ConfigureSales(EndpointConfiguration configuration)
     {
         CommonEndpointConfig.Apply(configuration);
 
-        serviceCollection.AddSingleton(new MyComponent("Sales"));
+        configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
         configuration.AddHandler<Handlers.AcceptOrderHandler>();
     }
 }

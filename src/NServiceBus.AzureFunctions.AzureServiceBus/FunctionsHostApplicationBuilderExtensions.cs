@@ -40,7 +40,7 @@ public static class FunctionsHostApplicationBuilderExtensions
             }
 
             transport.ConnectionName = functionManifest.ConnectionName;
-            builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointName);
+            builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
             builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (_, _) => new MessageProcessor(transport, endpointName));
         }
 
@@ -59,7 +59,7 @@ public static class FunctionsHostApplicationBuilderExtensions
             // Make sure that the correct transport is used
             _ = GetTransport(endpointConfiguration.GetSettings());
 
-            builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointName);
+            builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
         }
     }
 

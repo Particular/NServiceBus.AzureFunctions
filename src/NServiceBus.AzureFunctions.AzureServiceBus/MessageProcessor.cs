@@ -9,11 +9,6 @@ public class MessageProcessor(AzureServiceBusServerlessTransport transport, stri
 {
     public async Task Process(ServiceBusReceivedMessage message, FunctionContext functionContext, CancellationToken cancellationToken = default)
     {
-        var logger = functionContext.GetLogger("MessageProcessor");
-
-        //TODO: Should we add things like the MessageId?
-        using var scope = logger.BeginScope(new Dictionary<string, object> { ["Endpoint"] = endpointName });
-
         if (transport.MessageProcessor is null)
         {
             // This should never happen but we need to protect against it anyways

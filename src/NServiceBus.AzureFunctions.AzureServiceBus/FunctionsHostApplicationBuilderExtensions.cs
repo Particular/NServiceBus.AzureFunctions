@@ -30,7 +30,14 @@ public static class FunctionsHostApplicationBuilderExtensions
             throw new InvalidOperationException($"Functions can't be send only endpoints, use {nameof(AddSendOnlyNServiceBusEndpoint)}");
         }
 
-        var transport = GetTransport(settings);
+        var transport = settings.TryGet(out TransportDefinition configuredTransport)
+            ? configuredTransport as AzureServiceBusServerlessTransport
+            : throw new InvalidOperationException($"{nameof(AzureServiceBusServerlessTransport)} needs to be configured");
+
+        if (transport is null)
+        {
+            throw new InvalidOperationException($"Endpoint must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
+        }
 
         if (functionManifest.Name != functionManifest.Queue)
         {
@@ -54,23 +61,12 @@ public static class FunctionsHostApplicationBuilderExtensions
         configure(endpointConfiguration);
         endpointConfiguration.SendOnly();
 
-        // Make sure that the correct transport is used
-        _ = GetTransport(endpointConfiguration.GetSettings());
-        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
-    }
-
-    static AzureServiceBusServerlessTransport GetTransport(SettingsHolder settings)
-    {
-        if (!settings.TryGet(out TransportDefinition transport))
-        {
-            throw new InvalidOperationException($"{nameof(AzureServiceBusServerlessTransport)} needs to be configured");
-        }
-
-        if (transport is not AzureServiceBusServerlessTransport serverlessTransport)
+        var settings = endpointConfiguration.GetSettings();
+        if (!settings.TryGet(out TransportDefinition transport) || transport is not AzureServiceBusServerlessTransport)
         {
             throw new InvalidOperationException($"Endpoint must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
         }
 
-        return serverlessTransport;
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
     }
 }

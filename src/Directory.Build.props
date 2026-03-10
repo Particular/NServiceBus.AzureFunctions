@@ -31,10 +31,4 @@
     <SourceRoot Include="$([MSBuild]::NormalizePath($(MSBuildThisFileDirectory)..\))" />
   </ItemGroup>
 
-  <ItemGroup>
-    <CompilerVisibleProperty Include="OutputType" />
-    <CompilerVisibleProperty Include="AzureFunctionsVersion" />
-    <CompilerVisibleProperty Include="RootNamespace" />
-  </ItemGroup>
-
 </Project>

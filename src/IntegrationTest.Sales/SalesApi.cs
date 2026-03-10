@@ -23,10 +23,10 @@ class SalesApi(
     {
         logger.LogInformation($"Sales HTTP api triggered. Injected component from: {component.EndpointName} and {globalComponent.EndpointName}");
 
-        await session.Send(new SubmitOrder(), cancellationToken).ConfigureAwait(false);
+        await session.Send(new SubmitOrder(), cancellationToken);
 
         var r = req.CreateResponse(HttpStatusCode.OK);
-        await r.WriteStringAsync($"{nameof(SubmitOrder)} sent.", cancellationToken).ConfigureAwait(false);
+        await r.WriteStringAsync($"{nameof(SubmitOrder)} sent.", cancellationToken);
         return r;
     }
 }

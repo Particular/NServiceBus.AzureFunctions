@@ -1,6 +1,5 @@
 using System.Text.Json;
 using IntegrationTest;
-using IntegrationTest.Sales;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,4 +33,4 @@ builder.AddSendOnlyNServiceBusEndpoint("client", configuration =>
 
 var host = builder.Build();
 
-await host.RunAsync().ConfigureAwait(false);
+await host.RunAsync();

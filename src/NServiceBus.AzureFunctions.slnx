@@ -17,5 +17,4 @@
   </Folder>
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
   <Project Path="NServiceBus.AzureFunctions/NServiceBus.AzureFunctions.csproj" />
-  <Project Path="NServiceBus.MultiHosting/NServiceBus.MultiHosting.csproj" />
 </Solution>

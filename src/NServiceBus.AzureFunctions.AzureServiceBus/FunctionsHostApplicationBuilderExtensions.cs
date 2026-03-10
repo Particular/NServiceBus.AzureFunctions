@@ -11,19 +11,20 @@ using Transport;
 
 public static class FunctionsHostApplicationBuilderExtensions
 {
-    public static void AddNServiceBusFunction(
-        this FunctionsApplicationBuilder builder,
-        FunctionManifest functionManifest)
+    extension(FunctionsApplicationBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(functionManifest);
-
-        builder.Services.AddAzureClientsCore();
-
-        var endpointName = functionManifest.Name;
-        builder.AddNServiceBusEndpoint(endpointName, (endpointConfiguration, instanceSpecificServices) =>
+        public void AddNServiceBusFunction(FunctionManifest functionManifest)
         {
-            functionManifest.Configuration(endpointConfiguration, instanceSpecificServices, builder.Configuration, builder.Environment);
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(functionManifest);
+
+            builder.Services.AddAzureClientsCore();
+
+            var endpointName = functionManifest.Name;
+            var endpointConfiguration = new EndpointConfiguration(endpointName);
+            endpointConfiguration.AssemblyScanner().Disable = true;
+
+            functionManifest.Configuration(endpointConfiguration, builder.Configuration, builder.Environment);
 
             var settings = endpointConfiguration.GetSettings();
             if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
@@ -39,29 +40,27 @@ public static class FunctionsHostApplicationBuilderExtensions
             }
 
             transport.ConnectionName = functionManifest.ConnectionName;
+            builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+            builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (_, _) => new MessageProcessor(transport, endpointName));
+        }
 
-            builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (sp, _) => new MessageProcessor(transport, sp.GetRequiredKeyedService<MultiHosting.EndpointStarter>(endpointName)));
-        });
-    }
-
-    public static void AddSendOnlyNServiceBusEndpoint(
-        this FunctionsApplicationBuilder builder,
-        string endpointName,
-        Action<EndpointConfiguration, IServiceCollection> configure)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(endpointName);
-        ArgumentNullException.ThrowIfNull(configure);
-
-        builder.AddNServiceBusEndpoint(endpointName, (endpointConfiguration, services) =>
+        public void AddSendOnlyNServiceBusEndpoint(string endpointName,
+            Action<EndpointConfiguration> configure)
         {
-            configure(endpointConfiguration, services);
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(endpointName);
+            ArgumentNullException.ThrowIfNull(configure);
 
+            var endpointConfiguration = new EndpointConfiguration(endpointName);
+            endpointConfiguration.AssemblyScanner().Disable = true;
+            configure(endpointConfiguration);
             endpointConfiguration.SendOnly();
 
             // Make sure that the correct transport is used
             _ = GetTransport(endpointConfiguration.GetSettings());
-        });
+
+            builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+        }
     }
 
     static AzureServiceBusServerlessTransport GetTransport(SettingsHolder settings)

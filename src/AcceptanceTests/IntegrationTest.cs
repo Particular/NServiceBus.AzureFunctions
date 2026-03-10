@@ -21,11 +21,11 @@ public class IntegrationTest
     public async Task Setup()
     {
         using var http = new HttpClient();
-        http.Timeout = TimeSpan.FromSeconds(2);
+        http.Timeout = TimeSpan.FromSeconds(5);
 
         var versionUrl = $"{AppBaseUrl}/api/testing";
 
-        const int timeout = 60;
+        const int timeout = 120;
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
 
         try
@@ -51,9 +51,9 @@ public class IntegrationTest
                 }
                 catch (Exception e) when (e is HttpRequestException or TimeoutException or TaskCanceledException or IOException or ObjectDisposedException)
                 {
-                    await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: {e.Message}\" accessing {versionUrl}, will retry after 2s delay");
+                    await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: {e.Message}\" accessing {versionUrl}, will retry after 5s delay");
                 }
-                await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+                await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
             }
         }
         catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)

@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/IntegrationTestApp/">
     <Project Path="IntegrationTest.Billing/IntegrationTest.Billing.csproj" />
+    <Project Path="IntegrationTest.Contracts/IntegrationTest.Contracts.csproj" />
     <Project Path="IntegrationTest.Sales/IntegrationTest.Sales.csproj" />
     <Project Path="IntegrationTest.Shared/IntegrationTest.Shared.csproj" />
     <Project Path="IntegrationTest.Shipping/IntegrationTest.Shipping.csproj" />

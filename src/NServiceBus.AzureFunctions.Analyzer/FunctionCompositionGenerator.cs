@@ -23,47 +23,33 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
             return new HostProjectInfo(isHost, rootNamespace);
         });
 
-        var registrationTypesFromReferences = context.CompilationProvider.SelectMany((compilation, ct) =>
-        {
-            var results = ImmutableArray.CreateBuilder<GeneratedRegistrationClass>();
-            foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
-            {
-                ct.ThrowIfCancellationRequested();
-                var className = CompilationAssemblyDetails.FromAssembly(assembly).ToGenerationClassName();
-                var fullName = $"NServiceBus.Generated.{className}";
-                if (compilation.GetTypeByMetadataName(fullName) is not null)
-                {
-                    results.Add(new GeneratedRegistrationClass(fullName));
-                }
-            }
-            return results.ToImmutable();
-        });
-
-        var collectedRegistrationTypes = registrationTypesFromReferences.Collect();
-
-        var currentAssemblyRegistrationTypeByConvention = context.CompilationProvider
-            .Select((compilation, _) => CompilationAssemblyDetails.FromAssembly(compilation.Assembly))
-            .Select((assemblyInfo, _) => assemblyInfo.ToGenerationClassName())
-            .Select((className, _) => new GeneratedRegistrationClass($"NServiceBus.Generated.{className}"));
-
-        var allData = collectedRegistrationTypes
+        var allData = context.CompilationProvider
             .Combine(hostProjectInfo)
-            .Combine(currentAssemblyRegistrationTypeByConvention)
-            .Select((tuple, _) =>
+            .Select((tuple, ct) =>
             {
-                var ((regClasses, hostInfo), currentAssemblyClassName) = tuple;
+                var (compilation, hostInfo) = tuple;
 
                 if (!hostInfo.IsHost)
                 {
                     return default;
                 }
 
-                var allClasses = regClasses
-                    .Concat([currentAssemblyClassName])
-                    .Distinct()
-                    .ToImmutableArray();
+                var results = ImmutableArray.CreateBuilder<GeneratedRegistrationClass>();
+                foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var className = CompilationAssemblyDetails.FromAssembly(assembly).ToGenerationClassName();
+                    var fullName = $"NServiceBus.Generated.{className}";
+                    if (compilation.GetTypeByMetadataName(fullName) is not null)
+                    {
+                        results.Add(new GeneratedRegistrationClass(fullName));
+                    }
+                }
 
-                return new CompositionData(allClasses, hostInfo.RootNamespace);
+                var currentAssemblyClassName = CompilationAssemblyDetails.FromAssembly(compilation.Assembly).ToGenerationClassName();
+                results.Add(new GeneratedRegistrationClass($"NServiceBus.Generated.{currentAssemblyClassName}"));
+
+                return new CompositionData(results.ToImmutable().Distinct().ToImmutableArray(), hostInfo.RootNamespace);
             });
 
         context.RegisterSourceOutput(allData, GenerateCompositionCode);

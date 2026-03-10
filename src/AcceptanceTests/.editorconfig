@@ -1,0 +1,7 @@
+[*.cs]
+
+# ConfigureAwait - not a library
+dotnet_diagnostic.CA2007.severity = none
+
+# Add a CancellationToken - not a library
+dotnet_diagnostic.PS0018.severity = none

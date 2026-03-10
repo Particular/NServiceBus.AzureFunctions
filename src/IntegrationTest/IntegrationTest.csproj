@@ -18,9 +18,9 @@
     <ProjectReference Include="..\IntegrationTest.Billing\IntegrationTest.Billing.csproj" />
     <ProjectReference Include="..\IntegrationTest.Shipping\IntegrationTest.Shipping.csproj" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.3.9" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
   </ItemGroup>
 

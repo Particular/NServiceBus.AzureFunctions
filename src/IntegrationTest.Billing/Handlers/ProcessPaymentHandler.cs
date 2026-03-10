@@ -10,6 +10,6 @@ public class ProcessPaymentHandler(ILogger<ProcessPaymentHandler> logger) : IHan
     {
         logger.LogWarning($"Handling {nameof(OrderSubmitted)} in {nameof(ProcessPaymentHandler)}");
 
-        await context.Publish(new PaymentCleared()).ConfigureAwait(false);
+        await context.Publish(new PaymentCleared());
     }
 }

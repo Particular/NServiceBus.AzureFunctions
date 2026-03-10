@@ -1,3 +1,0 @@
-namespace NServiceBus.AzureFunctions.Tests;
-
-

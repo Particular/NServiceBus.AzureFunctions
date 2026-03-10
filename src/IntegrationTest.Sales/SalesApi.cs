@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
+using Shared.Infrastructure;
 
 class SalesApi(
     [FromKeyedServices("client")] IMessageSession session,
@@ -17,16 +18,16 @@ class SalesApi(
 {
     [Function("SalesApi")]
     public async Task<HttpResponseData> Api(
-        [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]
         HttpRequestData req,
         CancellationToken cancellationToken)
     {
         logger.LogInformation($"Sales HTTP api triggered. Injected component from: {component.EndpointName} and {globalComponent.EndpointName}");
 
-        await session.Send(new SubmitOrder(), cancellationToken).ConfigureAwait(false);
+        await session.StartTestWithMessage(nameof(SubmitOrder), new SubmitOrder());
 
         var r = req.CreateResponse(HttpStatusCode.OK);
-        await r.WriteStringAsync($"{nameof(SubmitOrder)} sent.", cancellationToken).ConfigureAwait(false);
+        await r.WriteStringAsync($"{nameof(SubmitOrder)} sent.", cancellationToken);
         return r;
     }
 }

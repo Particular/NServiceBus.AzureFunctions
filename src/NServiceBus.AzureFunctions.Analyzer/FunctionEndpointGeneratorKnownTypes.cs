@@ -11,6 +11,7 @@ public readonly struct FunctionEndpointGeneratorKnownTypes
         INamedTypeSymbol functionContext,
         INamedTypeSymbol cancellationToken,
         INamedTypeSymbol endpointConfiguration,
+        INamedTypeSymbol iHandleMessages,
         INamedTypeSymbol iConfiguration,
         INamedTypeSymbol iHostEnvironment)
     {
@@ -19,6 +20,7 @@ public readonly struct FunctionEndpointGeneratorKnownTypes
         FunctionContext = functionContext;
         CancellationToken = cancellationToken;
         EndpointConfiguration = endpointConfiguration;
+        IHandleMessages = iHandleMessages;
         IConfiguration = iConfiguration;
         IHostEnvironment = iHostEnvironment;
     }
@@ -28,6 +30,7 @@ public readonly struct FunctionEndpointGeneratorKnownTypes
     public INamedTypeSymbol FunctionContext { get; }
     public INamedTypeSymbol CancellationToken { get; }
     public INamedTypeSymbol EndpointConfiguration { get; }
+    public INamedTypeSymbol IHandleMessages { get; }
     public INamedTypeSymbol IConfiguration { get; }
     public INamedTypeSymbol IHostEnvironment { get; }
 
@@ -38,6 +41,7 @@ public readonly struct FunctionEndpointGeneratorKnownTypes
         var functionContext = compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionContext");
         var cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
         var endpointConfiguration = compilation.GetTypeByMetadataName("NServiceBus.EndpointConfiguration");
+        var iHandleMessages = compilation.GetTypeByMetadataName("NServiceBus.IHandleMessages`1");
         var iconfiguration = compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
         var iHostEnvironment = compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostEnvironment");
 
@@ -46,6 +50,7 @@ public readonly struct FunctionEndpointGeneratorKnownTypes
             || functionContext is null
             || cancellationToken is null
             || endpointConfiguration is null
+            || iHandleMessages is null
             || iconfiguration is null
             || iHostEnvironment is null)
         {
@@ -59,6 +64,7 @@ public readonly struct FunctionEndpointGeneratorKnownTypes
             functionContext,
             cancellationToken,
             endpointConfiguration,
+            iHandleMessages,
             iconfiguration,
             iHostEnvironment);
 

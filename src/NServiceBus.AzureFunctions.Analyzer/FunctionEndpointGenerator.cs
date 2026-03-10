@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 [Generator]
@@ -13,12 +14,16 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var functionInfos = context.SyntaxProvider
+        var extractionResults = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "NServiceBus.NServiceBusFunctionAttribute",
                 predicate: static (node, _) => node is ClassDeclarationSyntax or MethodDeclarationSyntax,
-                transform: static (ctx, ct) => ExtractFunctionInfos(ctx, ct))
-            .SelectMany(static (infos, _) => infos);
+                transform: static (ctx, ct) => ExtractFunctionInfos(ctx, ct));
+
+        var functionInfos = extractionResults.SelectMany(static (result, _) => result.FunctionInfos);
+        var diagnostics = extractionResults.SelectMany(static (result, _) => result.Diagnostics);
+
+        context.RegisterSourceOutput(diagnostics, static (spc, diagnostic) => spc.ReportDiagnostic(diagnostic));
 
         var assemblyClassName = context.CompilationProvider
             .Select(static (c, _) => CompilationAssemblyDetails.FromAssembly(c.Assembly).ToGenerationClassName());
@@ -30,21 +35,36 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             GenerateSource(spc, data.Left, data.Right));
     }
 
-    static ImmutableArray<FunctionInfo> ExtractFunctionInfos(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    static FunctionExtractionResult ExtractFunctionInfos(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
         if (context.Attributes.Length == 0)
         {
-            return ImmutableArray<FunctionInfo>.Empty;
+            return FunctionExtractionResult.Empty;
         }
 
         if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, out var knownTypes))
         {
-            return ImmutableArray<FunctionInfo>.Empty;
+            return FunctionExtractionResult.Empty;
         }
 
         if (context.TargetSymbol is INamedTypeSymbol classSymbol)
         {
             var results = ImmutableArray.CreateBuilder<FunctionInfo>();
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+
+            if (!IsPartial(classSymbol, cancellationToken))
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
+            }
+
+            var implementsIHandleMessages = classSymbol.AllInterfaces
+                .Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, knownTypes.IHandleMessages));
+
+            if (implementsIHandleMessages)
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
+            }
+
             foreach (var member in classSymbol.GetMembers())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -58,19 +78,41 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 }
             }
 
-            return results.ToImmutable();
+            return new FunctionExtractionResult(results.ToImmutable(), diagnostics.ToImmutable());
         }
 
         if (context.TargetSymbol is IMethodSymbol methodSymbol)
         {
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+
+            if (!methodSymbol.IsPartialDefinition)
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.MethodMustBePartialDescriptor, methodSymbol, methodSymbol.Name));
+            }
+
+            if (!IsPartial(methodSymbol.ContainingType, cancellationToken))
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, methodSymbol.ContainingType, methodSymbol.ContainingType.Name));
+            }
+
             var info = TryExtractFromMethod(methodSymbol, knownTypes);
-            return info is not null
+            var infos = info is not null
                 ? ImmutableArray.Create(info.Value)
                 : ImmutableArray<FunctionInfo>.Empty;
+
+            return new FunctionExtractionResult(infos, diagnostics.ToImmutable());
         }
 
-        return ImmutableArray<FunctionInfo>.Empty;
+        return FunctionExtractionResult.Empty;
     }
+
+    static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
+        => type.DeclaringSyntaxReferences.Any(r =>
+            r.GetSyntax(cancellationToken) is ClassDeclarationSyntax classDeclaration
+            && classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword));
+
+    static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ISymbol symbol, string argument)
+        => Diagnostic.Create(descriptor, symbol.Locations.FirstOrDefault(), argument);
 
     static IMethodSymbol GetConfigureMethodInfo(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes)
     {
@@ -334,6 +376,22 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         string QueueName,
         string ConnectionName,
         IMethodSymbol ConfigureMethod);
+
+    readonly struct FunctionExtractionResult
+    {
+        public FunctionExtractionResult(ImmutableArray<FunctionInfo> functionInfos, ImmutableArray<Diagnostic> diagnostics)
+        {
+            FunctionInfos = functionInfos;
+            Diagnostics = diagnostics;
+        }
+
+        public ImmutableArray<FunctionInfo> FunctionInfos { get; }
+        public ImmutableArray<Diagnostic> Diagnostics { get; }
+
+        public static FunctionExtractionResult Empty { get; } = new(
+            ImmutableArray<FunctionInfo>.Empty,
+            ImmutableArray<Diagnostic>.Empty);
+    }
 
     record struct SendOnlyEndpointInfo(
         string EndpointName,

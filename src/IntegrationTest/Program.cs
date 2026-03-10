@@ -1,12 +1,14 @@
 using System.Text.Json;
 using IntegrationTest;
 using IntegrationTest.Shared;
+using IntegrationTest.Shared.Infrastructure;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 var builder = FunctionsApplication.CreateBuilder(args);
+builder.UseWhen<ExceptionTrackingMiddleware>(_ => true);
 
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(o =>
@@ -16,6 +18,7 @@ builder.Logging.AddJsonConsole(o =>
 });
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
+builder.Services.AddSingleton<GlobalTestStorage>();
 builder.Services.AddSingleton(new MyComponent("global"));
 
 builder.AddNServiceBusFunctions();

@@ -1,5 +1,7 @@
 namespace IntegrationTest.Shared;
 
+using Infrastructure;
+
 public static class CommonEndpointConfig
 {
     public static void Apply(EndpointConfiguration configuration)
@@ -8,5 +10,7 @@ public static class CommonEndpointConfig
         configuration.EnableInstallers();
         configuration.UsePersistence<LearningPersistence>();
         configuration.UseSerialization<SystemJsonSerializer>();
+
+        configuration.EnableFeature<TestStorageFeature>();
     }
 }

@@ -1,0 +1,22 @@
+{
+  "MessagesReceived": [
+    {
+      "MessageType": "IntegrationTest.Shared.SubmitOrder",
+      "Order": 0,
+      "SendingEndpoint": "client",
+      "ReceivingEndpoint": "Sales"
+    },
+    {
+      "MessageType": "IntegrationTest.Shared.OrderSubmitted",
+      "Order": 1,
+      "SendingEndpoint": "Sales",
+      "ReceivingEndpoint": "BillingApi"
+    },
+    {
+      "MessageType": "IntegrationTest.Shared.PaymentCleared",
+      "Order": 2,
+      "SendingEndpoint": "BillingApi",
+      "ReceivingEndpoint": "Shipping"
+    }
+  ]
+}

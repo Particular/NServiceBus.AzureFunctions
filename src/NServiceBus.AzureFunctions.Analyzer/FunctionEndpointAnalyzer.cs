@@ -27,10 +27,15 @@ public sealed class FunctionEndpointAnalyzer : DiagnosticAnalyzer
 
     static void AnalyzeNamedType(SymbolAnalysisContext context)
     {
+        if (!FunctionEndpointAnalyzerKnownTypes.TryGet(context.Compilation, out var knownTypes))
+        {
+            return;
+        }
+
         var type = (INamedTypeSymbol)context.Symbol;
 
         var hasAttribute = type.GetAttributes()
-            .Any(a => a.AttributeClass?.ToDisplayString() == "NServiceBus.NServiceBusFunctionAttribute");
+            .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownTypes.NServiceBusFunctionAttribute));
 
         if (!hasAttribute)
         {
@@ -53,7 +58,7 @@ public sealed class FunctionEndpointAnalyzer : DiagnosticAnalyzer
 
         // NSBFUNC002: Should not implement IHandleMessages<T>
         var implementsIHandleMessages = type.AllInterfaces
-            .Any(i => i.OriginalDefinition.ToDisplayString() == "NServiceBus.IHandleMessages<T>");
+            .Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, knownTypes.IHandleMessages));
 
         if (implementsIHandleMessages)
         {
@@ -66,10 +71,15 @@ public sealed class FunctionEndpointAnalyzer : DiagnosticAnalyzer
 
     static void AnalyzeMethod(SymbolAnalysisContext context)
     {
+        if (!FunctionEndpointAnalyzerKnownTypes.TryGet(context.Compilation, out var knownTypes))
+        {
+            return;
+        }
+
         var method = (IMethodSymbol)context.Symbol;
 
         var hasAttribute = method.GetAttributes()
-            .Any(a => a.AttributeClass?.ToDisplayString() == "NServiceBus.NServiceBusFunctionAttribute");
+            .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownTypes.NServiceBusFunctionAttribute));
 
         if (!hasAttribute)
         {

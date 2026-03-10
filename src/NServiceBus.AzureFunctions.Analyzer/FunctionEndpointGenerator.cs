@@ -37,6 +37,11 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             return ImmutableArray<FunctionInfo>.Empty;
         }
 
+        if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, out var knownTypes))
+        {
+            return ImmutableArray<FunctionInfo>.Empty;
+        }
+
         if (context.TargetSymbol is INamedTypeSymbol classSymbol)
         {
             var results = ImmutableArray.CreateBuilder<FunctionInfo>();
@@ -45,7 +50,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 cancellationToken.ThrowIfCancellationRequested();
                 if (member is IMethodSymbol method)
                 {
-                    var info = TryExtractFromMethod(method);
+                    var info = TryExtractFromMethod(method, knownTypes);
                     if (info is not null)
                     {
                         results.Add(info.Value);
@@ -58,7 +63,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
         if (context.TargetSymbol is IMethodSymbol methodSymbol)
         {
-            var info = TryExtractFromMethod(methodSymbol);
+            var info = TryExtractFromMethod(methodSymbol, knownTypes);
             return info is not null
                 ? ImmutableArray.Create(info.Value)
                 : ImmutableArray<FunctionInfo>.Empty;
@@ -67,7 +72,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         return ImmutableArray<FunctionInfo>.Empty;
     }
 
-    static IMethodSymbol GetConfigureMethodInfo(INamedTypeSymbol functionClassType, string endpointName)
+    static IMethodSymbol GetConfigureMethodInfo(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes)
     {
         var configureMethodName = $"Configure{endpointName}";
 
@@ -100,7 +105,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             throw new InvalidOperationException($"Method {configureMethodName} must have a `EndpointConfiguration` parameter");
         }
 
-        if (parameters[0].Type.ToDisplayString() != "NServiceBus.EndpointConfiguration")
+        if (!SymbolEqualityComparer.Default.Equals(parameters[0].Type, knownTypes.EndpointConfiguration))
         {
             throw new InvalidOperationException($"Method {configureMethodName} must have `EndpointConfiguration` as the first parameter");
         }
@@ -109,26 +114,23 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
         foreach (var parameter in optionalParameters)
         {
-            var parameterType = parameter.Type.ToDisplayString();
-            if (!allowedOptionalParameters.Contains(parameterType))
+            var isAllowedOptionalParameter =
+                SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration)
+                || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
+
+            if (!isAllowedOptionalParameter)
             {
-                throw new InvalidOperationException($"Method {configureMethodName} contains unsupported parameter {parameterType}");
+                throw new InvalidOperationException($"Method {configureMethodName} contains unsupported parameter {parameter.Type.ToDisplayString()}");
             }
         }
 
         return configureMethod;
     }
 
-    static readonly string[] allowedOptionalParameters =
-    [
-        "Microsoft.Extensions.Configuration.IConfiguration",
-        "Microsoft.Extensions.Hosting.IHostEnvironment"
-    ];
-
-    static FunctionInfo? TryExtractFromMethod(IMethodSymbol method)
+    static FunctionInfo? TryExtractFromMethod(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes)
     {
         var functionAttr = method.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Microsoft.Azure.Functions.Worker.FunctionAttribute");
+            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownTypes.FunctionAttribute));
         if (functionAttr is null || functionAttr.ConstructorArguments.Length == 0)
         {
             return null;
@@ -160,7 +162,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
             foreach (var pAttr in param.GetAttributes())
             {
-                if (pAttr.AttributeClass?.ToDisplayString() == "Microsoft.Azure.Functions.Worker.ServiceBusTriggerAttribute")
+                if (SymbolEqualityComparer.Default.Equals(pAttr.AttributeClass, knownTypes.ServiceBusTriggerAttribute))
                 {
                     if (pAttr.ConstructorArguments.Length > 0)
                     {
@@ -179,12 +181,12 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 }
             }
 
-            if (param.Type.ToDisplayString() == "Microsoft.Azure.Functions.Worker.FunctionContext")
+            if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.FunctionContext))
             {
                 functionContextParamName = param.Name;
             }
 
-            if (param.Type.ToDisplayString() == "System.Threading.CancellationToken")
+            if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.CancellationToken))
             {
                 cancellationTokenParamName = param.Name;
             }
@@ -215,7 +217,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             _ => "public",
         };
 
-        var configureMethodInfo = GetConfigureMethodInfo(containingType, functionName);
+        var configureMethodInfo = GetConfigureMethodInfo(containingType, functionName, knownTypes);
 
         return new FunctionInfo(
             ns, className, accessibility, method.Name, returnType,

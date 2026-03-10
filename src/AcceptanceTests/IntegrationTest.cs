@@ -1,5 +1,6 @@
 namespace NServiceBus.AzureFunctions.AcceptanceTests;
 
+using System.Diagnostics;
 using System.Net.Http.Json;
 using global::IntegrationTest.Contracts;
 using NUnit.Framework;
@@ -25,8 +26,9 @@ public class IntegrationTest
 
         var versionUrl = $"{AppBaseUrl}/api/testing";
 
-        const int timeout = 120;
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
+        var timeout = TimeSpan.FromMinutes(5);
+        var stopwatch = Stopwatch.StartNew();
+        using var cts = new CancellationTokenSource(timeout);
 
         try
         {
@@ -39,6 +41,7 @@ public class IntegrationTest
 
                     if (info is not null && info.Uptime > TimeSpan.Zero)
                     {
+                        await TestContext.Error.WriteLineAsync($"Got successful info in {stopwatch.Elapsed}");
                         return;
                     }
 
@@ -60,7 +63,7 @@ public class IntegrationTest
         {
         }
 
-        throw new Exception($"/api/testing failed to respond within {timeout}s");
+        throw new Exception($"/api/testing failed to respond within {timeout}");
     }
 
     [Test]

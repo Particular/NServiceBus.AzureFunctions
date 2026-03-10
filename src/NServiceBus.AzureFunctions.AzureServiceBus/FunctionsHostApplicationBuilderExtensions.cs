@@ -13,23 +13,27 @@ public static class FunctionsHostApplicationBuilderExtensions
 {
     public static void AddNServiceBusFunction(this FunctionsApplicationBuilder builder, FunctionManifest functionManifest)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(functionManifest);
-
         builder.Services.AddAzureClientsCore();
 
-        var endpointName = functionManifest.Name;
-        var endpointConfiguration = new EndpointConfiguration(endpointName);
-        endpointConfiguration.AssemblyScanner().Disable = true;
+        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest, nameof(AddSendOnlyNServiceBusEndpoint));
+        var transport = GetAzureServiceBusTransport(endpointConfiguration.GetSettings());
 
-        functionManifest.Configuration(endpointConfiguration, builder.Configuration, builder.Environment);
+        transport.ConnectionName = functionManifest.ConnectionName;
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+        builder.Services.AddKeyedSingleton<MessageProcessor>(functionManifest.Name, (_, _) => new MessageProcessor(transport, functionManifest.Name));
+    }
 
-        var settings = endpointConfiguration.GetSettings();
-        if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
-        {
-            throw new InvalidOperationException($"Functions can't be send only endpoints, use {nameof(AddSendOnlyNServiceBusEndpoint)}");
-        }
+    public static void AddSendOnlyNServiceBusEndpoint(this FunctionsApplicationBuilder builder, string endpointName,
+        Action<EndpointConfiguration> configure)
+    {
+        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildSendOnlyEndpointConfiguration(builder, endpointName, configure);
+        _ = GetAzureServiceBusTransport(endpointConfiguration.GetSettings());
 
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+    }
+
+    static AzureServiceBusServerlessTransport GetAzureServiceBusTransport(SettingsHolder settings)
+    {
         var transport = settings.TryGet(out TransportDefinition configuredTransport)
             ? configuredTransport as AzureServiceBusServerlessTransport
             : throw new InvalidOperationException($"{nameof(AzureServiceBusServerlessTransport)} needs to be configured");
@@ -39,34 +43,6 @@ public static class FunctionsHostApplicationBuilderExtensions
             throw new InvalidOperationException($"Endpoint must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
         }
 
-        if (functionManifest.Name != functionManifest.Queue)
-        {
-            endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
-        }
-
-        transport.ConnectionName = functionManifest.ConnectionName;
-        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
-        builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (_, _) => new MessageProcessor(transport, endpointName));
-    }
-
-    public static void AddSendOnlyNServiceBusEndpoint(this FunctionsApplicationBuilder builder, string endpointName,
-        Action<EndpointConfiguration> configure)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(endpointName);
-        ArgumentNullException.ThrowIfNull(configure);
-
-        var endpointConfiguration = new EndpointConfiguration(endpointName);
-        endpointConfiguration.AssemblyScanner().Disable = true;
-        configure(endpointConfiguration);
-        endpointConfiguration.SendOnly();
-
-        var settings = endpointConfiguration.GetSettings();
-        if (!settings.TryGet(out TransportDefinition transport) || transport is not AzureServiceBusServerlessTransport)
-        {
-            throw new InvalidOperationException($"Endpoint must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
-        }
-
-        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
-    }
+        return transport;
+    }    
 }

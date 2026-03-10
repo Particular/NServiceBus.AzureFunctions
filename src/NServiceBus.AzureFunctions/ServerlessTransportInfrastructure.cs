@@ -1,22 +1,24 @@
-﻿namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus;
 
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NServiceBus.Transport;
 
-class ServerlessTransportInfrastructure : TransportInfrastructure
+public class ServerlessTransportInfrastructure : TransportInfrastructure
 {
     readonly TransportInfrastructure baseTransportInfrastructure;
 
-    public ServerlessTransportInfrastructure(TransportInfrastructure baseTransportInfrastructure)
+    public ServerlessTransportInfrastructure(
+        TransportInfrastructure baseTransportInfrastructure,
+        Func<IMessageReceiver, IMessageReceiver> messageReceiverFactory)
     {
         this.baseTransportInfrastructure = baseTransportInfrastructure;
         Dispatcher = baseTransportInfrastructure.Dispatcher;
         Receivers = baseTransportInfrastructure.Receivers.ToDictionary(
             r => r.Key,
-            r => (IMessageReceiver)new PipelineInvokingMessageProcessor(r.Value)
-        );
+            r => messageReceiverFactory(r.Value));
     }
 
     public override Task Shutdown(CancellationToken cancellationToken = default)

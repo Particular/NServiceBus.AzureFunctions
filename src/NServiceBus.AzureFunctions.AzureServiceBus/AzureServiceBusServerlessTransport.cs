@@ -52,7 +52,9 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
                 cancellationToken)
             .ConfigureAwait(false);
 
-        var serverlessTransportInfrastructure = new ServerlessTransportInfrastructure(baseTransportInfrastructure);
+        var serverlessTransportInfrastructure = new ServerlessTransportInfrastructure(
+            baseTransportInfrastructure,
+            static receiver => new PipelineInvokingMessageProcessor(receiver));
 
         var isSendOnly = hostSettings.CoreSettings.GetOrDefault<bool>(SendOnlyConfigKey);
 

@@ -25,11 +25,8 @@ namespace NServiceBus
     }
     public static class FunctionsHostApplicationBuilderExtensions
     {
-        extension(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder)
-        {
-            public void AddNServiceBusFunction(NServiceBus.FunctionManifest functionManifest) { }
-            public void AddSendOnlyNServiceBusEndpoint(string endpointName, System.Action<NServiceBus.EndpointConfiguration> configure) { }
-        }
+        public static void AddNServiceBusFunction(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.FunctionManifest functionManifest) { }
+        public static void AddSendOnlyNServiceBusEndpoint(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, System.Action<NServiceBus.EndpointConfiguration> configure) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, Inherited=false)]
     public class NServiceBusFunctionAttribute : System.Attribute

@@ -11,56 +11,52 @@ using Transport;
 
 public static class FunctionsHostApplicationBuilderExtensions
 {
-    extension(FunctionsApplicationBuilder builder)
+    public static void AddNServiceBusFunction(this FunctionsApplicationBuilder builder, FunctionManifest functionManifest)
     {
-        public void AddNServiceBusFunction(FunctionManifest functionManifest)
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(functionManifest);
+
+        builder.Services.AddAzureClientsCore();
+
+        var endpointName = functionManifest.Name;
+        var endpointConfiguration = new EndpointConfiguration(endpointName);
+        endpointConfiguration.AssemblyScanner().Disable = true;
+
+        functionManifest.Configuration(endpointConfiguration, builder.Configuration, builder.Environment);
+
+        var settings = endpointConfiguration.GetSettings();
+        if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
         {
-            ArgumentNullException.ThrowIfNull(builder);
-            ArgumentNullException.ThrowIfNull(functionManifest);
-
-            builder.Services.AddAzureClientsCore();
-
-            var endpointName = functionManifest.Name;
-            var endpointConfiguration = new EndpointConfiguration(endpointName);
-            endpointConfiguration.AssemblyScanner().Disable = true;
-
-            functionManifest.Configuration(endpointConfiguration, builder.Configuration, builder.Environment);
-
-            var settings = endpointConfiguration.GetSettings();
-            if (settings.GetOrDefault<bool>(AzureServiceBusServerlessTransport.SendOnlyConfigKey))
-            {
-                throw new InvalidOperationException($"Functions can't be send only endpoints, use {nameof(AddSendOnlyNServiceBusEndpoint)}");
-            }
-
-            var transport = GetTransport(settings);
-
-            if (functionManifest.Name != functionManifest.Queue)
-            {
-                endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
-            }
-
-            transport.ConnectionName = functionManifest.ConnectionName;
-            builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
-            builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (_, _) => new MessageProcessor(transport, endpointName));
+            throw new InvalidOperationException($"Functions can't be send only endpoints, use {nameof(AddSendOnlyNServiceBusEndpoint)}");
         }
 
-        public void AddSendOnlyNServiceBusEndpoint(string endpointName,
-            Action<EndpointConfiguration> configure)
+        var transport = GetTransport(settings);
+
+        if (functionManifest.Name != functionManifest.Queue)
         {
-            ArgumentNullException.ThrowIfNull(builder);
-            ArgumentNullException.ThrowIfNull(endpointName);
-            ArgumentNullException.ThrowIfNull(configure);
-
-            var endpointConfiguration = new EndpointConfiguration(endpointName);
-            endpointConfiguration.AssemblyScanner().Disable = true;
-            configure(endpointConfiguration);
-            endpointConfiguration.SendOnly();
-
-            // Make sure that the correct transport is used
-            _ = GetTransport(endpointConfiguration.GetSettings());
-
-            builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+            endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
         }
+
+        transport.ConnectionName = functionManifest.ConnectionName;
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+        builder.Services.AddKeyedSingleton<MessageProcessor>(endpointName, (_, _) => new MessageProcessor(transport, endpointName));
+    }
+
+    public static void AddSendOnlyNServiceBusEndpoint(this FunctionsApplicationBuilder builder, string endpointName,
+        Action<EndpointConfiguration> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(endpointName);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var endpointConfiguration = new EndpointConfiguration(endpointName);
+        endpointConfiguration.AssemblyScanner().Disable = true;
+        configure(endpointConfiguration);
+        endpointConfiguration.SendOnly();
+
+        // Make sure that the correct transport is used
+        _ = GetTransport(endpointConfiguration.GetSettings());
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
     }
 
     static AzureServiceBusServerlessTransport GetTransport(SettingsHolder settings)

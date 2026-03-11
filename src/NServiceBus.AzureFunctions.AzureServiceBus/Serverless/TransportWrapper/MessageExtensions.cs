@@ -35,23 +35,23 @@ static class MessageExtensions
         }
 
         public string GetMessageId() => message.MessageId ?? Guid.NewGuid().ToString("N");
+    }
 
-        public BinaryData GetBody()
+    public static BinaryData GetBody(this ServiceBusReceivedMessage message)
+    {
+        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
+        var memory = body.ToMemory();
+
+        if (memory.IsEmpty ||
+            !message.ApplicationProperties.TryGetValue(TransportMessageHeaders.TransportEncoding, out var value) ||
+            !value.Equals("wcf/byte-array"))
         {
-            var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
-            var memory = body.ToMemory();
-
-            if (memory.IsEmpty ||
-                !message.ApplicationProperties.TryGetValue(TransportMessageHeaders.TransportEncoding, out var value) ||
-                !value.Equals("wcf/byte-array"))
-            {
-                return body;
-            }
-
-            using var reader = XmlDictionaryReader.CreateBinaryReader(body.ToStream(), XmlDictionaryReaderQuotas.Max);
-            var bodyBytes = (byte[])Deserializer.ReadObject(reader)!;
-            return new BinaryData(bodyBytes);
+            return body;
         }
+
+        using var reader = XmlDictionaryReader.CreateBinaryReader(body.ToStream(), XmlDictionaryReaderQuotas.Max);
+        var bodyBytes = (byte[])Deserializer.ReadObject(reader)!;
+        return new BinaryData(bodyBytes);
     }
 
     static readonly DataContractSerializer Deserializer = new(typeof(byte[]));

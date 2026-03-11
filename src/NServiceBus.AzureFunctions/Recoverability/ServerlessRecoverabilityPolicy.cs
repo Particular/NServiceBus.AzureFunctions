@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.Recoverability;
+﻿namespace NServiceBus.AzureFunctions.Recoverability;
 
 using System;
 using NServiceBus.Transport;
@@ -13,13 +13,9 @@ class ServerlessRecoverabilityPolicy
 
         if (action is MoveToError)
         {
-            if (SendFailedMessagesToErrorQueue)
-            {
-                return action;
-            }
-
-            // 7.2 offers a Discard option, but we want to bubble up the exception so it can fail the function invocation.
-            throw new Exception("Failed to process message.", errorContext.Exception);
+            return SendFailedMessagesToErrorQueue ? action : throw
+                // 7.2 offers a Discard option, but we want to bubble up the exception so it can fail the function invocation.
+                new Exception("Failed to process message.", errorContext.Exception);
         }
 
         return action;

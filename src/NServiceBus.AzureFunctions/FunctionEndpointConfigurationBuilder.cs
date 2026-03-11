@@ -2,7 +2,6 @@ namespace NServiceBus;
 
 using Configuration.AdvancedExtensibility;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Settings;
 
 public static class FunctionEndpointConfigurationBuilder
 {

@@ -1,3 +1,3 @@
 namespace NServiceBus;
 
-public record FunctionManifest(string Name, string Queue, string ConnectionName, FunctionEndpointConfiguration Configuration);
+public sealed record FunctionManifest(string Name, string Queue, string ConnectionName, FunctionEndpointConfiguration Configuration);

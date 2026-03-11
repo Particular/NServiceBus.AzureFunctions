@@ -6,19 +6,25 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NServiceBus.AzureFunctions.Analyzer.Utility;
 
 [Generator]
 public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var functionInfos = context.SyntaxProvider
+        var extractionResults = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "NServiceBus.NServiceBusFunctionAttribute",
                 predicate: static (node, _) => node is ClassDeclarationSyntax or MethodDeclarationSyntax,
-                transform: static (ctx, ct) => ExtractFunctionInfos(ctx, ct))
-            .SelectMany(static (infos, _) => infos);
+                transform: static (ctx, ct) => ExtractFunctionInfos(ctx, ct));
+
+        var functionInfos = extractionResults.SelectMany(static (result, _) => result.FunctionInfos);
+        var diagnostics = extractionResults.SelectMany(static (result, _) => result.Diagnostics);
+
+        context.RegisterSourceOutput(diagnostics, static (spc, diagnostic) => spc.ReportDiagnostic(diagnostic));
 
         var assemblyClassName = context.CompilationProvider
             .Select(static (c, _) => CompilationAssemblyDetails.FromAssembly(c.Assembly).ToGenerationClassName());
@@ -30,22 +36,42 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             GenerateSource(spc, data.Left, data.Right));
     }
 
-    static ImmutableArray<FunctionInfo> ExtractFunctionInfos(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    static FunctionExtractionResult ExtractFunctionInfos(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
         if (context.Attributes.Length == 0)
         {
-            return ImmutableArray<FunctionInfo>.Empty;
+            return FunctionExtractionResult.Empty;
+        }
+
+        if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, out var knownTypes))
+        {
+            return FunctionExtractionResult.Empty;
         }
 
         if (context.TargetSymbol is INamedTypeSymbol classSymbol)
         {
             var results = ImmutableArray.CreateBuilder<FunctionInfo>();
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+
+            if (!IsPartial(classSymbol, cancellationToken))
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
+            }
+
+            var implementsIHandleMessages = classSymbol.AllInterfaces
+                .Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, knownTypes.IHandleMessages));
+
+            if (implementsIHandleMessages)
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
+            }
+
             foreach (var member in classSymbol.GetMembers())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (member is IMethodSymbol method)
                 {
-                    var info = TryExtractFromMethod(method);
+                    var info = TryExtractFromMethod(method, knownTypes);
                     if (info is not null)
                     {
                         results.Add(info.Value);
@@ -53,21 +79,43 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 }
             }
 
-            return results.ToImmutable();
+            return new FunctionExtractionResult(results.ToImmutable(), diagnostics.ToImmutable());
         }
 
         if (context.TargetSymbol is IMethodSymbol methodSymbol)
         {
-            var info = TryExtractFromMethod(methodSymbol);
-            return info is not null
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+
+            if (!methodSymbol.IsPartialDefinition)
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.MethodMustBePartialDescriptor, methodSymbol, methodSymbol.Name));
+            }
+
+            if (!IsPartial(methodSymbol.ContainingType, cancellationToken))
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, methodSymbol.ContainingType, methodSymbol.ContainingType.Name));
+            }
+
+            var info = TryExtractFromMethod(methodSymbol, knownTypes);
+            var infos = info is not null
                 ? ImmutableArray.Create(info.Value)
                 : ImmutableArray<FunctionInfo>.Empty;
+
+            return new FunctionExtractionResult(infos, diagnostics.ToImmutable());
         }
 
-        return ImmutableArray<FunctionInfo>.Empty;
+        return FunctionExtractionResult.Empty;
     }
 
-    static IMethodSymbol GetConfigureMethodInfo(INamedTypeSymbol functionClassType, string endpointName)
+    static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
+        => type.DeclaringSyntaxReferences.Any(r =>
+            r.GetSyntax(cancellationToken) is ClassDeclarationSyntax classDeclaration
+            && classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword));
+
+    static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ISymbol symbol, string argument)
+        => Diagnostic.Create(descriptor, symbol.Locations.FirstOrDefault(), argument);
+
+    static IMethodSymbol GetConfigureMethodInfo(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes)
     {
         var configureMethodName = $"Configure{endpointName}";
 
@@ -100,7 +148,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             throw new InvalidOperationException($"Method {configureMethodName} must have a `EndpointConfiguration` parameter");
         }
 
-        if (parameters[0].Type.ToDisplayString() != "NServiceBus.EndpointConfiguration")
+        if (!SymbolEqualityComparer.Default.Equals(parameters[0].Type, knownTypes.EndpointConfiguration))
         {
             throw new InvalidOperationException($"Method {configureMethodName} must have `EndpointConfiguration` as the first parameter");
         }
@@ -109,26 +157,23 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
         foreach (var parameter in optionalParameters)
         {
-            var parameterType = parameter.Type.ToDisplayString();
-            if (!allowedOptionalParameters.Contains(parameterType))
+            var isAllowedOptionalParameter =
+                SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration)
+                || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
+
+            if (!isAllowedOptionalParameter)
             {
-                throw new InvalidOperationException($"Method {configureMethodName} contains unsupported parameter {parameterType}");
+                throw new InvalidOperationException($"Method {configureMethodName} contains unsupported parameter {parameter.Type.ToDisplayString()}");
             }
         }
 
         return configureMethod;
     }
 
-    static readonly string[] allowedOptionalParameters =
-    [
-        "Microsoft.Extensions.Configuration.IConfiguration",
-        "Microsoft.Extensions.Hosting.IHostEnvironment"
-    ];
-
-    static FunctionInfo? TryExtractFromMethod(IMethodSymbol method)
+    static FunctionInfo? TryExtractFromMethod(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes)
     {
         var functionAttr = method.GetAttributes()
-            .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Microsoft.Azure.Functions.Worker.FunctionAttribute");
+            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownTypes.FunctionAttribute));
         if (functionAttr is null || functionAttr.ConstructorArguments.Length == 0)
         {
             return null;
@@ -160,7 +205,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
             foreach (var pAttr in param.GetAttributes())
             {
-                if (pAttr.AttributeClass?.ToDisplayString() == "Microsoft.Azure.Functions.Worker.ServiceBusTriggerAttribute")
+                if (SymbolEqualityComparer.Default.Equals(pAttr.AttributeClass, knownTypes.ServiceBusTriggerAttribute))
                 {
                     if (pAttr.ConstructorArguments.Length > 0)
                     {
@@ -179,12 +224,12 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
                 }
             }
 
-            if (param.Type.ToDisplayString() == "Microsoft.Azure.Functions.Worker.FunctionContext")
+            if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.FunctionContext))
             {
                 functionContextParamName = param.Name;
             }
 
-            if (param.Type.ToDisplayString() == "System.Threading.CancellationToken")
+            if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.CancellationToken))
             {
                 cancellationTokenParamName = param.Name;
             }
@@ -215,7 +260,7 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
             _ => "public",
         };
 
-        var configureMethodInfo = GetConfigureMethodInfo(containingType, functionName);
+        var configureMethodInfo = GetConfigureMethodInfo(containingType, functionName, knownTypes);
 
         return new FunctionInfo(
             ns, className, accessibility, method.Name, returnType,
@@ -238,77 +283,86 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
 
     static void GenerateMethodBodies(SourceProductionContext spc, ImmutableArray<FunctionInfo> functions)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("// <auto-generated/>");
-        sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+        var writer = new SourceWriter();
+        writer.WriteLine("// <auto-generated/>");
+        writer.WriteLine("using Microsoft.Extensions.DependencyInjection;");
 
         var groups = functions.GroupBy(f => (f.ContainingNamespace, f.ContainingClassName));
 
         foreach (var group in groups)
         {
-            sb.AppendLine();
-            sb.AppendLine($"namespace {group.Key.ContainingNamespace}");
-            sb.AppendLine("{");
-            sb.AppendLine($"    public partial class {group.Key.ContainingClassName}");
-            sb.AppendLine("    {");
+            writer.WriteLine();
+            writer.WriteLine($"namespace {group.Key.ContainingNamespace}");
+            writer.WriteLine("{");
+            writer.Indentation++;
+            writer.WriteLine($"public partial class {group.Key.ContainingClassName}");
+            writer.WriteLine("{");
+            writer.Indentation++;
 
             bool first = true;
             foreach (var func in group)
             {
                 if (!first)
                 {
-                    sb.AppendLine();
+                    writer.WriteLine();
                 }
 
                 first = false;
 
-                sb.AppendLine($"        {func.Accessibility} partial {func.ReturnType} {func.MethodName}(");
-                sb.AppendLine($"            {func.ParameterList})");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            var processor = {func.FunctionContextParamName}.InstanceServices");
-                sb.AppendLine($"                .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.MessageProcessor>(\"{func.FunctionName}\");");
-                sb.AppendLine("            if (processor is null)");
-                sb.AppendLine("            {");
-                sb.AppendLine($"                throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");
-                sb.AppendLine("            }");
-                sb.AppendLine($"            return processor.Process({func.MessageParamName}, {func.FunctionContextParamName}, {func.CancellationTokenParamName});");
-                sb.AppendLine("        }");
+                writer.WriteLine($"{func.Accessibility} partial {func.ReturnType} {func.MethodName}(");
+                writer.WriteLine($"    {func.ParameterList})");
+                writer.WriteLine("{");
+                writer.Indentation++;
+                writer.WriteLine($"var processor = {func.FunctionContextParamName}.InstanceServices");
+                writer.WriteLine($"    .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.MessageProcessor>(\"{func.FunctionName}\");");
+                writer.WriteLine("if (processor is null)");
+                writer.WriteLine("{");
+                writer.Indentation++;
+                writer.WriteLine($"throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");
+                writer.Indentation--;
+                writer.WriteLine("}");
+                writer.WriteLine($"return processor.Process({func.MessageParamName}, {func.FunctionContextParamName}, {func.CancellationTokenParamName});");
+                writer.Indentation--;
+                writer.WriteLine("}");
             }
 
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
+            writer.Indentation--;
+            writer.WriteLine("}");
+            writer.Indentation--;
+            writer.WriteLine("}");
         }
 
-        spc.AddSource("FunctionMethodBodies.g.cs", sb.ToString());
+        spc.AddSource("FunctionMethodBodies.g.cs", writer.ToSourceText());
     }
 
     static void GenerateRegistration(SourceProductionContext spc, ImmutableArray<FunctionInfo> functions, string assemblyClassName)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("// <auto-generated/>");
-        sb.AppendLine("namespace NServiceBus.Generated");
-        sb.AppendLine("{");
-        sb.AppendLine("    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        sb.AppendLine("    [global::NServiceBus.AutoGeneratedFunctionRegistrationsAttribute]");
-        sb.AppendLine($"    public static class {assemblyClassName}");
-        sb.AppendLine("    {");
-        sb.AppendLine("        public static global::System.Collections.Generic.IEnumerable<global::NServiceBus.FunctionManifest>");
-        sb.AppendLine("            GetFunctionManifests()");
-        sb.AppendLine("        {");
+        var writer = new SourceWriter();
+        writer.WriteLine("// <auto-generated/>");
+        writer.WriteLine("namespace NServiceBus.Generated");
+        writer.WriteLine("{");
+        writer.Indentation++;
+        writer.WriteLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        writer.WriteLine("[global::NServiceBus.AutoGeneratedFunctionRegistrationsAttribute]");
+        writer.WriteLine($"public static class {assemblyClassName}");
+        writer.WriteLine("{");
+        writer.Indentation++;
+        writer.WriteLine("public static global::System.Collections.Generic.IEnumerable<global::NServiceBus.FunctionManifest>");
+        writer.WriteLine("    GetFunctionManifests()");
+        writer.WriteLine("{");
+        writer.Indentation++;
 
         foreach (var func in functions)
         {
-            sb.AppendLine($"            yield return new global::NServiceBus.FunctionManifest(");
-            sb.AppendLine($"                \"{func.FunctionName}\", \"{func.QueueName}\", \"{func.ConnectionName}\",");
-            sb.AppendLine($"                {GenerateConfigureMethodCall(func.ConfigureMethod)});");
+            writer.WriteLine("yield return new global::NServiceBus.FunctionManifest(");
+            writer.WriteLine($"    \"{func.FunctionName}\", \"{func.QueueName}\", \"{func.ConnectionName}\",");
+            writer.WriteLine($"    {GenerateConfigureMethodCall(func.ConfigureMethod)});");
         }
 
-        sb.AppendLine("            yield break;");
-        sb.AppendLine("        }");
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
+        writer.WriteLine("yield break;");
+        writer.CloseCurlies();
 
-        spc.AddSource("FunctionRegistration.g.cs", sb.ToString());
+        spc.AddSource("FunctionRegistration.g.cs", writer.ToSourceText());
     }
 
     static string GenerateConfigureMethodCall(IMethodSymbol configureMethod)
@@ -332,6 +386,22 @@ public sealed class FunctionEndpointGenerator : IIncrementalGenerator
         string QueueName,
         string ConnectionName,
         IMethodSymbol ConfigureMethod);
+
+    readonly struct FunctionExtractionResult
+    {
+        public FunctionExtractionResult(ImmutableArray<FunctionInfo> functionInfos, ImmutableArray<Diagnostic> diagnostics)
+        {
+            FunctionInfos = functionInfos;
+            Diagnostics = diagnostics;
+        }
+
+        public ImmutableArray<FunctionInfo> FunctionInfos { get; }
+        public ImmutableArray<Diagnostic> Diagnostics { get; }
+
+        public static FunctionExtractionResult Empty { get; } = new(
+            ImmutableArray<FunctionInfo>.Empty,
+            ImmutableArray<Diagnostic>.Empty);
+    }
 
     record struct SendOnlyEndpointInfo(
         string EndpointName,

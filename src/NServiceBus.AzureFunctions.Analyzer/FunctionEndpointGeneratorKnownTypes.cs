@@ -3,7 +3,7 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 using Microsoft.CodeAnalysis;
 
-public readonly struct FunctionEndpointGeneratorKnownTypes
+readonly struct FunctionEndpointGeneratorKnownTypes
 {
     public FunctionEndpointGeneratorKnownTypes(
         INamedTypeSymbol functionAttribute,

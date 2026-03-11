@@ -38,11 +38,6 @@ public static class FunctionsHostApplicationBuilderExtensions
             ? configuredTransport as AzureServiceBusServerlessTransport
             : throw new InvalidOperationException($"{nameof(AzureServiceBusServerlessTransport)} needs to be configured");
 
-        if (transport is null)
-        {
-            throw new InvalidOperationException($"Endpoint must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
-        }
-
-        return transport;
-    }    
+        return transport ?? throw new InvalidOperationException($"Endpoint must be configured with an {nameof(AzureServiceBusServerlessTransport)}.");
+    }
 }

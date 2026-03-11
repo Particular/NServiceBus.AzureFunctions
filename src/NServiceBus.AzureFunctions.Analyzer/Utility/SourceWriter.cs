@@ -8,11 +8,10 @@ public sealed class SourceWriter
 {
     const int CharsPerIndentation = 4;
     readonly StringBuilder builder = new();
-    int indentation;
 
     public int Indentation
     {
-        get => indentation;
+        get;
         set
         {
             if (value < 0)
@@ -20,7 +19,7 @@ public sealed class SourceWriter
                 throw new ArgumentOutOfRangeException(nameof(value));
             }
 
-            indentation = value;
+            field = value;
         }
     }
 
@@ -31,9 +30,9 @@ public sealed class SourceWriter
 
     public void WriteLine(string text)
     {
-        if (indentation > 0)
+        if (Indentation > 0)
         {
-            builder.Append(' ', indentation * CharsPerIndentation);
+            builder.Append(' ', Indentation * CharsPerIndentation);
         }
 
         builder.AppendLine(text);

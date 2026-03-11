@@ -1,8 +1,8 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Immutable;
 using System.Linq;
+using Core.Analyzer;
 using Microsoft.CodeAnalysis;
 using NServiceBus.AzureFunctions.Analyzer.Utility;
 
@@ -20,7 +20,7 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
             var isHost = string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
                 && !string.IsNullOrEmpty(azureFunctionsVersion);
 
-            return new HostProjectInfo(isHost, rootNamespace);
+            return new HostProjectSpec(isHost, rootNamespace);
         });
 
         var allData = context.CompilationProvider
@@ -34,7 +34,7 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
                     return default;
                 }
 
-                var results = ImmutableArray.CreateBuilder<GeneratedRegistrationClass>();
+                var results = ImmutableArray.CreateBuilder<GeneratedRegistrationClassSpec>();
                 foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols)
                 {
                     ct.ThrowIfCancellationRequested();
@@ -42,28 +42,28 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
                     var fullName = $"NServiceBus.Generated.{className}";
                     if (compilation.GetTypeByMetadataName(fullName) is not null)
                     {
-                        results.Add(new GeneratedRegistrationClass(fullName));
+                        results.Add(new GeneratedRegistrationClassSpec(fullName));
                     }
                 }
 
                 var currentAssemblyClassName = CompilationAssemblyDetails.FromAssembly(compilation.Assembly).ToGenerationClassName();
-                results.Add(new GeneratedRegistrationClass($"NServiceBus.Generated.{currentAssemblyClassName}"));
+                results.Add(new GeneratedRegistrationClassSpec($"NServiceBus.Generated.{currentAssemblyClassName}"));
 
-                return new CompositionData(results.ToImmutable().Distinct().ToImmutableArray(), hostInfo.RootNamespace);
+                return new CompositionSpec(results.Distinct().ToImmutableEquatableArray(), hostInfo.RootNamespace);
             });
 
         context.RegisterSourceOutput(allData, GenerateCompositionCode);
     }
 
-    static void GenerateCompositionCode(SourceProductionContext spc, CompositionData data)
+    static void GenerateCompositionCode(SourceProductionContext spc, CompositionSpec spec)
     {
-        if (data == default)
+        if (spec == default)
         {
             return;
         }
 
-        var regClasses = data.RegistrationClasses;
-        var ns = data.RootNamespace;
+        var regClasses = spec.RegistrationClasses;
+        var ns = spec.RootNamespace;
 
         var writer = new SourceWriter();
         writer.PreAmble();
@@ -92,10 +92,7 @@ public sealed class FunctionCompositionGenerator : IIncrementalGenerator
         spc.AddSource("Composition.g.cs", writer.ToSourceText());
     }
 
-    record struct GeneratedRegistrationClass(string FullClassName);
-    record struct HostProjectInfo(bool IsHost, string? RootNamespace);
-    record struct CompositionData(
-        ImmutableArray<GeneratedRegistrationClass> RegistrationClasses,
-        string? RootNamespace);
-
+    readonly record struct GeneratedRegistrationClassSpec(string FullClassName);
+    readonly record struct HostProjectSpec(bool IsHost, string? RootNamespace);
+    record struct CompositionSpec(ImmutableEquatableArray<GeneratedRegistrationClassSpec> RegistrationClasses, string? RootNamespace);
 }

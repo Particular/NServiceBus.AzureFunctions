@@ -11,8 +11,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
 {
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(DiagnosticIds.MissingAddNServiceBusFunctionsCallDescriptor);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [DiagnosticIds.MissingAddNServiceBusFunctionsCallDescriptor];
 
     public override void Initialize(AnalysisContext context)
     {

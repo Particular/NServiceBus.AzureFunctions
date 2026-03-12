@@ -105,7 +105,7 @@ public class MissingCompositionCallAnalyzerTests
             .WithAnalyzer<MissingCompositionCallAnalyzer>()
             .BuildAs(OutputKind.ConsoleApplication)
             .WithProperty("build_property.OutputType", "Exe")
-            .WithProperty("build_property.AzureFunctionsVersion", "v4")
+            .WithProperty("build_property.FunctionsExecutionModel", "isolated")
             .WithProperty("build_property.RootNamespace", "My.FunctionApp")
             .SuppressCompilationErrors();
 }

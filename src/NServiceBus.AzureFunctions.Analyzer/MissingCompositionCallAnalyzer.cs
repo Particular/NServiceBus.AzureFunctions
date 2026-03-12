@@ -1,4 +1,3 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Immutable;
@@ -24,14 +23,9 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
     static void OnCompilationStart(CompilationStartAnalysisContext context)
     {
         var globalOptions = context.Options.AnalyzerConfigOptionsProvider.GlobalOptions;
-        globalOptions.TryGetValue("build_property.OutputType", out var outputType);
-        globalOptions.TryGetValue("build_property.AzureFunctionsVersion", out var azureFunctionsVersion);
-        globalOptions.TryGetValue("build_property.RootNamespace", out var rootNamespace);
 
-        var isExeOutput = string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
-            || context.Compilation.Options.OutputKind is OutputKind.ConsoleApplication or OutputKind.WindowsApplication;
-        var isAzureFunctionsProject = !string.IsNullOrEmpty(azureFunctionsVersion)
-            || context.Compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute") is not null;
+        var isExeOutput = ProjectDetection.IsExecutableProject(context.Compilation, globalOptions);
+        var isAzureFunctionsProject = ProjectDetection.IsIsolatedFunctionsProject(context.Compilation, globalOptions);
 
         if (!isExeOutput || !isAzureFunctionsProject)
         {
@@ -43,9 +37,8 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var expectedCompositionNamespace = string.IsNullOrWhiteSpace(rootNamespace)
-            ? InferCompositionNamespace(context.Compilation, context.CancellationToken)
-            : rootNamespace;
+        var expectedCompositionNamespace = ProjectDetection.GetRootNamespace(globalOptions)
+            ?? InferCompositionNamespace(context.Compilation, context.CancellationToken);
 
         var callFound = 0;
 

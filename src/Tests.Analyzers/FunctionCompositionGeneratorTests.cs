@@ -15,7 +15,7 @@ public class FunctionCompositionGeneratorTests
             .WithSource(TestSources.ValidFunction)
             .ControlOutput(All)
             .WithProperty("build_property.OutputType", "Exe")
-            .WithProperty("build_property.AzureFunctionsVersion", "v4")
+            .WithProperty("build_property.FunctionsExecutionModel", "isolated")
             .WithProperty("build_property.RootNamespace", "My.FunctionApp")
             .SuppressCompilationErrors()
             .Approve();

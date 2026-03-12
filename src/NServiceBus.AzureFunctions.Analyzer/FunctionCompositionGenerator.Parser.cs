@@ -1,4 +1,3 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Generic;
@@ -14,11 +13,9 @@ public sealed partial class FunctionCompositionGenerator
     {
         internal static HostProjectSpec ParseHostProject(AnalyzerConfigOptionsProvider provider)
         {
-            provider.GlobalOptions.TryGetValue("build_property.OutputType", out var outputType);
-            provider.GlobalOptions.TryGetValue("build_property.AzureFunctionsVersion", out var azureFunctionsVersion);
-            provider.GlobalOptions.TryGetValue("build_property.RootNamespace", out var rootNamespace);
-            var isHostProject = string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(azureFunctionsVersion);
-            string? effectiveRootNameSpace = string.IsNullOrWhiteSpace(rootNamespace) ? null : rootNamespace;
+            var options = provider.GlobalOptions;
+            var isHostProject = ProjectDetection.IsExecutableProject(options) && ProjectDetection.IsIsolatedFunctionsProject(options);
+            var effectiveRootNameSpace = ProjectDetection.GetRootNamespace(options);
 
             return new HostProjectSpec(isHostProject, effectiveRootNameSpace);
         }

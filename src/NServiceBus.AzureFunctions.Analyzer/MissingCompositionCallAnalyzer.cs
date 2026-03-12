@@ -2,6 +2,7 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -25,9 +26,14 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
         var globalOptions = context.Options.AnalyzerConfigOptionsProvider.GlobalOptions;
         globalOptions.TryGetValue("build_property.OutputType", out var outputType);
         globalOptions.TryGetValue("build_property.AzureFunctionsVersion", out var azureFunctionsVersion);
+        globalOptions.TryGetValue("build_property.RootNamespace", out var rootNamespace);
 
-        if (!string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrEmpty(azureFunctionsVersion))
+        var isExeOutput = string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase)
+            || context.Compilation.Options.OutputKind is OutputKind.ConsoleApplication or OutputKind.WindowsApplication;
+        var isAzureFunctionsProject = !string.IsNullOrEmpty(azureFunctionsVersion)
+            || context.Compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute") is not null;
+
+        if (!isExeOutput || !isAzureFunctionsProject)
         {
             return;
         }
@@ -36,6 +42,10 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
         {
             return;
         }
+
+        var expectedCompositionNamespace = string.IsNullOrWhiteSpace(rootNamespace)
+            ? InferCompositionNamespace(context.Compilation, context.CancellationToken)
+            : rootNamespace;
 
         var callFound = 0;
 
@@ -54,7 +64,7 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
                     }
                 } invocation
                 && nodeContext.SemanticModel.GetSymbolInfo(invocation, nodeContext.CancellationToken).Symbol is IMethodSymbol method
-                && HasContainingType(method, CompositionClassName))
+                && HasContainingType(method, CompositionClassName, expectedCompositionNamespace))
             {
                 Interlocked.Exchange(ref callFound, 1);
             }
@@ -64,9 +74,15 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
         {
             if (Volatile.Read(ref callFound) == 0)
             {
+                var location = endContext.Compilation.SyntaxTrees
+                    .Select(tree => tree.GetRoot(endContext.CancellationToken).GetFirstToken())
+                    .Where(static token => token != default)
+                    .Select(static token => token.GetLocation())
+                    .FirstOrDefault() ?? Location.None;
+
                 endContext.ReportDiagnostic(Diagnostic.Create(
                     DiagnosticIds.MissingAddNServiceBusFunctionsCallDescriptor,
-                    Location.None));
+                    location));
             }
         });
     }
@@ -92,7 +108,42 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    static bool HasContainingType(IMethodSymbol method, string typeName)
+    static string? InferCompositionNamespace(Compilation compilation, CancellationToken cancellationToken)
+    {
+        foreach (var syntaxTree in compilation.SyntaxTrees)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!syntaxTree.FilePath.Replace('\\', '/').EndsWith("FunctionCompositionGenerator/Composition.cs", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var root = syntaxTree.GetRoot(cancellationToken);
+            var classDeclaration = root.DescendantNodes()
+                .OfType<ClassDeclarationSyntax>()
+                .FirstOrDefault(static declaration => declaration.Identifier.ValueText == CompositionClassName);
+
+            if (classDeclaration is null)
+            {
+                continue;
+            }
+
+            var namespaceParts = classDeclaration.Ancestors()
+                .OfType<BaseNamespaceDeclarationSyntax>()
+                .Select(static declaration => declaration.Name.ToString())
+                .Reverse()
+                .ToArray();
+
+            return namespaceParts.Length == 0
+                ? null
+                : string.Join(".", namespaceParts);
+        }
+
+        return null;
+    }
+
+    static bool HasContainingType(IMethodSymbol method, string typeName, string? rootNamespace)
     {
         // C# 14 extension members nest inside a synthetic extension block type,
         // so ContainingType is the extension block, not the enclosing static class.
@@ -102,7 +153,12 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
         {
             if (type.Name == typeName)
             {
-                return true;
+                if (string.IsNullOrWhiteSpace(rootNamespace))
+                {
+                    return true;
+                }
+
+                return string.Equals(type.ContainingNamespace.ToDisplayString(), rootNamespace, StringComparison.Ordinal);
             }
             type = type.ContainingType;
         }

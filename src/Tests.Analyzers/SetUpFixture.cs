@@ -49,6 +49,10 @@ public class SetUpFixture
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
+        AnalyzerTest.ConfigureAllAnalyzerTests(test => test
+            .AddReferences(ProjectReferences)
+            .WithCommonUsings(CommonUsings.Split(";", StringSplitOptions.RemoveEmptyEntries)));
+
         SourceGeneratorTest.ConfigureAllSourceGeneratorTests(test => test
             .AddReferences(ProjectReferences)
             .WithSource(CommonUsings, "GlobalUsings.cs"));

@@ -46,8 +46,6 @@ public sealed partial class FunctionEndpointGenerator
                 EmitMethodBodies(spc, functions);
             }
 
-            // Always generate the registration class so the composition generator
-            // can discover it by convention for same-project scenarios
             EmitRegistration(spc, functions, assemblyClassName);
         }
 

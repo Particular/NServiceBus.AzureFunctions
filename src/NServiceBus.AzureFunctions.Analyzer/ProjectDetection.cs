@@ -3,6 +3,7 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using static BuildPropertyNames;
+using static KnownTypeNames;
 
 static class ProjectDetection
 {
@@ -18,8 +19,7 @@ static class ProjectDetection
     // because SourceGeneratorTest currently does not flow WithProperty(...) values to analyzers.
     // Keep this fallback until analyzer config options are propagated in Particular.AnalyzerTesting.
     public static bool IsIsolatedFunctionsProject(Compilation compilation, AnalyzerConfigOptions options)
-        => IsIsolatedFunctionsProject(options)
-           || compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute") is not null;
+        => IsIsolatedFunctionsProject(options) || compilation.GetTypeByMetadataName(FunctionAttribute) is not null;
 
     public static bool IsExecutableProject(AnalyzerConfigOptions options)
         => options.TryGetValue(OutputType, out var outputType)
@@ -39,6 +39,11 @@ static class ProjectDetection
 
         return rootNamespace;
     }
+}
+
+static class KnownTypeNames
+{
+    public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";
 }
 
 static class BuildPropertyNames

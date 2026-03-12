@@ -11,9 +11,19 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
             .Select(static (provider, _) => Parser.ParseHostProject(provider))
             .WithTrackingName(TrackingNames.HostProject);
 
+        var hasLocalFunctions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                "NServiceBus.NServiceBusFunctionAttribute",
+                static (_, _) => true,
+                static (_, _) => true)
+            .Collect()
+            .Select(static (matches, _) => matches.Length > 0)
+            .WithTrackingName(TrackingNames.LocalFunctions);
+
         var compositions = context.CompilationProvider
             .Combine(hostProject)
-            .Select(static (data, cancellationToken) => Parser.ParseComposition(data.Left, data.Right, cancellationToken))
+            .Combine(hasLocalFunctions)
+            .Select(static (data, cancellationToken) => Parser.ParseComposition(data.Left.Left, data.Left.Right, data.Right, cancellationToken))
             .WithTrackingName(TrackingNames.Composition);
 
         context.RegisterSourceOutput(

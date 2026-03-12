@@ -1,4 +1,3 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using Microsoft.CodeAnalysis;
@@ -8,6 +7,7 @@ static class DiagnosticIds
     public const string ClassMustBePartial = "NSBFUNC001";
     public const string ShouldNotImplementIHandleMessages = "NSBFUNC002";
     public const string MethodMustBePartial = "NSBFUNC003";
+    public const string MultipleConfigureMethods = "NSBFUNC005";
     public const string MissingAddNServiceBusFunctionsCall = "NSBFUNC004";
 
     public static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
@@ -30,6 +30,14 @@ static class DiagnosticIds
         id: MethodMustBePartial,
         title: "Method with [NServiceBusFunction] must be partial",
         messageFormat: "Method '{0}' must be declared as partial to use [NServiceBusFunction]",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MultipleConfigureMethodsDescriptor = new(
+        id: MultipleConfigureMethods,
+        title: "Multiple configuration methods found",
+        messageFormat: "Multiple '{0}' configuration methods found on class '{1}'",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

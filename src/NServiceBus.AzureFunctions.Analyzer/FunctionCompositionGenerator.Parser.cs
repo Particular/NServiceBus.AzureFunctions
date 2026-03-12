@@ -1,4 +1,3 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Generic;
@@ -14,16 +13,17 @@ public sealed partial class FunctionCompositionGenerator
     {
         internal static HostProjectSpec ParseHostProject(AnalyzerConfigOptionsProvider provider)
         {
-            provider.GlobalOptions.TryGetValue("build_property.OutputType", out var outputType);
-            provider.GlobalOptions.TryGetValue("build_property.AzureFunctionsVersion", out var azureFunctionsVersion);
-            provider.GlobalOptions.TryGetValue("build_property.RootNamespace", out var rootNamespace);
-            var isHostProject = string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(azureFunctionsVersion);
-            string? effectiveRootNameSpace = string.IsNullOrWhiteSpace(rootNamespace) ? null : rootNamespace;
+            var options = provider.GlobalOptions;
+            // Host detection intentionally combines both checks:
+            // - FunctionsExecutionModel == isolated identifies Azure Functions worker projects reliably across Functions version changes.
+            // - OutputType == Exe keeps generation scoped to the host executable rather than class libraries.
+            var isHostProject = ProjectDetection.IsExecutableProject(options) && ProjectDetection.IsIsolatedFunctionsProject(options);
+            var effectiveRootNameSpace = ProjectDetection.GetRootNamespace(options);
 
             return new HostProjectSpec(isHostProject, effectiveRootNameSpace);
         }
 
-        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, CancellationToken cancellationToken = default)
+        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,7 +45,15 @@ public sealed partial class FunctionCompositionGenerator
                 }
             }
 
-            registrations.Add(CreateGeneratedRegistrationClassSpec(compilation.Assembly));
+            if (hasLocalFunctions)
+            {
+                registrations.Add(CreateGeneratedRegistrationClassSpec(compilation.Assembly));
+            }
+
+            if (registrations.Count == 0)
+            {
+                return null;
+            }
 
             var orderedRegistrations = registrations
                 .OrderBy(static registration => registration.FullClassName, StringComparer.Ordinal)

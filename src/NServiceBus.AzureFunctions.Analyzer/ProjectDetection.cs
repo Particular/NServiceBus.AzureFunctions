@@ -8,13 +8,17 @@ static class ProjectDetection
 {
     const string IsolatedExecutionModel = "isolated";
 
+    // We intentionally key on FunctionsExecutionModel instead of AzureFunctionsVersion so detection
+    // stays stable if the Functions SDK updates version labels (for example, v4 -> v5).
     public static bool IsIsolatedFunctionsProject(AnalyzerConfigOptions options)
         => options.TryGetValue(FunctionsExecutionModel, out var executionModel)
            && string.Equals(executionModel, IsolatedExecutionModel, StringComparison.OrdinalIgnoreCase);
 
+    // In production, FunctionsExecutionModel is the source of truth. The symbol fallback exists only
+    // because SourceGeneratorTest currently does not flow WithProperty(...) values to analyzers.
+    // Keep this fallback until analyzer config options are propagated in Particular.AnalyzerTesting.
     public static bool IsIsolatedFunctionsProject(Compilation compilation, AnalyzerConfigOptions options)
         => IsIsolatedFunctionsProject(options)
-           // Temporary hack for the analyzer tests
            || compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute") is not null;
 
     public static bool IsExecutableProject(AnalyzerConfigOptions options)

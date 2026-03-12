@@ -1,10 +1,9 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System.Collections.Immutable;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
-using Core.Analyzer;
+using NServiceBus.Core.Analyzer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -37,18 +36,15 @@ public sealed partial class FunctionEndpointGenerator
 
         static FunctionSpecs ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
         {
-            var functions = ImmutableArray.CreateBuilder<FunctionSpec>();
-            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+            var functions = new List<FunctionSpec>();
+            var diagnostics = new List<Diagnostic>();
 
             if (!IsPartial(classSymbol, cancellationToken))
             {
                 diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
             }
 
-            var implementsIHandleMessages = classSymbol.AllInterfaces
-                .Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, knownTypes.IHandleMessages));
-
-            if (implementsIHandleMessages)
+            if (ImplementsIHandleMessages(classSymbol, knownTypes))
             {
                 diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
             }
@@ -71,7 +67,7 @@ public sealed partial class FunctionEndpointGenerator
 
         static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
         {
-            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+            var diagnostics = new List<Diagnostic>();
 
             if (!methodSymbol.IsPartialDefinition)
             {
@@ -84,15 +80,13 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             var spec = ExtractFunctionSpec(methodSymbol, knownTypes, diagnostics);
-            var functions = spec is not null ? ImmutableArray.Create(spec).ToImmutableEquatableArray() : ImmutableEquatableArray<FunctionSpec>.Empty;
+            var functions = spec is null ? ImmutableEquatableArray<FunctionSpec>.Empty : ((FunctionSpec[])[spec]).ToImmutableEquatableArray();
             return new FunctionSpecs(functions, diagnostics.ToImmutableEquatableArray());
         }
 
-        static FunctionSpec? ExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<Diagnostic>.Builder diagnostics)
+        static FunctionSpec? ExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
         {
-            var functionAttr = method.GetAttributes()
-                .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownTypes.FunctionAttribute));
-            if (functionAttr is null || functionAttr.ConstructorArguments.Length == 0)
+            if (!TryGetFunctionAttribute(method, knownTypes, out var functionAttr) || functionAttr.ConstructorArguments.Length == 0)
             {
                 return null;
             }
@@ -110,7 +104,7 @@ public sealed partial class FunctionEndpointGenerator
 
             var paramList = new StringBuilder();
 
-            for (int i = 0; i < method.Parameters.Length; i++)
+            for (var i = 0; i < method.Parameters.Length; i++)
             {
                 var param = method.Parameters[i];
                 if (i > 0)
@@ -191,7 +185,7 @@ public sealed partial class FunctionEndpointGenerator
                 configureMethod.Value);
         }
 
-        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<Diagnostic>.Builder diagnostics)
+        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
         {
             var configureMethodName = $"Configure{endpointName}";
 
@@ -222,9 +216,9 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
-            var optionalParameters = parameters.Skip(1);
-            foreach (var parameter in optionalParameters)
+            for (var i = 1; i < parameters.Length; i++)
             {
+                var parameter = parameters[i];
                 var isAllowedOptionalParameter = SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration) || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
                 if (!isAllowedOptionalParameter)
                 {
@@ -233,19 +227,69 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             var containingTypeFullyQualified = configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var parameterTypeNames = parameters.Select(p => p.Type.Name.ToLower()).ToImmutableEquatableArray();
+            var parameterTypeNames = new string[parameters.Length];
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                parameterTypeNames[i] = parameters[i].Type.Name.ToLowerInvariant();
+            }
 
-            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames);
+            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray());
+        }
+
+        static bool ImplementsIHandleMessages(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes)
+        {
+            foreach (var @interface in classSymbol.AllInterfaces)
+            {
+                if (SymbolEqualityComparer.Default.Equals(@interface.OriginalDefinition, knownTypes.IHandleMessages))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        static bool TryGetFunctionAttribute(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, [NotNullWhen(true)] out AttributeData? functionAttribute)
+        {
+            foreach (var attribute in method.GetAttributes())
+            {
+                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownTypes.FunctionAttribute))
+                {
+                    functionAttribute = attribute;
+                    return true;
+                }
+            }
+
+            functionAttribute = null!;
+            return false;
         }
 
         static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
-            => type.DeclaringSyntaxReferences.Any(r =>
-                r.GetSyntax(cancellationToken) is ClassDeclarationSyntax classDeclaration
-                && classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword));
+        {
+            foreach (var syntaxReference in type.DeclaringSyntaxReferences)
+            {
+                if (syntaxReference.GetSyntax(cancellationToken) is not ClassDeclarationSyntax classDeclaration)
+                {
+                    continue;
+                }
+
+                var modifiers = classDeclaration.Modifiers;
+                for (var i = 0; i < modifiers.Count; i++)
+                {
+                    if (modifiers[i].IsKind(SyntaxKind.PartialKeyword))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
 
         static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ISymbol symbol, params object[] arguments)
         {
-            var location = symbol.Locations.FirstOrDefault();
+            var locations = symbol.Locations;
+            var location = locations.Length > 0 ? locations[0] : null;
             return Diagnostic.Create(descriptor, location, arguments);
         }
     }

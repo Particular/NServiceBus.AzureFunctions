@@ -1,4 +1,3 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer.Utility;
 
 static class SourceWriterExtensions

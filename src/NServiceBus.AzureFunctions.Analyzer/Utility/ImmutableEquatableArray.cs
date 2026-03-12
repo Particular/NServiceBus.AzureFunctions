@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-namespace NServiceBus.Core.Analyzer;
+﻿namespace NServiceBus.Core.Analyzer;
 
 using System;
 using System.Collections;

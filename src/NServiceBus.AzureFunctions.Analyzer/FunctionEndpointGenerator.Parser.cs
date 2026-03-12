@@ -1,7 +1,5 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
@@ -16,34 +14,29 @@ public sealed partial class FunctionEndpointGenerator
 {
     static class Parser
     {
-        internal static ExtractionResult Extract(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken = default)
+        internal static FunctionSpecs Extract(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken = default)
         {
             if (context.Attributes.Length == 0)
             {
-                return ExtractionResult.Empty;
+                return FunctionSpecs.Empty;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
 
             if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, out var knownTypes))
             {
-                return ExtractionResult.Empty;
+                return FunctionSpecs.Empty;
             }
 
-            if (context.TargetSymbol is INamedTypeSymbol classSymbol)
+            return context.TargetSymbol switch
             {
-                return ExtractFromClass(classSymbol, knownTypes, cancellationToken);
-            }
-
-            if (context.TargetSymbol is IMethodSymbol methodSymbol)
-            {
-                return ExtractFromMethod(methodSymbol, knownTypes, cancellationToken);
-            }
-
-            return ExtractionResult.Empty;
+                INamedTypeSymbol classSymbol => ExtractFromClass(classSymbol, knownTypes, cancellationToken),
+                IMethodSymbol methodSymbol => ExtractFromMethod(methodSymbol, knownTypes, cancellationToken),
+                _ => FunctionSpecs.Empty
+            };
         }
 
-        static ExtractionResult ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
+        static FunctionSpecs ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
         {
             var functions = ImmutableArray.CreateBuilder<FunctionSpec>();
             var diagnostics = ImmutableArray.CreateBuilder<DiagnosticSpec>();
@@ -74,12 +67,10 @@ public sealed partial class FunctionEndpointGenerator
                 }
             }
 
-            return new ExtractionResult(
-                functions.ToImmutable().ToImmutableEquatableArray(),
-                diagnostics.ToImmutable().ToImmutableEquatableArray());
+            return new FunctionSpecs(functions.ToImmutableEquatableArray(), diagnostics.ToImmutableEquatableArray());
         }
 
-        static ExtractionResult ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
+        static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
         {
             var diagnostics = ImmutableArray.CreateBuilder<DiagnosticSpec>();
 
@@ -98,7 +89,7 @@ public sealed partial class FunctionEndpointGenerator
                 ? ImmutableArray.Create(spec).ToImmutableEquatableArray()
                 : ImmutableEquatableArray<FunctionSpec>.Empty;
 
-            return new ExtractionResult(functions, diagnostics.ToImmutable().ToImmutableEquatableArray());
+            return new FunctionSpecs(functions, diagnostics.ToImmutable().ToImmutableEquatableArray());
         }
 
         static FunctionSpec? TryExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<DiagnosticSpec>.Builder diagnostics)
@@ -191,7 +182,7 @@ public sealed partial class FunctionEndpointGenerator
                 _ => "public",
             };
 
-            var configureMethod = TryGetConfigureMethodSpec(containingType, functionName, knownTypes, diagnostics);
+            var configureMethod = GetConfigureMethodSpec(containingType, functionName, knownTypes, diagnostics);
             if (configureMethod is null)
             {
                 return null;
@@ -204,7 +195,7 @@ public sealed partial class FunctionEndpointGenerator
                 configureMethod.Value);
         }
 
-        static ConfigureMethodSpec? TryGetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<DiagnosticSpec>.Builder diagnostics)
+        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<DiagnosticSpec>.Builder diagnostics)
         {
             var configureMethodName = $"Configure{endpointName}";
 
@@ -236,13 +227,9 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             var optionalParameters = parameters.Skip(1);
-
             foreach (var parameter in optionalParameters)
             {
-                var isAllowedOptionalParameter =
-                    SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
-
+                var isAllowedOptionalParameter = SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration) || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
                 if (!isAllowedOptionalParameter)
                 {
                     return null;
@@ -252,10 +239,7 @@ public sealed partial class FunctionEndpointGenerator
             var containingTypeFullyQualified = configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             var parameterTypeNames = parameters.Select(p => p.Type.Name.ToLower()).ToImmutableEquatableArray();
 
-            return new ConfigureMethodSpec(
-                containingTypeFullyQualified,
-                configureMethod.Name,
-                parameterTypeNames);
+            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames);
         }
 
         static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
@@ -274,10 +258,7 @@ public sealed partial class FunctionEndpointGenerator
         }
     }
 
-    internal readonly record struct ConfigureMethodSpec(
-        string ContainingTypeFullyQualified,
-        string MethodName,
-        ImmutableEquatableArray<string> ParameterTypeNames);
+    internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);
 
     internal sealed record FunctionSpec(
         string ContainingNamespace,
@@ -294,19 +275,69 @@ public sealed partial class FunctionEndpointGenerator
         string ConnectionName,
         ConfigureMethodSpec ConfigureMethod);
 
-    internal readonly record struct DiagnosticSpec(
-        string DescriptorId,
-        string FilePath,
-        TextSpan Span,
-        LinePositionSpan LineSpan,
-        ImmutableEquatableArray<string> Arguments);
+    internal sealed record DiagnosticSpec(string DescriptorId, string FilePath, TextSpan Span, LinePositionSpan LineSpan, ImmutableEquatableArray<string> Arguments);
 
-    internal readonly record struct ExtractionResult(
-        ImmutableEquatableArray<FunctionSpec> Functions,
-        ImmutableEquatableArray<DiagnosticSpec> Diagnostics)
+    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<DiagnosticSpec> Diagnostics)
     {
-        public static ExtractionResult Empty { get; } = new(
-            ImmutableEquatableArray<FunctionSpec>.Empty,
-            ImmutableEquatableArray<DiagnosticSpec>.Empty);
+        public static FunctionSpecs Empty { get; } = new(ImmutableEquatableArray<FunctionSpec>.Empty, ImmutableEquatableArray<DiagnosticSpec>.Empty);
+    }
+
+    readonly struct FunctionEndpointGeneratorKnownTypes(
+        INamedTypeSymbol functionAttribute,
+        INamedTypeSymbol serviceBusTriggerAttribute,
+        INamedTypeSymbol functionContext,
+        INamedTypeSymbol cancellationToken,
+        INamedTypeSymbol endpointConfiguration,
+        INamedTypeSymbol iHandleMessages,
+        INamedTypeSymbol iConfiguration,
+        INamedTypeSymbol iHostEnvironment)
+    {
+        public INamedTypeSymbol FunctionAttribute { get; } = functionAttribute;
+        public INamedTypeSymbol ServiceBusTriggerAttribute { get; } = serviceBusTriggerAttribute;
+        public INamedTypeSymbol FunctionContext { get; } = functionContext;
+        public INamedTypeSymbol CancellationToken { get; } = cancellationToken;
+        public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
+        public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
+        public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
+        public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
+
+        public static bool TryGet(Compilation compilation, out FunctionEndpointGeneratorKnownTypes knownTypes)
+        {
+            var functionAttribute =
+                compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute");
+            var serviceBusTriggerAttribute =
+                compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.ServiceBusTriggerAttribute");
+            var functionContext = compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionContext");
+            var cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
+            var endpointConfiguration = compilation.GetTypeByMetadataName("NServiceBus.EndpointConfiguration");
+            var iHandleMessages = compilation.GetTypeByMetadataName("NServiceBus.IHandleMessages`1");
+            var iconfiguration = compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
+            var iHostEnvironment = compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostEnvironment");
+
+            if (functionAttribute is null
+                || serviceBusTriggerAttribute is null
+                || functionContext is null
+                || cancellationToken is null
+                || endpointConfiguration is null
+                || iHandleMessages is null
+                || iconfiguration is null
+                || iHostEnvironment is null)
+            {
+                knownTypes = default;
+                return false;
+            }
+
+            knownTypes = new FunctionEndpointGeneratorKnownTypes(
+                functionAttribute,
+                serviceBusTriggerAttribute,
+                functionContext,
+                cancellationToken,
+                endpointConfiguration,
+                iHandleMessages,
+                iconfiguration,
+                iHostEnvironment);
+
+            return true;
+        }
     }
 }

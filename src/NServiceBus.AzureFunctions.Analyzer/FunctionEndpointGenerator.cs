@@ -1,7 +1,5 @@
-#nullable enable
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 

@@ -1,9 +1,7 @@
 namespace NServiceBus.AzureFunctions.Analyzers.Tests;
 
-using System.Collections.Immutable;
 using NServiceBus.AzureFunctions.Analyzer;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
 using NUnit.Framework;
 using Particular.AnalyzerTesting;
 
@@ -17,7 +15,7 @@ public class MissingCompositionCallAnalyzerTests
             .WithSource(TestSources.ValidFunction)
             .Run();
 
-        var diagnostics = GetAnalyzerDiagnostics(result);
+        var diagnostics = result.GetAnalyzerDiagnostics();
         Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == "NSBFUNC004"));
     }
 
@@ -49,7 +47,7 @@ public class MissingCompositionCallAnalyzerTests
             .WithSource(fakeCall, "Program.cs")
             .Run();
 
-        var diagnostics = GetAnalyzerDiagnostics(result);
+        var diagnostics = result.GetAnalyzerDiagnostics();
         Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == "NSBFUNC004"));
     }
 
@@ -76,27 +74,8 @@ public class MissingCompositionCallAnalyzerTests
             .WithSource(validCall, "Startup.cs")
             .Run();
 
-        var diagnostics = GetAnalyzerDiagnostics(result);
+        var diagnostics = result.GetAnalyzerDiagnostics();
         Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == "NSBFUNC004"));
-    }
-
-    // TODO we should support this in the analyzer testing package. Seems to be a gap
-    static ImmutableArray<Diagnostic> GetAnalyzerDiagnostics(SourceGeneratorTest test)
-    {
-        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-
-        var buildField = typeof(SourceGeneratorTest).GetField("build", flags)
-            ?? throw new InvalidOperationException("Unable to access SourceGeneratorTest build field.");
-
-        var build = buildField.GetValue(test)
-            ?? throw new InvalidOperationException("SourceGeneratorTest build was not initialized.");
-
-        var outputCompilationProperty = build.GetType().GetProperty("OutputCompilation", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public)
-            ?? throw new InvalidOperationException("Unable to access source generator output compilation.");
-
-        var compilationWithAnalyzers = (CompilationWithAnalyzers)outputCompilationProperty.GetValue(build)!;
-
-        return compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult();
     }
 
     static SourceGeneratorTest CreateSourceGeneratorAnalyzerTest() =>

@@ -20,7 +20,7 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.Diagnostics);
 
         context.RegisterSourceOutput(diagnostics, static (spc, diag) =>
-            Emitter.ReportDiagnostic(spc, diag));
+            spc.ReportDiagnostic(diag));
 
         var functionSpecs = extractionResults
             .SelectMany(static (result, _) => result.Functions)
@@ -34,7 +34,6 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .Combine(assemblyClassName)
             .WithTrackingName(TrackingNames.Combined);
 
-        context.RegisterSourceOutput(combined, static (spc, data) =>
-            Emitter.Emit(spc, data.Left, data.Right));
+        context.RegisterSourceOutput(combined, static (spc, data) => Emitter.Emit(spc, data.Left, data.Right));
     }
 }

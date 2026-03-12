@@ -1,7 +1,6 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -11,34 +10,6 @@ public sealed partial class FunctionEndpointGenerator
 {
     static class Emitter
     {
-        static readonly Dictionary<string, DiagnosticDescriptor> Descriptors = new()
-        {
-            [DiagnosticIds.ClassMustBePartial] = DiagnosticIds.ClassMustBePartialDescriptor,
-            [DiagnosticIds.ShouldNotImplementIHandleMessages] = DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor,
-            [DiagnosticIds.MethodMustBePartial] = DiagnosticIds.MethodMustBePartialDescriptor,
-            [DiagnosticIds.MultipleConfigureMethods] = DiagnosticIds.MultipleConfigureMethodsDescriptor,
-        };
-
-        public static void ReportDiagnostic(SourceProductionContext spc, DiagnosticSpec spec)
-        {
-            if (!Descriptors.TryGetValue(spec.DescriptorId, out var descriptor))
-            {
-                return;
-            }
-
-            var location = string.IsNullOrEmpty(spec.FilePath)
-                ? Location.None
-                : Location.Create(spec.FilePath, spec.Span, spec.LineSpan);
-
-            var args = new object[spec.Arguments.Count];
-            for (int i = 0; i < spec.Arguments.Count; i++)
-            {
-                args[i] = spec.Arguments[i];
-            }
-
-            spc.ReportDiagnostic(Diagnostic.Create(descriptor, location, args));
-        }
-
         public static void Emit(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
         {
             if (functions.Length > 0)

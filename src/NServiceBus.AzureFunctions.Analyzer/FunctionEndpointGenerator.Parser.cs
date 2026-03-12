@@ -8,7 +8,6 @@ using Core.Analyzer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Text;
 
 public sealed partial class FunctionEndpointGenerator
 {
@@ -39,11 +38,11 @@ public sealed partial class FunctionEndpointGenerator
         static FunctionSpecs ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
         {
             var functions = ImmutableArray.CreateBuilder<FunctionSpec>();
-            var diagnostics = ImmutableArray.CreateBuilder<DiagnosticSpec>();
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
 
             if (!IsPartial(classSymbol, cancellationToken))
             {
-                diagnostics.Add(CreateDiagnosticSpec(DiagnosticIds.ClassMustBePartial, classSymbol, classSymbol.Name));
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
             }
 
             var implementsIHandleMessages = classSymbol.AllInterfaces
@@ -51,7 +50,7 @@ public sealed partial class FunctionEndpointGenerator
 
             if (implementsIHandleMessages)
             {
-                diagnostics.Add(CreateDiagnosticSpec(DiagnosticIds.ShouldNotImplementIHandleMessages, classSymbol, classSymbol.Name));
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
             }
 
             foreach (var member in classSymbol.GetMembers())
@@ -59,7 +58,7 @@ public sealed partial class FunctionEndpointGenerator
                 cancellationToken.ThrowIfCancellationRequested();
                 if (member is IMethodSymbol method)
                 {
-                    var spec = TryExtractFunctionSpec(method, knownTypes, diagnostics);
+                    var spec = ExtractFunctionSpec(method, knownTypes, diagnostics);
                     if (spec is not null)
                     {
                         functions.Add(spec);
@@ -72,27 +71,24 @@ public sealed partial class FunctionEndpointGenerator
 
         static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
         {
-            var diagnostics = ImmutableArray.CreateBuilder<DiagnosticSpec>();
+            var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
 
             if (!methodSymbol.IsPartialDefinition)
             {
-                diagnostics.Add(CreateDiagnosticSpec(DiagnosticIds.MethodMustBePartial, methodSymbol, methodSymbol.Name));
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.MethodMustBePartialDescriptor, methodSymbol, methodSymbol.Name));
             }
 
             if (!IsPartial(methodSymbol.ContainingType, cancellationToken))
             {
-                diagnostics.Add(CreateDiagnosticSpec(DiagnosticIds.ClassMustBePartial, methodSymbol.ContainingType, methodSymbol.ContainingType.Name));
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, methodSymbol.ContainingType, methodSymbol.ContainingType.Name));
             }
 
-            var spec = TryExtractFunctionSpec(methodSymbol, knownTypes, diagnostics);
-            var functions = spec is not null
-                ? ImmutableArray.Create(spec).ToImmutableEquatableArray()
-                : ImmutableEquatableArray<FunctionSpec>.Empty;
-
-            return new FunctionSpecs(functions, diagnostics.ToImmutable().ToImmutableEquatableArray());
+            var spec = ExtractFunctionSpec(methodSymbol, knownTypes, diagnostics);
+            var functions = spec is not null ? ImmutableArray.Create(spec).ToImmutableEquatableArray() : ImmutableEquatableArray<FunctionSpec>.Empty;
+            return new FunctionSpecs(functions, diagnostics.ToImmutableEquatableArray());
         }
 
-        static FunctionSpec? TryExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<DiagnosticSpec>.Builder diagnostics)
+        static FunctionSpec? ExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<Diagnostic>.Builder diagnostics)
         {
             var functionAttr = method.GetAttributes()
                 .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, knownTypes.FunctionAttribute));
@@ -195,7 +191,7 @@ public sealed partial class FunctionEndpointGenerator
                 configureMethod.Value);
         }
 
-        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<DiagnosticSpec>.Builder diagnostics)
+        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, ImmutableArray<Diagnostic>.Builder diagnostics)
         {
             var configureMethodName = $"Configure{endpointName}";
 
@@ -206,7 +202,7 @@ public sealed partial class FunctionEndpointGenerator
                 {
                     if (configureMethod is not null)
                     {
-                        diagnostics.Add(CreateDiagnosticSpec(DiagnosticIds.MultipleConfigureMethods, functionClassType, configureMethodName, functionClassType.Name));
+                        diagnostics.Add(CreateDiagnostic(DiagnosticIds.MultipleConfigureMethodsDescriptor, functionClassType, configureMethodName, functionClassType.Name));
                         return null;
                     }
 
@@ -247,14 +243,10 @@ public sealed partial class FunctionEndpointGenerator
                 r.GetSyntax(cancellationToken) is ClassDeclarationSyntax classDeclaration
                 && classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword));
 
-        static DiagnosticSpec CreateDiagnosticSpec(string descriptorId, ISymbol symbol, params string[] arguments)
+        static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ISymbol symbol, params object[] arguments)
         {
             var location = symbol.Locations.FirstOrDefault();
-            var filePath = location?.SourceTree?.FilePath ?? "";
-            var span = location?.SourceSpan ?? default;
-            var lineSpan = location?.GetLineSpan().Span ?? default;
-
-            return new DiagnosticSpec(descriptorId, filePath, span, lineSpan, arguments.ToImmutableEquatableArray());
+            return Diagnostic.Create(descriptor, location, arguments);
         }
     }
 
@@ -275,11 +267,9 @@ public sealed partial class FunctionEndpointGenerator
         string ConnectionName,
         ConfigureMethodSpec ConfigureMethod);
 
-    internal sealed record DiagnosticSpec(string DescriptorId, string FilePath, TextSpan Span, LinePositionSpan LineSpan, ImmutableEquatableArray<string> Arguments);
-
-    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<DiagnosticSpec> Diagnostics)
+    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics)
     {
-        public static FunctionSpecs Empty { get; } = new(ImmutableEquatableArray<FunctionSpec>.Empty, ImmutableEquatableArray<DiagnosticSpec>.Empty);
+        public static FunctionSpecs Empty { get; } = new(ImmutableEquatableArray<FunctionSpec>.Empty, ImmutableEquatableArray<Diagnostic>.Empty);
     }
 
     readonly struct FunctionEndpointGeneratorKnownTypes(

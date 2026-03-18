@@ -11,6 +11,7 @@ public partial class ShippingEndpoint
     public partial Task Shipping(
         [ServiceBusTrigger("shipping", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
+        ServiceBusMessageActions messageActions,
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 

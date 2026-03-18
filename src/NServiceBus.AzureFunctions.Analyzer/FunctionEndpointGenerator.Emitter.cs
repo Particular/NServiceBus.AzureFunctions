@@ -56,14 +56,14 @@ public sealed partial class FunctionEndpointGenerator
                     writer.WriteLine("{");
                     writer.Indentation++;
                     writer.WriteLine($"var processor = {func.FunctionContextParamName}.InstanceServices");
-                    writer.WriteLine($"    .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.MessageProcessor>(\"{func.FunctionName}\");");
+                    writer.WriteLine($"    .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor>(\"{func.FunctionName}\");");
                     writer.WriteLine("if (processor is null)");
                     writer.WriteLine("{");
                     writer.Indentation++;
                     writer.WriteLine($"throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");
                     writer.Indentation--;
                     writer.WriteLine("}");
-                    writer.WriteLine($"return processor.Process({func.MessageParamName}, {func.FunctionContextParamName}, {func.CancellationTokenParamName});");
+                    writer.WriteLine($"return processor.Process({func.MessageParamName}, {func.MessageActionsParamName}, {func.FunctionContextParamName}, {func.CancellationTokenParamName});");
                     writer.Indentation--;
                     writer.WriteLine("}");
                 }

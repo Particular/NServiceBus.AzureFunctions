@@ -13,6 +13,7 @@ public partial class SalesEndpoint
     public partial Task Sales(
         [ServiceBusTrigger("sales", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
+        ServiceBusMessageActions messageActions,
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
@@ -21,6 +22,6 @@ public partial class SalesEndpoint
         CommonEndpointConfig.Apply(configuration);
 
         configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
-        configuration.AddHandler<Handlers.AcceptOrderHandler>();
+        configuration.AddHandler<Handlers.SubmitOrderHandler>();
     }
 }

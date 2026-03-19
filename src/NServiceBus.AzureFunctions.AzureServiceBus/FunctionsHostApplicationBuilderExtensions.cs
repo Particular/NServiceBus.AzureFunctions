@@ -20,7 +20,7 @@ public static class FunctionsHostApplicationBuilderExtensions
 
         transport.ConnectionName = functionManifest.ConnectionName;
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
-        builder.Services.AddKeyedSingleton<MessageProcessor>(functionManifest.Name, (_, _) => new MessageProcessor(transport, functionManifest.Name));
+        builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
     }
 
     public static void AddSendOnlyNServiceBusEndpoint(this FunctionsApplicationBuilder builder, string endpointName,

@@ -5,9 +5,10 @@ using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 
-public class MessageProcessor(AzureServiceBusServerlessTransport transport, string endpointName)
+public class AzureServiceBusMessageProcessor(AzureServiceBusServerlessTransport transport, string endpointName)
 {
-    public async Task Process(ServiceBusReceivedMessage message, FunctionContext functionContext, CancellationToken cancellationToken = default)
+    //NOTE: Message actions and function context is here to be ready for future features like native dlq support without having to change the end user api.
+    public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, FunctionContext functionContext, CancellationToken cancellationToken = default)
     {
         if (transport.MessageProcessor is null)
         {

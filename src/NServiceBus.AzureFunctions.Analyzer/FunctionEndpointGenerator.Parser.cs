@@ -101,6 +101,7 @@ public sealed partial class FunctionEndpointGenerator
             string? messageParamName = null;
             string? functionContextParamName = null;
             string? cancellationTokenParamName = null;
+            string? messageActionsParamName = null;
 
             var paramList = new StringBuilder();
 
@@ -136,6 +137,11 @@ public sealed partial class FunctionEndpointGenerator
                     }
                 }
 
+                if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.MessageActions))
+                {
+                    messageActionsParamName = param.Name;
+                }
+
                 if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.FunctionContext))
                 {
                     functionContextParamName = param.Name;
@@ -147,7 +153,7 @@ public sealed partial class FunctionEndpointGenerator
                 }
             }
 
-            if (queueName is null || functionContextParamName is null || messageParamName is null)
+            if (queueName is null || functionContextParamName is null || messageParamName is null || messageActionsParamName is null)
             {
                 return null;
             }
@@ -180,7 +186,7 @@ public sealed partial class FunctionEndpointGenerator
 
             return new FunctionSpec(
                 ns, className, accessibility, method.Name, returnType,
-                paramList.ToString(), messageParamName, functionContextParamName,
+                paramList.ToString(), messageParamName, messageActionsParamName, functionContextParamName,
                 cancellationTokenParamName, functionName, queueName, connectionName,
                 configureMethod.Value);
         }
@@ -304,6 +310,7 @@ public sealed partial class FunctionEndpointGenerator
         string ReturnType,
         string ParameterList,
         string MessageParamName,
+        string MessageActionsParamName,
         string FunctionContextParamName,
         string CancellationTokenParamName,
         string FunctionName,
@@ -324,7 +331,8 @@ public sealed partial class FunctionEndpointGenerator
         INamedTypeSymbol endpointConfiguration,
         INamedTypeSymbol iHandleMessages,
         INamedTypeSymbol iConfiguration,
-        INamedTypeSymbol iHostEnvironment)
+        INamedTypeSymbol iHostEnvironment,
+        INamedTypeSymbol messageActions)
     {
         public INamedTypeSymbol FunctionAttribute { get; } = functionAttribute;
         public INamedTypeSymbol ServiceBusTriggerAttribute { get; } = serviceBusTriggerAttribute;
@@ -334,6 +342,7 @@ public sealed partial class FunctionEndpointGenerator
         public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
         public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
         public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
+        public INamedTypeSymbol MessageActions { get; } = messageActions;
 
         public static bool TryGet(Compilation compilation, out FunctionEndpointGeneratorKnownTypes knownTypes)
         {
@@ -347,7 +356,7 @@ public sealed partial class FunctionEndpointGenerator
             var iHandleMessages = compilation.GetTypeByMetadataName("NServiceBus.IHandleMessages`1");
             var iconfiguration = compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
             var iHostEnvironment = compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostEnvironment");
-
+            var messageActions = compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.ServiceBusMessageActions");
             if (functionAttribute is null
                 || serviceBusTriggerAttribute is null
                 || functionContext is null
@@ -355,7 +364,8 @@ public sealed partial class FunctionEndpointGenerator
                 || endpointConfiguration is null
                 || iHandleMessages is null
                 || iconfiguration is null
-                || iHostEnvironment is null)
+                || iHostEnvironment is null
+                || messageActions is null)
             {
                 knownTypes = default;
                 return false;
@@ -369,7 +379,8 @@ public sealed partial class FunctionEndpointGenerator
                 endpointConfiguration,
                 iHandleMessages,
                 iconfiguration,
-                iHostEnvironment);
+                iHostEnvironment,
+                messageActions);
 
             return true;
         }

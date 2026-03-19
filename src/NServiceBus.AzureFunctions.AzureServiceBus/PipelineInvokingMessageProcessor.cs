@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Functions.Worker;
 using NServiceBus.Extensibility;
 using NServiceBus.Transport;
 using NServiceBus.Transport.AzureServiceBus;
@@ -23,7 +24,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             cancellationToken) ?? Task.CompletedTask;
     }
 
-    public async Task Process(ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
+    public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
         var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
         var body = GetBody(message);
@@ -39,10 +40,11 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
             azureServiceBusTransportTransaction.Commit();
+            await messageActions.CompleteMessageAsync(message, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw;
+            await messageActions.AbandonMessageAsync(message, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -57,7 +59,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
                 return;
             }
 
-            throw;
+            await messageActions.AbandonMessageAsync(message, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 

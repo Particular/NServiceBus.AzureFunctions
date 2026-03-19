@@ -7,7 +7,6 @@ using Microsoft.Azure.Functions.Worker;
 
 public class AzureServiceBusMessageProcessor(AzureServiceBusServerlessTransport transport, string endpointName)
 {
-    //NOTE: Message actions and function context is here to be ready for future features like native dlq support without having to change the end user api.
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, FunctionContext functionContext, CancellationToken cancellationToken = default)
     {
         if (transport.MessageProcessor is null)
@@ -16,6 +15,6 @@ public class AzureServiceBusMessageProcessor(AzureServiceBusServerlessTransport 
             throw new InvalidOperationException($"Endpoint {endpointName} cannot process messages because it is configured in send-only mode.");
         }
 
-        await transport.MessageProcessor.Process(message, cancellationToken).ConfigureAwait(false);
+        await transport.MessageProcessor.Process(message, messageActions, cancellationToken).ConfigureAwait(false);
     }
 }

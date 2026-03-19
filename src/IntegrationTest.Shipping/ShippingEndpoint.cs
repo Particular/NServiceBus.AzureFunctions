@@ -9,7 +9,7 @@ public partial class ShippingEndpoint
 {
     [Function(nameof(Shipping))]
     public partial Task Shipping(
-        [ServiceBusTrigger("shipping", AutoCompleteMessages = true)]
+        [ServiceBusTrigger("shipping", AutoCompleteMessages = false)]
         ServiceBusReceivedMessage message,
         ServiceBusMessageActions messageActions,
         FunctionContext functionContext,

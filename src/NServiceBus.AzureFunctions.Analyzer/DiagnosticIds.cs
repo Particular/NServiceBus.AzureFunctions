@@ -9,7 +9,7 @@ public static class DiagnosticIds
     public const string MethodMustBePartial = "NSBFUNC003";
     public const string MissingAddNServiceBusFunctionsCall = "NSBFUNC004";
     public const string MultipleConfigureMethods = "NSBFUNC005";
-    public const string MissingAutoComplete = "NSBFUNC006";
+    public const string AutoCompleteEnabled = "NSBFUNC006";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -43,10 +43,10 @@ public static class DiagnosticIds
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    internal static readonly DiagnosticDescriptor AutoCompleteMustBeSet = new(
-        id: MissingAutoComplete,
-        title: "Autocomplete property not set on service bus trigger",
-        messageFormat: "The auto complete property must be explicitly set to false on service bus triggers",
+    internal static readonly DiagnosticDescriptor AutoCompleteMustBeExplicitlyDisabled = new(
+        id: AutoCompleteEnabled,
+        title: "Autocomplete property must be disabled",
+        messageFormat: "The auto complete property on the service bus trigger for method '{0}' must be explicitly set to false",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

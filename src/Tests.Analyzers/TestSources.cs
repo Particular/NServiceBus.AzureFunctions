@@ -11,6 +11,7 @@ static class TestSources
             [Function("ProcessOrder")]
             public partial Task Run(
                 [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
                 FunctionContext context,
                 CancellationToken cancellationToken);
 

@@ -19,7 +19,8 @@ public class FunctionEndpointGeneratorTests
     [TestCase(FunctionClassShouldNotImplementIHandleMessages, DiagnosticIds.ShouldNotImplementIHandleMessages)]
     [TestCase(FunctionMethodMustBePartial, DiagnosticIds.MethodMustBePartial)]
     [TestCase(MultipleConfigureMethods, DiagnosticIds.MultipleConfigureMethods)]
-    [TestCase(MissingAutoComplete, DiagnosticIds.MissingAutoComplete)]
+    [TestCase(MissingAutoComplete, DiagnosticIds.AutoCompleteEnabled)]
+    [TestCase(AutoCompleteEnabled, DiagnosticIds.AutoCompleteEnabled)]
     public void ReportsGeneratorDiagnostics(string source, string diagnosticId)
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
@@ -140,6 +141,25 @@ public class FunctionEndpointGeneratorTests
            [Function("ProcessOrder")]
            public partial Task Run(
                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+               ServiceBusMessageActions messageActions,
+               FunctionContext context,
+               CancellationToken cancellationToken);
+
+           public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
+           {
+           }
+       }
+       """;
+
+    const string AutoCompleteEnabled = """
+       namespace Demo;
+
+       public partial class Functions
+       {
+           [NServiceBusFunction]
+           [Function("ProcessOrder")]
+           public partial Task Run(
+               [ServiceBusTrigger("sales-queue", AutoCompleteMessages = true)] ServiceBusReceivedMessage message,
                ServiceBusMessageActions messageActions,
                FunctionContext context,
                CancellationToken cancellationToken);

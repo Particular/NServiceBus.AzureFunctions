@@ -16,7 +16,7 @@ public class MissingCompositionCallAnalyzerTests
             .Run();
 
         var diagnostics = result.GetAnalyzerDiagnostics();
-        Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == "NSBFUNC004"));
+        Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.MissingAddNServiceBusFunctionsCall));
     }
 
     [Test]
@@ -48,7 +48,7 @@ public class MissingCompositionCallAnalyzerTests
             .Run();
 
         var diagnostics = result.GetAnalyzerDiagnostics();
-        Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == "NSBFUNC004"));
+        Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.MissingAddNServiceBusFunctionsCall));
     }
 
     [Test]
@@ -75,7 +75,7 @@ public class MissingCompositionCallAnalyzerTests
             .Run();
 
         var diagnostics = result.GetAnalyzerDiagnostics();
-        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == "NSBFUNC004"));
+        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.MissingAddNServiceBusFunctionsCall));
     }
 
     static SourceGeneratorTest CreateSourceGeneratorAnalyzerTest() =>

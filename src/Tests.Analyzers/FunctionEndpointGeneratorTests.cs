@@ -40,6 +40,7 @@ public class FunctionEndpointGeneratorTests
               [Function("ProcessOrder")]
               public partial Task Run(
                   [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+                  ServiceBusMessageActions messageActions,
                   FunctionContext context,
                   CancellationToken cancellationToken);
 
@@ -61,6 +62,7 @@ public class FunctionEndpointGeneratorTests
               [Function("ProcessOrder")]
               public Task Run(
                   [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+                  ServiceBusMessageActions messageActions,
                   FunctionContext context,
                   CancellationToken cancellationToken)
               {
@@ -85,6 +87,7 @@ public class FunctionEndpointGeneratorTests
              [Function("ProcessOrder")]
              public partial Task Run(
                  [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+                 ServiceBusMessageActions messageActions,
                  FunctionContext context,
                  CancellationToken cancellationToken);
 
@@ -111,6 +114,7 @@ public class FunctionEndpointGeneratorTests
            [Function("ProcessOrder")]
            public partial Task Run(
                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+               ServiceBusMessageActions messageActions,
                FunctionContext context,
                CancellationToken cancellationToken);
 

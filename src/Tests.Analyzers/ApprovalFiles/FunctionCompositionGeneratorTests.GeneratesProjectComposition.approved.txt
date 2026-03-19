@@ -16,6 +16,7 @@ public partial class Functions
     [Function("ProcessOrder")]
     public partial Task Run(
         [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+        ServiceBusMessageActions messageActions,
         FunctionContext context,
         CancellationToken cancellationToken);
 
@@ -61,16 +62,17 @@ namespace Demo
     {
         public partial global::System.Threading.Tasks.Task Run(
             global::Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message,
+            global::Microsoft.Azure.Functions.Worker.ServiceBusMessageActions messageActions,
             global::Microsoft.Azure.Functions.Worker.FunctionContext context,
             global::System.Threading.CancellationToken cancellationToken)
         {
             var processor = context.InstanceServices
-                .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.MessageProcessor>("ProcessOrder");
+                .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor>("ProcessOrder");
             if (processor is null)
             {
                 throw new global::System.InvalidOperationException("ProcessOrder has not been registered.");
             }
-            return processor.Process(message, context, cancellationToken);
+            return processor.Process(message, messageActions, context, cancellationToken);
         }
     }
 }

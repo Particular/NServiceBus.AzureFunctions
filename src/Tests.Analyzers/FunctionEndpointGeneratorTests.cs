@@ -15,10 +15,11 @@ public class FunctionEndpointGeneratorTests
             .SuppressCompilationErrors()
             .Approve();
 
-    [TestCase(FunctionClassMustBePartial, "NSBFUNC001")]
-    [TestCase(FunctionClassShouldNotImplementIHandleMessages, "NSBFUNC002")]
-    [TestCase(FunctionMethodMustBePartial, "NSBFUNC003")]
-    [TestCase(MultipleConfigureMethods, "NSBFUNC005")]
+    [TestCase(FunctionClassMustBePartial, DiagnosticIds.ClassMustBePartial)]
+    [TestCase(FunctionClassShouldNotImplementIHandleMessages, DiagnosticIds.ShouldNotImplementIHandleMessages)]
+    [TestCase(FunctionMethodMustBePartial, DiagnosticIds.MethodMustBePartial)]
+    [TestCase(MultipleConfigureMethods, DiagnosticIds.MultipleConfigureMethods)]
+    [TestCase(MissingAutoComplete, DiagnosticIds.MissingAutoComplete)]
     public void ReportsGeneratorDiagnostics(string source, string diagnosticId)
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
@@ -125,6 +126,25 @@ public class FunctionEndpointGeneratorTests
            public static void ConfigureProcessOrder(
                EndpointConfiguration endpointConfiguration,
                IConfiguration iconfiguration)
+           {
+           }
+       }
+       """;
+
+    const string MissingAutoComplete = """
+       namespace Demo;
+
+       public partial class Functions
+       {
+           [NServiceBusFunction]
+           [Function("ProcessOrder")]
+           public partial Task Run(
+               [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+               ServiceBusMessageActions messageActions,
+               FunctionContext context,
+               CancellationToken cancellationToken);
+
+           public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
            {
            }
        }

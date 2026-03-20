@@ -28,7 +28,10 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
     {
         var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
         var body = GetBody(message);
+        //TODO: Should we get the headers up here as well
+
         var contextBag = new ContextBag();
+
         // Azure Service Bus transport also makes the incoming message available. We can do the same narrow the gap
         contextBag.Set(message);
 
@@ -56,6 +59,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             if (errorHandleResult == ErrorHandleResult.Handled)
             {
                 azureServiceBusTransportTransaction.Commit();
+                await messageActions.CompleteMessageAsync(message, cancellationToken).ConfigureAwait(false);
                 return;
             }
 

@@ -24,8 +24,12 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        //TODO: Asb throws if message id is null, align?
-        var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
+        var nativeMessageId = message.MessageId;
+        if (string.IsNullOrEmpty(nativeMessageId))
+        {
+            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.", cancellationToken: cancellationToken).ConfigureAwait(false);
+            return;
+        }
 
         var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
 
@@ -39,7 +43,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         try
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var messageContext = CreateMessageContext(message, messageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            var messageContext = CreateMessageContext(message, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
@@ -53,7 +57,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         catch (Exception exception)
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var errorContext = CreateErrorContext(message, exception, messageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            var errorContext = CreateErrorContext(message, exception, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
             var errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
 

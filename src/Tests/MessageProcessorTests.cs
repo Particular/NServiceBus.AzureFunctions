@@ -49,6 +49,23 @@ public class MessageProcessorTests
     }
 
     [Test]
+    public async Task Should_require_native_message_id_to_be_set()
+    {
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage();
+
+        var result = await ProcessMessage(
+            message: message
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.False(result.OnMessageWasCalled, "OnMessage should not be called");
+            Assert.False(result.OnErrorWasCalled, "OnError should not be called");
+            Assert.True(result.MessageActions.WasDeadLettered, "Missing native message id should result in message being dead lettered");
+        }
+    }
+
+    [Test]
     public async Task Should_complete_when_on_message_succeeds()
     {
         var result = await ProcessMessage(
@@ -97,7 +114,7 @@ public class MessageProcessorTests
     [Test]
     public async Task Should_expose_the_service_bus_message_on_both_message_and_error_context()
     {
-        var message = ServiceBusModelFactory.ServiceBusReceivedMessage();
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(messageId: Guid.NewGuid().ToString());
 
         var result = await ProcessMessage(
             message: message,
@@ -145,7 +162,7 @@ public class MessageProcessorTests
         CancellationToken cancellationToken = default)
 #pragma warning restore PS0004
     {
-        message ??= ServiceBusModelFactory.ServiceBusReceivedMessage();
+        message ??= ServiceBusModelFactory.ServiceBusReceivedMessage(messageId: Guid.NewGuid().ToString());
         onMessage ??= (_, _) => Task.CompletedTask;
         onError ??= (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired);
 
@@ -167,7 +184,8 @@ public class MessageProcessorTests
             },
             cancellationToken);
 
-        await processor.Process(message, messageActions, cancellationToken);
+        Assert.DoesNotThrowAsync(async () => await processor.Process(message, messageActions, cancellationToken));
+
         return new ProcessingResult(messageActions, capturedMessageContext, capturedErrorContext);
     }
 
@@ -183,8 +201,8 @@ public class MessageProcessorTests
     class TestableMessageActions : ServiceBusMessageActions
     {
         public bool WasCompleted { get; private set; }
-
         public bool WasAbandoned { get; private set; }
+        public bool WasDeadLettered { get; private set; }
 
         public override Task CompleteMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken = new CancellationToken())
         {
@@ -195,6 +213,12 @@ public class MessageProcessorTests
         public override Task AbandonMessageAsync(ServiceBusReceivedMessage message, IDictionary<string, object>? propertiesToModify = null, CancellationToken cancellationToken = new CancellationToken())
         {
             WasAbandoned = true;
+            return Task.CompletedTask;
+        }
+
+        public override Task DeadLetterMessageAsync(ServiceBusReceivedMessage message, Dictionary<string, object>? propertiesToModify = null, string? deadLetterReason = null, string? deadLetterErrorDescription = null, CancellationToken cancellationToken = new CancellationToken())
+        {
+            WasDeadLettered = true;
             return Task.CompletedTask;
         }
     }

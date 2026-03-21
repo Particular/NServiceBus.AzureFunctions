@@ -27,6 +27,8 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
         var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
+
+        //TODO: How do we simulate an exception? should we even support the old legacy asb format
         var body = GetBody(message);
         //TODO: Should we get the headers up here as well
 

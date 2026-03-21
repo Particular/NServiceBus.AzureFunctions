@@ -27,7 +27,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         var nativeMessageId = message.MessageId;
         if (string.IsNullOrEmpty(nativeMessageId))
         {
-            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.", cancellationToken: cancellationToken).ConfigureAwait(false);
+            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.", cancellationToken: CancellationToken.None).ConfigureAwait(false);
             return;
         }
 
@@ -48,27 +48,27 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
             azureServiceBusTransportTransaction.Commit();
-            await messageActions.CompleteMessageAsync(message, cancellationToken).ConfigureAwait(false);
+            await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            await messageActions.AbandonMessageAsync(message, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
             var errorContext = CreateErrorContext(message, exception, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
-            var errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
+            var errorHandleResult = await onError!.Invoke(errorContext, CancellationToken.None).ConfigureAwait(false);
 
             if (errorHandleResult == ErrorHandleResult.Handled)
             {
                 azureServiceBusTransportTransaction.Commit();
-                await messageActions.CompleteMessageAsync(message, cancellationToken).ConfigureAwait(false);
+                await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
-            await messageActions.AbandonMessageAsync(message, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
     }
 

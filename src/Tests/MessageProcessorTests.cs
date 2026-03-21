@@ -55,8 +55,23 @@ public class MessageProcessorTests
         }
     }
 
+    [Test]
+    public async Task Should_expose_servicebus_message_on_both_message_and_error_context()
+    {
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage();
+
+        var result = await ProcessMessage(
+            message: message,
+            onMessage: _ => throw new Exception("simulated exception"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.AreSame(message, result.MessageContext?.Extensions.Get<ServiceBusReceivedMessage>());
+            Assert.AreSame(message, result.ErrorContext?.Extensions.Get<ServiceBusReceivedMessage>());
+        }
+    }
+
     //TODO: Tests to add
-    // ShouldExposeServiceBusMessageOnBothMessageAndErrorContext
     // ShouldSupportLegacyWcfBody ?
     // ShouldDefaultMessageIdToNewGuid
     // ShouldNotInvokeOnErrorIfCancellationIsRequested
@@ -75,34 +90,35 @@ public class MessageProcessorTests
         onError ??= _ => Task.FromResult(ErrorHandleResult.RetryRequired);
 
         var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver());
-        bool onMessageWasCalled = false;
-        bool onErrorWasCalled = false;
-
+        MessageContext? capturedMessageContext = null;
+        ErrorContext? capturedErrorContext = null;
         var messageActions = new TestableMessageActions();
 
         await processor.Initialize(PushRuntimeSettings.Default,
             async (msgContext, _) =>
             {
-                onMessageWasCalled = true;
+                capturedMessageContext = msgContext;
                 await onMessage(msgContext);
             },
             async (errorContext, _) =>
             {
-                onErrorWasCalled = true;
+                capturedErrorContext = errorContext;
                 return await onError(errorContext);
             });
 
         await processor.Process(message, messageActions);
-        return new ProcessingResult(onMessageWasCalled, onErrorWasCalled, messageActions);
+        return new ProcessingResult(messageActions, capturedMessageContext, capturedErrorContext);
     }
 #pragma warning restore PS0013
 #pragma warning restore CS8425
 
-    class ProcessingResult(bool onMessageWasCalled, bool onErrorWasCalled, TestableMessageActions messageActions)
+    class ProcessingResult(TestableMessageActions messageActions, MessageContext? messageContext, ErrorContext? errorContext)
     {
-        public bool OnMessageWasCalled { get; } = onMessageWasCalled;
-        public bool OnErrorWasCalled { get; } = onErrorWasCalled;
         public TestableMessageActions MessageActions { get; } = messageActions;
+        public MessageContext? MessageContext { get; } = messageContext;
+        public ErrorContext? ErrorContext { get; } = errorContext;
+        public bool OnMessageWasCalled => MessageContext != null;
+        public bool OnErrorWasCalled => ErrorContext != null;
     }
 
     class TestableMessageActions : ServiceBusMessageActions

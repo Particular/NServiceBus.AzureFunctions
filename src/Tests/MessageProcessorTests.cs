@@ -5,6 +5,7 @@ using AzureServiceBus.Serverless.TransportWrapper;
 using Microsoft.Azure.Functions.Worker;
 using NUnit.Framework;
 using Transport;
+using NServiceBus;
 
 [TestFixture]
 public class MessageProcessorTests
@@ -16,11 +17,15 @@ public class MessageProcessorTests
         var expectedBody = new byte[] { 1, 2, 3, 4 };
         var expectedHeaderKey = "custom-header";
         var expectedHeaderValue = "header-value";
+        var expectedReplyTo = "reply-queue";
+        var expectedCorrelationId = "correlation-abc";
 
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
             messageId: expectedMessageId,
             properties: new Dictionary<string, object> { { expectedHeaderKey, expectedHeaderValue } },
-            body: new BinaryData(expectedBody)
+            body: new BinaryData(expectedBody),
+            replyTo: expectedReplyTo,
+            correlationId: expectedCorrelationId
         );
 
         var result = await ProcessMessage(
@@ -36,6 +41,10 @@ public class MessageProcessorTests
             Assert.IsTrue(messageContext.Headers.ContainsKey(expectedHeaderKey), "MessageContext should expose the custom header");
             Assert.AreEqual(expectedHeaderValue, messageContext.Headers[expectedHeaderKey], "MessageContext should expose the correct header value");
             Assert.That(messageContext.Body.ToArray(), Is.EqualTo(expectedBody).AsCollection, "MessageContext should expose the correct message body");
+            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.CorrelationId), "Native CorrelationId should be upconverted to a the CorrelationId header");
+            Assert.AreEqual(expectedCorrelationId, messageContext.Headers[Headers.CorrelationId], "Headers should expose the correct CorrelationId value");
+            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.ReplyToAddress), "Native ReplyTo should be upconverted to a the ReplyToAddress header");
+            Assert.AreEqual(expectedReplyTo, messageContext.Headers[Headers.ReplyToAddress], "Headers should expose the correct ReplyTo header value");
         }
     }
 

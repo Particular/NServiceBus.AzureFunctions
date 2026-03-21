@@ -10,7 +10,7 @@ using Transport;
 public class MessageProcessorTests
 {
     [Test]
-    public async Task ShouldCallCompleteWhenOnMessageSucceeds()
+    public async Task Should_complete_when_on_message_succeeds()
     {
         var result = await ProcessMessage(
             onMessage: _ => Task.CompletedTask);
@@ -25,7 +25,7 @@ public class MessageProcessorTests
     }
 
     [Test]
-    public async Task ShouldCallAbandonWhenOnMessageFailsAndRetryIsRequested()
+    public async Task Should_abandon_when_on_message_fails_and_retry_is_requested()
     {
         var result = await ProcessMessage(
             onMessage: _ => throw new Exception("simulated exception"));
@@ -38,6 +38,30 @@ public class MessageProcessorTests
             Assert.IsTrue(result.MessageActions.WasAbandoned);
         }
     }
+
+    [Test]
+    public async Task Should_complete_when_on_message_fails_and_failure_is_marked_as_handled()
+    {
+        var result = await ProcessMessage(
+            onMessage: _ => throw new Exception("simulated exception"),
+            onError: _ => Task.FromResult(ErrorHandleResult.Handled));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsTrue(result.OnMessageWasCalled);
+            Assert.IsTrue(result.OnErrorWasCalled);
+            Assert.IsTrue(result.MessageActions.WasCompleted);
+            Assert.IsFalse(result.MessageActions.WasAbandoned);
+        }
+    }
+
+    //TODO: Tests to add
+    // ShouldExposeServiceBusMessageOnBothMessageAndErrorContext
+    // ShouldSupportLegacyWcfBody ?
+    // ShouldDefaultMessageIdToNewGuid
+    // ShouldNotInvokeOnErrorIfCancellationIsRequested
+    // ShouldDLQMessageIfBodyOrHeaderExtractionFails?
+    // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError
 
 #pragma warning disable CS8425 // Func used as a method parameter with a Task return type argument should have at least one CancellationToken parameter type argument
 #pragma warning disable PS0013

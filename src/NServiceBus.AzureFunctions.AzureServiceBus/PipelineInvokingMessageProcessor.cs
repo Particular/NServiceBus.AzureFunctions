@@ -1,10 +1,8 @@
 namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 
 using System;
-using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using NServiceBus.Extensibility;
@@ -26,11 +24,11 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        //TODO: Asb throws id message id is null, align?
+        //TODO: Asb throws if message id is null, align?
         var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
 
-        //TODO: How do we simulate an exception? should we even support the old legacy asb format
-        var body = GetBody(message);
+        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
+
         //TODO: Should we get the headers up here as well
 
         var contextBag = new ContextBag();
@@ -70,23 +68,6 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         }
     }
 
-    static BinaryData GetBody(ServiceBusReceivedMessage message)
-    {
-        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
-        var memory = body.ToMemory();
-
-        if (memory.IsEmpty ||
-            !message.ApplicationProperties.TryGetValue(TransportEncodingHeader, out var value) ||
-            !value.Equals("wcf/byte-array"))
-        {
-            return body;
-        }
-
-        using var reader = XmlDictionaryReader.CreateBinaryReader(body.ToStream(), XmlDictionaryReaderQuotas.Max);
-        var bodyBytes = (byte[])Deserializer.ReadObject(reader)!;
-        return new BinaryData(bodyBytes);
-    }
-
     ErrorContext CreateErrorContext(ServiceBusReceivedMessage message, Exception exception, string messageId,
         BinaryData body, TransportTransaction transportTransaction, ContextBag contextBag) =>
         new(exception, GetNServiceBusHeaders(message), messageId, body, transportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
@@ -103,8 +84,6 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         {
             headers[kvp.Key] = kvp.Value?.ToString();
         }
-
-        headers.Remove(TransportEncodingHeader);
 
         if (!string.IsNullOrWhiteSpace(message.ReplyTo))
         {
@@ -132,8 +111,4 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
 
     OnMessage? onMessage;
     OnError? onError;
-
-    const string TransportEncodingHeader = "NServiceBus.Transport.Encoding";
-
-    static readonly DataContractSerializer Deserializer = new(typeof(byte[]));
 }

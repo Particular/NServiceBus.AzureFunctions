@@ -4,6 +4,7 @@ using Azure.Messaging.ServiceBus;
 using AzureServiceBus.Serverless.TransportWrapper;
 using Microsoft.Azure.Functions.Worker;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using Transport;
 
 [TestFixture]
@@ -91,10 +92,39 @@ public class MessageProcessorTests
         }
     }
 
+    [Test]
+    public async Task Should_expose_native_message_id_headers_and_body_on_message_context()
+    {
+        var expectedMessageId = "test-message-id-123";
+        var expectedBody = new byte[] { 1, 2, 3, 4 };
+        var expectedHeaderKey = "custom-header";
+        var expectedHeaderValue = "header-value";
+
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            messageId: expectedMessageId,
+            properties: new Dictionary<string, object> { { expectedHeaderKey, expectedHeaderValue } },
+            body: new BinaryData(expectedBody)
+        );
+
+        var result = await ProcessMessage(
+            message: message
+        );
+
+        var messageContext = result.MessageContext;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.NotNull(messageContext, "MessageContext should not be null");
+            Assert.AreEqual(expectedMessageId, messageContext!.NativeMessageId, "MessageContext should expose the native message id");
+            Assert.IsTrue(messageContext.Headers.ContainsKey(expectedHeaderKey), "MessageContext should expose the custom header");
+            Assert.AreEqual(expectedHeaderValue, messageContext.Headers[expectedHeaderKey], "MessageContext should expose the correct header value");
+            Assert.That(messageContext.Body.ToArray(), Is.EqualTo(expectedBody).AsCollection, "MessageContext should expose the correct message body");
+        }
+    }
+
     //TODO: Tests to add
     // ShouldSupportLegacyWcfBody ?
     // ShouldDefaultMessageIdToNewGuid
-    // ShouldNotInvokeOnErrorIfCancellationIsRequested
     // ShouldDLQMessageIfBodyOrHeaderExtractionFails?
     // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError
 

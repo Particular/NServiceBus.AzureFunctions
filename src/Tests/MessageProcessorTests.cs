@@ -135,6 +135,7 @@ public class MessageProcessorTests
     // ShouldDefaultMessageIdToNewGuid
     // ShouldDLQMessageIfBodyOrHeaderExtractionFails?
     // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError
+    // Should_expose_a_unique_transport_transaction_for_onmessage_and_onerror?
 
     async Task<ProcessingResult> ProcessMessage(
         ServiceBusReceivedMessage? message = null,

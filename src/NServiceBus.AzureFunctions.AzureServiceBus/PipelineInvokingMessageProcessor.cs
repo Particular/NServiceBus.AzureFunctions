@@ -26,6 +26,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
+        //TODO: Asb throws id message id is null, align?
         var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
 
         //TODO: How do we simulate an exception? should we even support the old legacy asb format

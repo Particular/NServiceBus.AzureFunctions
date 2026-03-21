@@ -13,14 +13,14 @@ public class MessageProcessorTests
     public async Task Should_complete_when_on_message_succeeds()
     {
         var result = await ProcessMessage(
-            onMessage: _ => Task.CompletedTask);
+            onMessage: (_, _) => Task.CompletedTask);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.IsTrue(result.OnMessageWasCalled);
-            Assert.IsFalse(result.OnErrorWasCalled);
-            Assert.IsTrue(result.MessageActions.WasCompleted);
-            Assert.IsFalse(result.MessageActions.WasAbandoned);
+            Assert.IsTrue(result.OnMessageWasCalled, "OnMessage should be called");
+            Assert.IsFalse(result.OnErrorWasCalled, "OnError should not be called");
+            Assert.IsTrue(result.MessageActions.WasCompleted, "Message should be completed");
+            Assert.IsFalse(result.MessageActions.WasAbandoned, "Message should not be abandoned");
         }
     }
 
@@ -28,14 +28,14 @@ public class MessageProcessorTests
     public async Task Should_abandon_when_on_message_fails_and_retry_is_requested()
     {
         var result = await ProcessMessage(
-            onMessage: _ => throw new Exception("simulated exception"));
+            onMessage: (_, _) => throw new Exception("simulated exception"));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.IsTrue(result.OnMessageWasCalled);
-            Assert.IsTrue(result.OnErrorWasCalled);
-            Assert.IsFalse(result.MessageActions.WasCompleted);
-            Assert.IsTrue(result.MessageActions.WasAbandoned);
+            Assert.IsTrue(result.OnMessageWasCalled, "OnMessage should be called");
+            Assert.IsTrue(result.OnErrorWasCalled, "OnError should be called");
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned");
         }
     }
 
@@ -43,31 +43,51 @@ public class MessageProcessorTests
     public async Task Should_complete_when_on_message_fails_and_failure_is_marked_as_handled()
     {
         var result = await ProcessMessage(
-            onMessage: _ => throw new Exception("simulated exception"),
-            onError: _ => Task.FromResult(ErrorHandleResult.Handled));
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (_, _) => Task.FromResult(ErrorHandleResult.Handled));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.IsTrue(result.OnMessageWasCalled);
-            Assert.IsTrue(result.OnErrorWasCalled);
-            Assert.IsTrue(result.MessageActions.WasCompleted);
-            Assert.IsFalse(result.MessageActions.WasAbandoned);
+            Assert.IsTrue(result.OnMessageWasCalled, "OnMessage should be called");
+            Assert.IsTrue(result.OnErrorWasCalled, "OnError should be called");
+            Assert.IsTrue(result.MessageActions.WasCompleted, "Message should be completed");
+            Assert.IsFalse(result.MessageActions.WasAbandoned, "Message should not be abandoned");
         }
     }
 
     [Test]
-    public async Task Should_expose_servicebus_message_on_both_message_and_error_context()
+    public async Task Should_expose_the_service_bus_message_on_both_message_and_error_context()
     {
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage();
 
         var result = await ProcessMessage(
             message: message,
-            onMessage: _ => throw new Exception("simulated exception"));
+            onMessage: (_, _) => throw new Exception("simulated exception"));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.AreSame(message, result.MessageContext?.Extensions.Get<ServiceBusReceivedMessage>());
-            Assert.AreSame(message, result.ErrorContext?.Extensions.Get<ServiceBusReceivedMessage>());
+            Assert.AreSame(message, result.MessageContext?.Extensions.Get<ServiceBusReceivedMessage>(), "MessageContext should contain the ServiceBusReceivedMessage");
+            Assert.AreSame(message, result.ErrorContext?.Extensions.Get<ServiceBusReceivedMessage>(), "ErrorContext should contain the ServiceBusReceivedMessage");
+        }
+    }
+
+    [Test]
+    public async Task Should_abandon_when_token_is_cancelled_and_not_invoke_onerror()
+    {
+        var result = await ProcessMessage(
+            onMessage: (_, ct) =>
+            {
+                ct.ThrowIfCancellationRequested();
+                return Task.CompletedTask;
+            },
+            cancellationToken: new CancellationToken(true)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsFalse(result.OnErrorWasCalled, "OnError should not be called");
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned");
         }
     }
 
@@ -78,16 +98,17 @@ public class MessageProcessorTests
     // ShouldDLQMessageIfBodyOrHeaderExtractionFails?
     // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError
 
-#pragma warning disable CS8425 // Func used as a method parameter with a Task return type argument should have at least one CancellationToken parameter type argument
-#pragma warning disable PS0013
     async Task<ProcessingResult> ProcessMessage(
         ServiceBusReceivedMessage? message = null,
-        Func<MessageContext, Task>? onMessage = null,
-        Func<ErrorContext, Task<ErrorHandleResult>>? onError = null)
+        Func<MessageContext, CancellationToken, Task>? onMessage = null,
+        Func<ErrorContext, CancellationToken, Task<ErrorHandleResult>>? onError = null,
+#pragma warning disable PS0004
+        CancellationToken cancellationToken = default)
+#pragma warning restore PS0004
     {
         message ??= ServiceBusModelFactory.ServiceBusReceivedMessage();
-        onMessage ??= _ => Task.CompletedTask;
-        onError ??= _ => Task.FromResult(ErrorHandleResult.RetryRequired);
+        onMessage ??= (_, _) => Task.CompletedTask;
+        onError ??= (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired);
 
         var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver());
         MessageContext? capturedMessageContext = null;
@@ -95,22 +116,21 @@ public class MessageProcessorTests
         var messageActions = new TestableMessageActions();
 
         await processor.Initialize(PushRuntimeSettings.Default,
-            async (msgContext, _) =>
+            async (msgContext, token) =>
             {
                 capturedMessageContext = msgContext;
-                await onMessage(msgContext);
+                await onMessage(msgContext, token);
             },
-            async (errorContext, _) =>
+            async (errorContext, token) =>
             {
                 capturedErrorContext = errorContext;
-                return await onError(errorContext);
-            });
+                return await onError(errorContext, token);
+            },
+            cancellationToken);
 
-        await processor.Process(message, messageActions);
+        await processor.Process(message, messageActions, cancellationToken);
         return new ProcessingResult(messageActions, capturedMessageContext, capturedErrorContext);
     }
-#pragma warning restore PS0013
-#pragma warning restore CS8425
 
     class ProcessingResult(TestableMessageActions messageActions, MessageContext? messageContext, ErrorContext? errorContext)
     {

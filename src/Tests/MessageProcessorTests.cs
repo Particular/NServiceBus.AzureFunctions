@@ -1,7 +1,7 @@
 namespace NServiceBus.AzureFunctions.Tests;
 
 using Azure.Messaging.ServiceBus;
-using AzureServiceBus.Serverless.TransportWrapper;
+using AzureServiceBus;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -117,6 +117,28 @@ public class MessageProcessorTests
     }
 
     [Test]
+    public async Task Should_dlq_message_if_requested()
+    {
+        var result = await ProcessMessage(
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (errorContext, _) =>
+            {
+                errorContext.TransportTransaction.Set(new DeadLetterRequest("reason", "description", new Dictionary<string, object> { { "MyProperty", "MyValue" } }));
+                return Task.FromResult(ErrorHandleResult.Handled);
+            });
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsFalse(result.MessageActions.WasAbandoned, "Message should not be abandoned");
+            Assert.IsTrue(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
+            Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, "reason");
+            Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription, "description");
+            Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterProperties?["MyProperty"], "MyValue");
+        }
+    }
+
+    [Test]
     public async Task Should_expose_the_service_bus_message_on_both_message_and_error_context()
     {
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(messageId: Guid.NewGuid().ToString());
@@ -203,7 +225,8 @@ public class MessageProcessorTests
     {
         public bool WasCompleted { get; private set; }
         public bool WasAbandoned { get; private set; }
-        public bool WasDeadLettered { get; private set; }
+        public bool WasDeadLettered => DeadLetterDetails is not null;
+        public DeadLetterDetails? DeadLetterDetails { get; private set; }
 
         public override Task CompleteMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken = new CancellationToken())
         {
@@ -219,10 +242,12 @@ public class MessageProcessorTests
 
         public override Task DeadLetterMessageAsync(ServiceBusReceivedMessage message, Dictionary<string, object>? propertiesToModify = null, string? deadLetterReason = null, string? deadLetterErrorDescription = null, CancellationToken cancellationToken = new CancellationToken())
         {
-            WasDeadLettered = true;
+            DeadLetterDetails = new(deadLetterReason, deadLetterErrorDescription, propertiesToModify);
             return Task.CompletedTask;
         }
     }
+
+    record DeadLetterDetails(string? DeadLetterReason, string? DeadLetterErrorDescription, Dictionary<string, object>? DeadLetterProperties);
 
     class FakeBaseReceiver : IMessageReceiver
     {

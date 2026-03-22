@@ -1,4 +1,4 @@
-namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus.AzureFunctions.AzureServiceBus;
 
 using System;
 using System.Threading;
@@ -65,6 +65,12 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             var errorContext = CreateErrorContext(message, exception, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
             var errorHandleResult = await onError!.Invoke(errorContext, CancellationToken.None).ConfigureAwait(false);
+
+            if (errorContext.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
+            {
+                await messageActions.DeadLetterMessageAsync(message, deadLetterRequest.PropertiesToModify, deadLetterRequest.DeadLetterReason, deadLetterRequest.DeadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
 
             if (errorHandleResult == ErrorHandleResult.Handled)
             {

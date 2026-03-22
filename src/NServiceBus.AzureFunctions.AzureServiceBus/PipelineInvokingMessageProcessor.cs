@@ -38,7 +38,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
 
         var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
 
-        //TODO: Should we get the headers up here as well
+        //TODO: Should we get the headers up here as well, one thing to note is that since onMessage can mutate the headers we need to clone them when calling on error
 
         var contextBag = new ContextBag();
 

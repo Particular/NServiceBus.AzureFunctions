@@ -234,20 +234,12 @@ public class MessageProcessorTests
         return new ProcessingResult(messageActions, capturedMessageContext, capturedErrorContext, testLogger.Logs);
     }
 
-    class ProcessingResult
+    class ProcessingResult(TestableMessageActions messageActions, MessageContext? messageContext, ErrorContext? errorContext, IReadOnlyList<LogEntry> logs)
     {
-        public ProcessingResult(TestableMessageActions messageActions, MessageContext? messageContext, ErrorContext? errorContext, IReadOnlyList<LogEntry> logs)
-        {
-            MessageActions = messageActions;
-            MessageContext = messageContext;
-            ErrorContext = errorContext;
-            Logs = logs;
-        }
-
-        public TestableMessageActions MessageActions { get; }
-        public MessageContext? MessageContext { get; }
-        public ErrorContext? ErrorContext { get; }
-        public IReadOnlyList<LogEntry> Logs { get; }
+        public TestableMessageActions MessageActions { get; } = messageActions;
+        public MessageContext? MessageContext { get; } = messageContext;
+        public ErrorContext? ErrorContext { get; } = errorContext;
+        public IReadOnlyList<LogEntry> Logs { get; } = logs;
         public bool OnMessageWasCalled => MessageContext != null;
         public bool OnErrorWasCalled => ErrorContext != null;
     }
@@ -264,7 +256,6 @@ public class MessageProcessorTests
     }
 
     record LogEntry(LogLevel LogLevel, string Message, Exception? Exception);
-
 
     class TestableMessageActions : ServiceBusMessageActions
     {

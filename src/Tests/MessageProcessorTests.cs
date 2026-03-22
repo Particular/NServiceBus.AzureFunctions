@@ -159,9 +159,7 @@ public class MessageProcessorTests
         ServiceBusReceivedMessage? message = null,
         Func<MessageContext, CancellationToken, Task>? onMessage = null,
         Func<ErrorContext, CancellationToken, Task<ErrorHandleResult>>? onError = null,
-#pragma warning disable PS0004
         CancellationToken cancellationToken = default)
-#pragma warning restore PS0004
     {
         message ??= ServiceBusModelFactory.ServiceBusReceivedMessage(messageId: Guid.NewGuid().ToString());
         onMessage ??= (_, _) => Task.CompletedTask;

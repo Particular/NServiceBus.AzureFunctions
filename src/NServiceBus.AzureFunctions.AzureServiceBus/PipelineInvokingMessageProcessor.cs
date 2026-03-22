@@ -86,6 +86,8 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             if (errorContext.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
             {
                 await messageActions.DeadLetterMessageAsync(message, deadLetterRequest.PropertiesToModify, deadLetterRequest.DeadLetterReason, deadLetterRequest.DeadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+                logger.LogError($"Message {nativeMessageId} was dead lettered due to {deadLetterRequest.DeadLetterReason}: {deadLetterRequest.DeadLetterErrorDescription}");
                 return;
             }
 

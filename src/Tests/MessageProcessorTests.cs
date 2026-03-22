@@ -117,6 +117,23 @@ public class MessageProcessorTests
     }
 
     [Test]
+    public async Task Should_abandon_when_on_error_throws()
+    {
+        var result = await ProcessMessage(
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (_, _) => throw new Exception("simulated onError failure"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsTrue(result.OnMessageWasCalled, "OnMessage should be called");
+            Assert.IsTrue(result.OnErrorWasCalled, "OnError should be called");
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned if onError throws");
+            Assert.IsFalse(result.MessageActions.WasDeadLettered, "Message should not be dead lettered");
+        }
+    }
+
+    [Test]
     public async Task Should_dlq_message_if_requested()
     {
         var result = await ProcessMessage(

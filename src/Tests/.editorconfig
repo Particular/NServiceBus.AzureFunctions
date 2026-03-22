@@ -5,3 +5,6 @@ dotnet_diagnostic.CA2007.severity = none
 
 # Add a CancellationToken - not a library
 dotnet_diagnostic.PS0018.severity = none
+
+# Make the CancellationToken required - not a library
+dotnet_diagnostic.PS0004.severity = none

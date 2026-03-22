@@ -77,7 +77,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             }
             catch (Exception ex)
             {
-                //TODO: The transport has a circuit breaker for repeated failures, should we go with something similar?
+                //TODO: The transport has a circuit breaker for repeated failures, should we go with something similar? we could do a LRU cache and then dead letter after X retries
                 await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
                 logger.LogWarning(ex, "Failed to execute onError");
                 return;

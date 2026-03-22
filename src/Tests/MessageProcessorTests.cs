@@ -3,8 +3,7 @@ namespace NServiceBus.AzureFunctions.Tests;
 using Azure.Messaging.ServiceBus;
 using AzureServiceBus;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 using Transport;
 using NServiceBus;
@@ -64,7 +63,8 @@ public class MessageProcessorTests
             Assert.False(result.OnMessageWasCalled, "OnMessage should not be called");
             Assert.False(result.OnErrorWasCalled, "OnError should not be called");
             Assert.True(result.MessageActions.WasDeadLettered, "Missing native message id should result in message being dead lettered");
-            Assert.That(result.Logs, Has.Some.Matches<LogEntry>(l => l.LogLevel == LogLevel.Error && l.Message.Contains("MessageId is required")), "Should log error for missing MessageId");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Error, "Invalid native message id should be logged as error");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains("MessageId is required"), "Should log error for missing MessageId");
         }
     }
 
@@ -128,7 +128,8 @@ public class MessageProcessorTests
             Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
             Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned if onError throws");
             Assert.IsFalse(result.MessageActions.WasDeadLettered, "Message should not be dead lettered");
-            Assert.That(result.Logs, Has.Some.Matches<LogEntry>(l => l.LogLevel == LogLevel.Warning && l.Message.Contains("Failed to execute onError")), "Should log warning when onError throws");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Warning, "Failure in onError should be logged as warning");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains("Failed to execute onError"), "Should log warning when onError throws");
         }
     }
 
@@ -154,8 +155,9 @@ public class MessageProcessorTests
             Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, expectedDlqReason);
             Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription, expectedDlqDescription);
             Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterProperties?["MyProperty"], "MyValue");
-            Assert.That(result.Logs, Has.Some.Matches<LogEntry>(l => l.LogLevel == LogLevel.Error && l.Message.Contains(expectedDlqReason)), "Should log dlq reason");
-            Assert.That(result.Logs, Has.Some.Matches<LogEntry>(l => l.LogLevel == LogLevel.Error && l.Message.Contains(expectedDlqDescription)), "Should log dlq description");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Error, "DLQ requests should be logged as error");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains(expectedDlqReason), "Should log DLQ reason");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains(expectedDlqDescription), "Should log DLQ description");
         }
     }
 
@@ -210,8 +212,8 @@ public class MessageProcessorTests
         onMessage ??= (_, _) => Task.CompletedTask;
         onError ??= (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired);
 
-        var testLogger = new TestLogger<PipelineInvokingMessageProcessor>();
-        var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver(), testLogger);
+        var fakeLogger = new FakeLogger<PipelineInvokingMessageProcessor>();
+        var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver(), fakeLogger);
         MessageContext? capturedMessageContext = null;
         ErrorContext? capturedErrorContext = null;
         var messageActions = new TestableMessageActions();
@@ -231,38 +233,21 @@ public class MessageProcessorTests
 
         Assert.DoesNotThrowAsync(async () => await processor.Process(message, messageActions, cancellationToken));
 
-        return new ProcessingResult(messageActions, capturedMessageContext, capturedErrorContext, testLogger.Logs);
+        return new ProcessingResult(messageActions, capturedMessageContext, capturedErrorContext, fakeLogger.Collector);
     }
 
-    class ProcessingResult(TestableMessageActions messageActions, MessageContext? messageContext, ErrorContext? errorContext, IReadOnlyList<LogEntry> logs)
+    record ProcessingResult(TestableMessageActions MessageActions, MessageContext? MessageContext, ErrorContext? ErrorContext, FakeLogCollector LogCollector)
     {
-        public TestableMessageActions MessageActions { get; } = messageActions;
-        public MessageContext? MessageContext { get; } = messageContext;
-        public ErrorContext? ErrorContext { get; } = errorContext;
-        public IReadOnlyList<LogEntry> Logs { get; } = logs;
         public bool OnMessageWasCalled => MessageContext != null;
         public bool OnErrorWasCalled => ErrorContext != null;
     }
-
-    class TestLogger<T> : ILogger<T>
-    {
-        public List<LogEntry> Logs { get; } = [];
-
-        public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullLogger.Instance.BeginScope(state);
-
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => Logs.Add(new LogEntry(logLevel, formatter(state, exception), exception));
-    }
-
-    record LogEntry(LogLevel LogLevel, string Message, Exception? Exception);
 
     class TestableMessageActions : ServiceBusMessageActions
     {
         public bool WasCompleted { get; private set; }
         public bool WasAbandoned { get; private set; }
         public bool WasDeadLettered => DeadLetterDetails is not null;
-        public DeadLetterDetails? DeadLetterDetails { get; private set; }
+        public DeadLetterCallDetails? DeadLetterDetails { get; private set; }
 
         public override Task CompleteMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken = new CancellationToken())
         {
@@ -281,9 +266,9 @@ public class MessageProcessorTests
             DeadLetterDetails = new(deadLetterReason, deadLetterErrorDescription, propertiesToModify);
             return Task.CompletedTask;
         }
-    }
 
-    record DeadLetterDetails(string? DeadLetterReason, string? DeadLetterErrorDescription, Dictionary<string, object>? DeadLetterProperties);
+        public record DeadLetterCallDetails(string? DeadLetterReason, string? DeadLetterErrorDescription, Dictionary<string, object>? DeadLetterProperties);
+    }
 
     class FakeBaseReceiver : IMessageReceiver
     {

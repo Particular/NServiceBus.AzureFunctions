@@ -9,6 +9,8 @@ using Azure.Core;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
 using NServiceBus.Transport;
 
@@ -53,7 +55,7 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
             .ConfigureAwait(false);
 
         var serverlessTransportInfrastructure = new ServerlessTransportInfrastructure(baseTransportInfrastructure,
-            static receiver => new PipelineInvokingMessageProcessor(receiver));
+            receiver => new PipelineInvokingMessageProcessor(receiver, hostSettings.ServiceProvider.GetRequiredService<ILogger<PipelineInvokingMessageProcessor>>()));
 
         var isSendOnly = hostSettings.CoreSettings.GetOrDefault<bool>(SendOnlyConfigKey);
 

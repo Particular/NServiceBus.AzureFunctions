@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.UseWhen<ExceptionTrackingMiddleware>(_ => true);
 
-builder.Logging.AddSimpleConsole();
+builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true);
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.Services.AddSingleton<GlobalTestStorage>();

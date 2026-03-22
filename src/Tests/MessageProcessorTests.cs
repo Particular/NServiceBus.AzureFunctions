@@ -149,9 +149,7 @@ public class MessageProcessorTests
     }
 
     //TODO: Tests to add
-    // ShouldSupportLegacyWcfBody ?
-    // ShouldDefaultMessageIdToNewGuid
-    // ShouldDLQMessageIfBodyOrHeaderExtractionFails?
+    // ShouldDLQHeaderExtractionFails?
     // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError
     // Should_expose_a_unique_transport_transaction_for_onmessage_and_onerror?
 

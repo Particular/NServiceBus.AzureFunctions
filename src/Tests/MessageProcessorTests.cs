@@ -20,13 +20,15 @@ public class MessageProcessorTests
         var expectedHeaderValue = "header-value";
         var expectedReplyTo = "reply-queue";
         var expectedCorrelationId = "correlation-abc";
+        var expectedContentType = "some/content-type";
 
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
             messageId: expectedMessageId,
             properties: new Dictionary<string, object> { { expectedHeaderKey, expectedHeaderValue } },
             body: new BinaryData(expectedBody),
             replyTo: expectedReplyTo,
-            correlationId: expectedCorrelationId
+            correlationId: expectedCorrelationId,
+            contentType: expectedContentType
         );
 
         var result = await ProcessMessage(
@@ -42,10 +44,12 @@ public class MessageProcessorTests
             Assert.IsTrue(messageContext.Headers.ContainsKey(expectedHeaderKey), "MessageContext should expose the custom header");
             Assert.AreEqual(expectedHeaderValue, messageContext.Headers[expectedHeaderKey], "MessageContext should expose the correct header value");
             Assert.That(messageContext.Body.ToArray(), Is.EqualTo(expectedBody).AsCollection, "MessageContext should expose the correct message body");
-            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.CorrelationId), "Native CorrelationId should be upconverted to a the CorrelationId header");
+            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.CorrelationId), "Native CorrelationId should be upconverted to the CorrelationId header");
             Assert.AreEqual(expectedCorrelationId, messageContext.Headers[Headers.CorrelationId], "Headers should expose the correct CorrelationId value");
-            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.ReplyToAddress), "Native ReplyTo should be upconverted to a the ReplyToAddress header");
+            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.ReplyToAddress), "Native ReplyTo should be upconverted to the ReplyToAddress header");
             Assert.AreEqual(expectedReplyTo, messageContext.Headers[Headers.ReplyToAddress], "Headers should expose the correct ReplyTo header value");
+            Assert.IsTrue(messageContext.Headers.ContainsKey(Headers.ContentType), "Native ContentType should be upconverted to the ContentType header");
+            Assert.AreEqual(expectedContentType, messageContext.Headers[Headers.ContentType], "Headers should expose the correct ContentType header value");
         }
     }
 

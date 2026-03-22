@@ -104,6 +104,11 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             headers[Headers.CorrelationId] = message.CorrelationId;
         }
 
+        if (!string.IsNullOrWhiteSpace(message.ContentType))
+        {
+            headers[Headers.ContentType] = message.ContentType;
+        }
+
         return headers;
     }
 

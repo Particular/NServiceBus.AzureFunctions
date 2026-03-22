@@ -1,4 +1,3 @@
-using System.Text.Json;
 using IntegrationTest;
 using IntegrationTest.Shared;
 using IntegrationTest.Shared.Infrastructure;
@@ -10,13 +9,8 @@ using Microsoft.Extensions.Logging;
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.UseWhen<ExceptionTrackingMiddleware>(_ => true);
 
-builder.Logging.ClearProviders();
-builder.Logging.AddJsonConsole(o =>
-{
-    o.IncludeScopes = true;
-    o.JsonWriterOptions = new JsonWriterOptions { Indented = true };
-});
-builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Logging.AddSimpleConsole(options => options.IncludeScopes = true);
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.Services.AddSingleton<GlobalTestStorage>();
 builder.Services.AddSingleton(new MyComponent("global"));

@@ -11,7 +11,7 @@ public partial class SalesEndpoint
 {
     [Function("Sales")]
     public partial Task Sales(
-        [ServiceBusTrigger("sales", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = true)]
+        [ServiceBusTrigger("sales", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = false)]
         ServiceBusReceivedMessage message,
         ServiceBusMessageActions messageActions,
         FunctionContext functionContext,

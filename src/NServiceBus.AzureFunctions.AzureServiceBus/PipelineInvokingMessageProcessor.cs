@@ -1,16 +1,16 @@
-namespace NServiceBus.AzureFunctions.AzureServiceBus.Serverless.TransportWrapper;
+namespace NServiceBus.AzureFunctions.AzureServiceBus;
 
 using System;
-using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using NServiceBus.Extensibility;
 using NServiceBus.Transport;
 using NServiceBus.Transport.AzureServiceBus;
 
-class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) : IMessageReceiver
+class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, ILogger<PipelineInvokingMessageProcessor> logger) : IMessageReceiver
 {
     public Task Initialize(PushRuntimeSettings limitations, OnMessage onMessage, OnError onError,
         CancellationToken cancellationToken = default)
@@ -23,59 +23,83 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             cancellationToken) ?? Task.CompletedTask;
     }
 
-    public async Task Process(ServiceBusReceivedMessage message, CancellationToken cancellationToken = default)
+    public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        var messageId = message.MessageId ?? Guid.NewGuid().ToString("N");
-        var body = GetBody(message);
+        var nativeMessageId = message.MessageId;
+        if (string.IsNullOrEmpty(nativeMessageId))
+        {
+            const string deadLetterErrorDescription = "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.";
+
+            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: deadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+            logger.LogError(deadLetterErrorDescription);
+            return;
+        }
+
+        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
+
+        //TODO: Should we get the headers up here as well, one thing to note is that since onMessage can mutate the headers we need to clone them when calling on error
+
         var contextBag = new ContextBag();
+
         // Azure Service Bus transport also makes the incoming message available. We can do the same narrow the gap
         contextBag.Set(message);
 
         try
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var messageContext = CreateMessageContext(message, messageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            var messageContext = CreateMessageContext(message, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
 
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
             azureServiceBusTransportTransaction.Commit();
+            await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            throw;
+            //TODO: Should we log?
+            await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var errorContext = CreateErrorContext(message, exception, messageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            var errorContext = CreateErrorContext(message, exception, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            ErrorHandleResult errorHandleResult;
+            try
+            {
+                errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                //TODO: Should we log?
+                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex)
+            {
+                //TODO: The transport has a circuit breaker for repeated failures, should we go with something similar? we could do a LRU cache and then dead letter after X retries
+                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                logger.LogWarning(ex, "Failed to execute onError");
+                return;
+            }
 
-            var errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
+            if (errorContext.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
+            {
+                await messageActions.DeadLetterMessageAsync(message, deadLetterRequest.PropertiesToModify, deadLetterRequest.DeadLetterReason, deadLetterRequest.DeadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+                logger.LogError($"User requested {nativeMessageId} to be dead lettered due to {deadLetterRequest.DeadLetterReason}: {deadLetterRequest.DeadLetterErrorDescription}");
+                return;
+            }
 
             if (errorHandleResult == ErrorHandleResult.Handled)
             {
                 azureServiceBusTransportTransaction.Commit();
+                await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
-            throw;
+            await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
-    }
-
-    static BinaryData GetBody(ServiceBusReceivedMessage message)
-    {
-        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
-        var memory = body.ToMemory();
-
-        if (memory.IsEmpty ||
-            !message.ApplicationProperties.TryGetValue(TransportEncodingHeader, out var value) ||
-            !value.Equals("wcf/byte-array"))
-        {
-            return body;
-        }
-
-        using var reader = XmlDictionaryReader.CreateBinaryReader(body.ToStream(), XmlDictionaryReaderQuotas.Max);
-        var bodyBytes = (byte[])Deserializer.ReadObject(reader)!;
-        return new BinaryData(bodyBytes);
     }
 
     ErrorContext CreateErrorContext(ServiceBusReceivedMessage message, Exception exception, string messageId,
@@ -95,8 +119,6 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
             headers[kvp.Key] = kvp.Value?.ToString();
         }
 
-        headers.Remove(TransportEncodingHeader);
-
         if (!string.IsNullOrWhiteSpace(message.ReplyTo))
         {
             headers[Headers.ReplyToAddress] = message.ReplyTo;
@@ -105,6 +127,11 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         if (!string.IsNullOrWhiteSpace(message.CorrelationId))
         {
             headers[Headers.CorrelationId] = message.CorrelationId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(message.ContentType))
+        {
+            headers[Headers.ContentType] = message.ContentType;
         }
 
         return headers;
@@ -123,8 +150,4 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
 
     OnMessage? onMessage;
     OnError? onError;
-
-    const string TransportEncodingHeader = "NServiceBus.Transport.Encoding";
-
-    static readonly DataContractSerializer Deserializer = new(typeof(byte[]));
 }

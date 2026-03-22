@@ -10,7 +10,7 @@ static class TestSources
             [NServiceBusFunction]
             [Function("ProcessOrder")]
             public partial Task Run(
-                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus" , AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
                 ServiceBusMessageActions messageActions,
                 FunctionContext context,
                 CancellationToken cancellationToken);

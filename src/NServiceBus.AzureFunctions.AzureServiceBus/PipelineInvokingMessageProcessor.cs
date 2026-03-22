@@ -57,14 +57,31 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            //TODO: Should we log?
             await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
             var errorContext = CreateErrorContext(message, exception, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
-
-            var errorHandleResult = await onError!.Invoke(errorContext, CancellationToken.None).ConfigureAwait(false);
+            ErrorHandleResult errorHandleResult;
+            try
+            {
+                errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                //TODO: Should we log?
+                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex)
+            {
+                //TODO: The transport has a circuit breaker for repeated failures, should we go with something similar?
+                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                logger.LogWarning(ex, "Failed to execute onError");
+                return;
+            }
 
             if (errorContext.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
             {

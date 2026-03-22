@@ -3,6 +3,7 @@ namespace NServiceBus.AzureFunctions.Tests;
 using Azure.Messaging.ServiceBus;
 using AzureServiceBus.Serverless.TransportWrapper;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using Transport;
 using NServiceBus;
@@ -166,7 +167,7 @@ public class MessageProcessorTests
         onMessage ??= (_, _) => Task.CompletedTask;
         onError ??= (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired);
 
-        var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver());
+        var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver(), NullLogger<PipelineInvokingMessageProcessor>.Instance);
         MessageContext? capturedMessageContext = null;
         ErrorContext? capturedErrorContext = null;
         var messageActions = new TestableMessageActions();

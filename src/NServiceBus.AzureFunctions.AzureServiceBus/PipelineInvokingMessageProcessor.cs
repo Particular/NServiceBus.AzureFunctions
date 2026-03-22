@@ -5,11 +5,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 using NServiceBus.Extensibility;
 using NServiceBus.Transport;
 using NServiceBus.Transport.AzureServiceBus;
 
-class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) : IMessageReceiver
+class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, ILogger<PipelineInvokingMessageProcessor> logger) : IMessageReceiver
 {
     public Task Initialize(PushRuntimeSettings limitations, OnMessage onMessage, OnError onError,
         CancellationToken cancellationToken = default)
@@ -27,7 +28,11 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver) :
         var nativeMessageId = message.MessageId;
         if (string.IsNullOrEmpty(nativeMessageId))
         {
-            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.", cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            const string deadLetterErrorDescription = "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.";
+
+            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: deadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+            logger.LogError(deadLetterErrorDescription);
             return;
         }
 

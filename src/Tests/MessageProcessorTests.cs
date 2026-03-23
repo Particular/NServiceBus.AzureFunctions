@@ -194,6 +194,32 @@ public class MessageProcessorTests
             Assert.IsFalse(result.OnErrorWasCalled, "OnError should not be called");
             Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
             Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Cancellation should be logged as debug");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains("Message processing canceled"), "Should log debug when processing canceled");
+            Assert.IsInstanceOf<OperationCanceledException>(result.LogCollector.LatestRecord.Exception);
+        }
+    }
+
+    [Test]
+    public async Task Should_abandon_on_error_when_token_is_cancelled()
+    {
+        var result = await ProcessMessage(
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (_, ct) =>
+            {
+                ct.ThrowIfCancellationRequested();
+                return Task.FromResult(ErrorHandleResult.Handled);
+            },
+            cancellationToken: new CancellationToken(true)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Cancellation should be logged as debug");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains("OnError canceled"), "Should log debug when on error canceled");
+            Assert.IsInstanceOf<OperationCanceledException>(result.LogCollector.LatestRecord.Exception);
         }
     }
 

@@ -55,9 +55,9 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             azureServiceBusTransportTransaction.Commit();
             await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
-            //TODO: Should we log?
+            logger.LogDebug(ex, "Message processing canceled.");
             await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -69,9 +69,9 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             {
                 errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
-                //TODO: Should we log?
+                logger.LogDebug(ex, "OnError canceled.");
                 await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
                 return;
             }

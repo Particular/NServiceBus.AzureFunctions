@@ -25,7 +25,7 @@ public partial class SalesEndpoint
         configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
         configuration.AddHandler<Handlers.SubmitOrderHandler>();
 
-        // Demo using the dead letter queue for failures
+        // Use the dead letter queue for failures
         configuration.Recoverability().CustomPolicy((_, context) => new DeadLetterMessage(context.Exception));
     }
 }

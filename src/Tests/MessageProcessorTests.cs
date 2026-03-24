@@ -223,6 +223,36 @@ public class MessageProcessorTests
         }
     }
 
+    [Test]
+    public async Task Should_not_propagate_header_mutations_from_on_message_to_on_error()
+    {
+        var originalHeaderKey = "original-header";
+        var originalHeaderValue = "original-value";
+        var addedHeaderKey = "added-header";
+
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            messageId: Guid.NewGuid().ToString(),
+            properties: new Dictionary<string, object> { { originalHeaderKey, originalHeaderValue } }
+        );
+
+        var result = await ProcessMessage(
+            message: message,
+            onMessage: (msgContext, _) =>
+            {
+                msgContext.Headers[addedHeaderKey] = "some-value";
+                msgContext.Headers[originalHeaderKey] = "some-other-value";
+                throw new Exception("force error");
+            }
+        );
+
+        var headers = result.ErrorContext!.Message.Headers;
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsTrue(headers.ContainsKey(originalHeaderKey), "Original header should still exist in onError");
+            Assert.AreEqual(originalHeaderValue, headers[originalHeaderKey], "Original header value should be preserved in onError");
+            Assert.IsFalse(headers.ContainsKey(addedHeaderKey), "Added header should NOT be present in onError");
+        }
+    }
     //TODO: Tests to add
     // ShouldDLQHeaderExtractionFails?
     // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError

@@ -62,9 +62,7 @@ public class MessageProcessorTests
         {
             Assert.False(result.OnMessageWasCalled, "OnMessage should not be called");
             Assert.False(result.OnErrorWasCalled, "OnError should not be called");
-            Assert.True(result.MessageActions.WasDeadLettered, "Missing native message id should result in message being dead lettered");
-            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Error, "Invalid native message id should be logged as error");
-            Assert.True(result.LogCollector.LatestRecord.Message.Contains("MessageId is required"), "Should log error for missing MessageId");
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
         }
     }
 
@@ -115,21 +113,48 @@ public class MessageProcessorTests
     }
 
     [Test]
-    public async Task Should_abandon_when_on_error_throws()
+    public async Task Should_abandon_when_on_error_throws_transient_service_bus_exception()
     {
         var result = await ProcessMessage(
             onMessage: (_, _) => throw new Exception("simulated exception"),
-            onError: (_, _) => throw new Exception("simulated onError failure"));
+            onError: (_, _) => throw new ServiceBusException("simulated transient exception", ServiceBusFailureReason.ServiceBusy)); //ServiceBusy is transient
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.IsTrue(result.OnMessageWasCalled, "OnMessage should be called");
-            Assert.IsTrue(result.OnErrorWasCalled, "OnError should be called");
             Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
             Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned if onError throws");
             Assert.IsFalse(result.MessageActions.WasDeadLettered, "Message should not be dead lettered");
-            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Warning, "Failure in onError should be logged as warning");
-            Assert.True(result.LogCollector.LatestRecord.Message.Contains("Failed to execute onError"), "Should log warning when onError throws");
+        }
+    }
+
+    [Test]
+    public async Task Should_abandon_when_on_error_throws_lock_lost_service_bus_exception()
+    {
+        var result = await ProcessMessage(
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (_, _) => throw new ServiceBusException("simulated lock lost exception", ServiceBusFailureReason.MessageLockLost));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsTrue(result.MessageActions.WasAbandoned, "Message should be abandoned if onError throws");
+            Assert.IsFalse(result.MessageActions.WasDeadLettered, "Message should not be dead lettered");
+        }
+    }
+
+    [Test]
+    public async Task Should_dlq_when_on_error_throws_non_transient_exception()
+    {
+        var exception = new Exception("simulated exception in on error");
+        var result = await ProcessMessage(
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (_, _) => throw exception);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
+            Assert.IsFalse(result.MessageActions.WasAbandoned, "Message should not be abandoned if onError throws");
+            AssertExceptionWasDeadLettered(result, exception);
         }
     }
 
@@ -255,20 +280,28 @@ public class MessageProcessorTests
     }
 
     [Test]
-    public async Task Should_deadletter_if_header_extraction_fails()
+    public async Task Should_dead_letter_if_header_extraction_fails()
     {
-        var result = await ProcessMessage(headerExtractor: _ => throw new Exception("Simulated header extraction failure"));
+        var exception = new Exception("simulated exception");
+        var result = await ProcessMessage(headerExtractor: _ => throw exception);
 
         using (Assert.EnterMultipleScope())
         {
             Assert.False(result.OnMessageWasCalled, "OnMessage should not be called if header extraction fails");
             Assert.False(result.OnErrorWasCalled, "OnError should not be called if header extraction fails");
-            Assert.True(result.MessageActions.WasDeadLettered, "Message should be deadlettered if header extraction fails");
-            Assert.True(result.MessageActions.DeadLetterDetails?.DeadLetterReason?.Contains("Failed to extract headers"));
-            Assert.True(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription?.Contains("Simulated header extraction failure"));
-            Assert.AreEqual(Microsoft.Extensions.Logging.LogLevel.Error, result.LogCollector.LatestRecord.Level, "Header extraction failure should be logged as error");
-            Assert.True(result.LogCollector.LatestRecord.Message.Contains("Failed to extract headers"), "Should log header extraction failure");
+            Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
         }
+    }
+
+    void AssertExceptionWasDeadLettered(ProcessingResult result, Exception exception)
+    {
+        Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
+
+        // Make sure we follow microsoft guidance - https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues#application-level-dead-lettering
+        Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, exception.GetType().FullName);
+        Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription, exception.StackTrace);
+        Assert.AreEqual(Microsoft.Extensions.Logging.LogLevel.Error, result.LogCollector.LatestRecord.Level, "Dead lettering be logged as error");
+        Assert.AreEqual(result.LogCollector.LatestRecord.Exception, exception);
     }
 
     async Task<ProcessingResult> ProcessMessage(

@@ -36,31 +36,17 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        var nativeMessageId = message.MessageId;
-        if (string.IsNullOrEmpty(nativeMessageId))
-        {
-            const string deadLetterErrorDescription = "Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.";
-
-            await messageActions.DeadLetterMessageAsync(message, deadLetterReason: "MessageId not set on message", deadLetterErrorDescription: deadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
-
-            logger.LogError(deadLetterErrorDescription);
-            return;
-        }
-
+        string nativeMessageId;
         Dictionary<string, string?> headers;
+
         try
         {
+            nativeMessageId = GetNativeMessageId(message);
             headers = extractHeaders(message);
         }
         catch (Exception ex)
         {
-            const string deadLetterReason = "Failed to extract headers from message.";
-
-            await messageActions.DeadLetterMessageAsync(message,
-                deadLetterReason: deadLetterReason,
-                deadLetterErrorDescription: ex.ToString(), cancellationToken: CancellationToken.None).ConfigureAwait(false);
-
-            logger.LogError(deadLetterReason);
+            await DeadLetterMessage(messageActions, message, ex, CancellationToken.None).ConfigureAwait(false);
             return;
         }
 
@@ -103,11 +89,15 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
                 return;
             }
+            catch (ServiceBusException ex) when (ex.IsTransient || ex.Reason == ServiceBusFailureReason.MessageLockLost)
+            {
+                logger.LogWarning(ex, "OnError failed due to transient exception.");
+                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
             catch (Exception ex)
             {
-                //TODO: The transport has a circuit breaker for repeated failures, should we go with something similar? we could do a LRU cache and then dead letter after X retries
-                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
-                logger.LogWarning(ex, "Failed to execute onError");
+                await DeadLetterMessage(messageActions, message, ex, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
@@ -155,6 +145,25 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
 
         return headers;
+    }
+
+    Task DeadLetterMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, Exception exception, CancellationToken cancellationToken)
+    {
+        logger.LogError(exception, "Message dead lettered due to exception");
+
+        return messageActions.DeadLetterMessageAsync(message,
+            deadLetterReason: exception.GetType().FullName,
+            deadLetterErrorDescription: exception.StackTrace, cancellationToken: cancellationToken);
+    }
+
+    static string GetNativeMessageId(ServiceBusReceivedMessage message)
+    {
+        if (string.IsNullOrEmpty(message.MessageId))
+        {
+            throw new Exception("Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.");
+        }
+
+        return message.MessageId;
     }
 
     public Task StartReceive(CancellationToken cancellationToken = default) => Task.CompletedTask;

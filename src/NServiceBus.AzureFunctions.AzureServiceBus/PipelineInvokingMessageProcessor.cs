@@ -91,10 +91,10 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (Exception exception)
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var errorContext = new ErrorContext(exception, headers, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
             ErrorHandleResult errorHandleResult;
             try
             {
+                var errorContext = new ErrorContext(exception, headers, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
                 errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
@@ -111,7 +111,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 return;
             }
 
-            if (errorContext.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
+            if (azureServiceBusTransportTransaction.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
             {
                 await messageActions.DeadLetterMessageAsync(message, deadLetterRequest.PropertiesToModify, deadLetterRequest.DeadLetterReason, deadLetterRequest.DeadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
 

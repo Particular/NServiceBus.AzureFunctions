@@ -254,13 +254,28 @@ public class MessageProcessorTests
         }
     }
 
-    //TODO: Tests to add
-    // ShouldDLQHeaderExtractionFails?
+    [Test]
+    public async Task Should_deadletter_if_header_extraction_fails()
+    {
+        var result = await ProcessMessage(headerExtractor: _ => throw new Exception("Simulated header extraction failure"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.False(result.OnMessageWasCalled, "OnMessage should not be called if header extraction fails");
+            Assert.False(result.OnErrorWasCalled, "OnError should not be called if header extraction fails");
+            Assert.True(result.MessageActions.WasDeadLettered, "Message should be deadlettered if header extraction fails");
+            Assert.True(result.MessageActions.DeadLetterDetails?.DeadLetterReason?.Contains("Failed to extract headers"));
+            Assert.True(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription?.Contains("Simulated header extraction failure"));
+            Assert.AreEqual(Microsoft.Extensions.Logging.LogLevel.Error, result.LogCollector.LatestRecord.Level, "Header extraction failure should be logged as error");
+            Assert.True(result.LogCollector.LatestRecord.Message.Contains("Failed to extract headers"), "Should log header extraction failure");
+        }
+    }
 
     async Task<ProcessingResult> ProcessMessage(
         ServiceBusReceivedMessage? message = null,
         Func<MessageContext, CancellationToken, Task>? onMessage = null,
         Func<ErrorContext, CancellationToken, Task<ErrorHandleResult>>? onError = null,
+        Func<ServiceBusReceivedMessage, Dictionary<string, string?>>? headerExtractor = null,
         CancellationToken cancellationToken = default)
     {
         message ??= ServiceBusModelFactory.ServiceBusReceivedMessage(messageId: Guid.NewGuid().ToString());
@@ -268,7 +283,7 @@ public class MessageProcessorTests
         onError ??= (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired);
 
         var fakeLogger = new FakeLogger<PipelineInvokingMessageProcessor>();
-        var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver(), fakeLogger);
+        var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver(), fakeLogger, headerExtractor);
         MessageContext? capturedMessageContext = null;
         ErrorContext? capturedErrorContext = null;
         var messageActions = new TestableMessageActions();

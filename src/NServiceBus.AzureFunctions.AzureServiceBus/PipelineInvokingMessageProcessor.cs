@@ -10,13 +10,24 @@ using NServiceBus.Extensibility;
 using NServiceBus.Transport;
 using NServiceBus.Transport.AzureServiceBus;
 
-class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, ILogger<PipelineInvokingMessageProcessor> logger) : IMessageReceiver
+class PipelineInvokingMessageProcessor : IMessageReceiver
 {
+    public PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver,
+        ILogger<PipelineInvokingMessageProcessor> logger,
+        Func<ServiceBusReceivedMessage, Dictionary<string, string?>>? headerExtractor = null)
+    {
+        this.baseTransportReceiver = baseTransportReceiver;
+        this.logger = logger;
+
+        extractHeaders = headerExtractor ?? GetNServiceBusHeaders;
+    }
+
     public Task Initialize(PushRuntimeSettings limitations, OnMessage onMessage, OnError onError,
         CancellationToken cancellationToken = default)
     {
         this.onMessage = onMessage;
         this.onError = onError;
+
         return baseTransportReceiver.Initialize(limitations,
             (_, __) => Task.CompletedTask,
             (_, __) => Task.FromResult(ErrorHandleResult.Handled),
@@ -36,9 +47,24 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
             return;
         }
 
-        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
+        Dictionary<string, string?> headers;
+        try
+        {
+            headers = extractHeaders(message);
+        }
+        catch (Exception ex)
+        {
+            const string deadLetterReason = "Failed to extract headers from message.";
 
-        //TODO: Should we get the headers up here as well, one thing to note is that since onMessage can mutate the headers we need to clone them when calling on error
+            await messageActions.DeadLetterMessageAsync(message,
+                deadLetterReason: deadLetterReason,
+                deadLetterErrorDescription: ex.ToString(), cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+            logger.LogError(deadLetterReason);
+            return;
+        }
+
+        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
 
         var contextBag = new ContextBag();
 
@@ -48,7 +74,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
         try
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var messageContext = CreateMessageContext(message, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            var messageContext = new MessageContext(nativeMessageId, headers, body, azureServiceBusTransportTransaction.TransportTransaction, ReceiveAddress, contextBag);
 
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
@@ -106,11 +132,7 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
         BinaryData body, TransportTransaction transportTransaction, ContextBag contextBag) =>
         new(exception, GetNServiceBusHeaders(message), messageId, body, transportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
 
-    MessageContext CreateMessageContext(ServiceBusReceivedMessage message, string messageId, BinaryData body,
-        TransportTransaction transportTransaction, ContextBag contextBag) =>
-        new(messageId, GetNServiceBusHeaders(message), body, transportTransaction, ReceiveAddress, contextBag);
-
-    static Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message)
+    Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message)
     {
         var headers = new Dictionary<string, string?>(message.ApplicationProperties.Count);
 
@@ -150,4 +172,8 @@ class PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver, I
 
     OnMessage? onMessage;
     OnError? onError;
+
+    readonly IMessageReceiver baseTransportReceiver;
+    readonly ILogger<PipelineInvokingMessageProcessor> logger;
+    readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders;
 }

@@ -4,6 +4,7 @@ using Azure.Messaging.ServiceBus;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
+using NServiceBus.AzureFunctions.AzureServiceBus;
 
 // Cleanest pattern for single-function endpoints
 [NServiceBusFunction]
@@ -23,5 +24,8 @@ public partial class SalesEndpoint
 
         configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
         configuration.AddHandler<Handlers.SubmitOrderHandler>();
+
+        // Demo using the dead letter queue for failures
+        configuration.Recoverability().CustomPolicy((_, context) => new DeadLetterMessage(context.Exception));
     }
 }

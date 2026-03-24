@@ -298,7 +298,7 @@ public class MessageProcessorTests
         Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
 
         // Make sure we follow microsoft guidance - https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues#application-level-dead-lettering
-        Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, exception.GetType().FullName);
+        Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, $"{exception.GetType().FullName!} - {exception.Message}");
         Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription, exception.StackTrace);
         Assert.AreEqual(Microsoft.Extensions.Logging.LogLevel.Error, result.LogCollector.LatestRecord.Level, "Dead lettering be logged as error");
         Assert.AreEqual(result.LogCollector.LatestRecord.Exception, exception);

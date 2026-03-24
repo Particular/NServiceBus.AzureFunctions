@@ -54,7 +54,6 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
         var contextBag = new ContextBag();
 
-        // Azure Service Bus transport also makes the incoming message available. We can do the same narrow the gap
         contextBag.Set(message);
 
         try
@@ -152,7 +151,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         logger.LogError(exception, "Message dead lettered due to exception");
 
         return messageActions.DeadLetterMessageAsync(message,
-            deadLetterReason: exception.GetType().FullName,
+            deadLetterReason: $"{exception.GetType().FullName} - {exception.Message}",
             deadLetterErrorDescription: exception.StackTrace, cancellationToken: cancellationToken);
     }
 

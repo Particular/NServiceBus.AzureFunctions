@@ -253,10 +253,9 @@ public class MessageProcessorTests
             Assert.IsFalse(headers.ContainsKey(addedHeaderKey), "Added header should NOT be present in onError");
         }
     }
+
     //TODO: Tests to add
     // ShouldDLQHeaderExtractionFails?
-    // ShouldNotAllowHeaderOrBodyMutationsAcrossOnMessageAndOnError
-    // Should_expose_a_unique_transport_transaction_for_onmessage_and_onerror?
 
     async Task<ProcessingResult> ProcessMessage(
         ServiceBusReceivedMessage? message = null,

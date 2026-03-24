@@ -74,7 +74,9 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         try
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var messageContext = new MessageContext(nativeMessageId, headers, body, azureServiceBusTransportTransaction.TransportTransaction, ReceiveAddress, contextBag);
+
+            // we need to clone the headers since the core pipeline might mutate them
+            var messageContext = new MessageContext(nativeMessageId, new Dictionary<string, string?>(headers), body, azureServiceBusTransportTransaction.TransportTransaction, ReceiveAddress, contextBag);
 
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
@@ -89,7 +91,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (Exception exception)
         {
             using var azureServiceBusTransportTransaction = new AzureServiceBusTransportTransaction();
-            var errorContext = CreateErrorContext(message, exception, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, contextBag);
+            var errorContext = new ErrorContext(exception, headers, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
             ErrorHandleResult errorHandleResult;
             try
             {
@@ -127,10 +129,6 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
     }
-
-    ErrorContext CreateErrorContext(ServiceBusReceivedMessage message, Exception exception, string messageId,
-        BinaryData body, TransportTransaction transportTransaction, ContextBag contextBag) =>
-        new(exception, GetNServiceBusHeaders(message), messageId, body, transportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
 
     Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message)
     {

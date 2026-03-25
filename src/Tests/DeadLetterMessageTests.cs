@@ -44,7 +44,6 @@ public class DeadLetterMessageTests
         void SimulateException()
         {
             throw new InvalidOperationException("Test exception");
-            ;
         }
     }
 

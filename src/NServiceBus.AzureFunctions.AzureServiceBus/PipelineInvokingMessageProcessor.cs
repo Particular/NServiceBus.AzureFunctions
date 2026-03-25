@@ -80,6 +80,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             ErrorHandleResult errorHandleResult;
             try
             {
+                // No need to clone the message header here since we do not make use of them after on error has executed
                 var errorContext = new ErrorContext(exception, headers, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
                 errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
             }

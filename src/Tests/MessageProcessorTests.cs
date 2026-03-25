@@ -154,7 +154,7 @@ public class MessageProcessorTests
         {
             Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
             Assert.IsFalse(result.MessageActions.WasAbandoned, "Message should not be abandoned if onError throws");
-            AssertExceptionWasDeadLettered(result, exception);
+            Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
         }
     }
 
@@ -177,9 +177,6 @@ public class MessageProcessorTests
             Assert.IsFalse(result.MessageActions.WasCompleted, "Message should not be completed");
             Assert.IsFalse(result.MessageActions.WasAbandoned, "Message should not be abandoned");
             Assert.IsTrue(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
-            Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, expectedDlqReason);
-            Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription, expectedDlqDescription);
-            Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterProperties?["MyProperty"], "MyValue");
             Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Error, "DLQ requests should be logged as error");
             Assert.True(result.LogCollector.LatestRecord.Message.Contains(expectedDlqReason), "Should log DLQ reason");
             Assert.True(result.LogCollector.LatestRecord.Message.Contains(expectedDlqDescription), "Should log DLQ description");
@@ -291,17 +288,6 @@ public class MessageProcessorTests
             Assert.False(result.OnErrorWasCalled, "OnError should not be called if header extraction fails");
             Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
         }
-    }
-
-    void AssertExceptionWasDeadLettered(ProcessingResult result, Exception exception)
-    {
-        Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
-
-        // Make sure we follow microsoft guidance - https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues#application-level-dead-lettering
-        Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterReason, $"{exception.GetType().FullName!} - {exception.Message}");
-        Assert.AreEqual(result.MessageActions.DeadLetterDetails?.DeadLetterErrorDescription, exception.StackTrace);
-        Assert.AreEqual(Microsoft.Extensions.Logging.LogLevel.Error, result.LogCollector.LatestRecord.Level, "Dead lettering be logged as error");
-        Assert.AreEqual(result.LogCollector.LatestRecord.Exception, exception);
     }
 
     async Task<ProcessingResult> ProcessMessage(

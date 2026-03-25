@@ -38,23 +38,24 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
     {
         string nativeMessageId;
         Dictionary<string, string?> headers;
+        BinaryData body;
+        var contextBag = new ContextBag();
 
         try
         {
             nativeMessageId = GetNativeMessageId(message);
             headers = extractHeaders(message);
+            body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
+
+            contextBag.Set(message);
         }
         catch (Exception ex)
         {
-            await DeadLetterMessage(messageActions, message, ex, CancellationToken.None).ConfigureAwait(false);
+            logger.LogError(ex, "Message dead lettered due to issues with extracting message metadata.");
+
+            await DeadLetterMessage(messageActions, message, new DeadLetterRequest(ex), CancellationToken.None).ConfigureAwait(false);
             return;
         }
-
-        var body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
-
-        var contextBag = new ContextBag();
-
-        contextBag.Set(message);
 
         try
         {
@@ -96,15 +97,18 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             }
             catch (Exception ex)
             {
-                await DeadLetterMessage(messageActions, message, ex, CancellationToken.None).ConfigureAwait(false);
+                logger.LogError(exception, "Message dead lettered due to exception in OnError.");
+
+                await DeadLetterMessage(messageActions, message, new DeadLetterRequest(ex), CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
             if (azureServiceBusTransportTransaction.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
             {
-                await messageActions.DeadLetterMessageAsync(message, deadLetterRequest.PropertiesToModify, deadLetterRequest.DeadLetterReason, deadLetterRequest.DeadLetterErrorDescription, cancellationToken: CancellationToken.None).ConfigureAwait(false);
-
                 logger.LogError($"User requested {nativeMessageId} to be dead lettered due to {deadLetterRequest.DeadLetterReason}: {deadLetterRequest.DeadLetterErrorDescription}");
+
+                await DeadLetterMessage(messageActions, message, deadLetterRequest, CancellationToken.None).ConfigureAwait(false);
+
                 return;
             }
 
@@ -146,14 +150,12 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         return headers;
     }
 
-    Task DeadLetterMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, Exception exception, CancellationToken cancellationToken)
-    {
-        logger.LogError(exception, "Message dead lettered due to exception");
-
-        return messageActions.DeadLetterMessageAsync(message,
-            deadLetterReason: $"{exception.GetType().FullName} - {exception.Message}",
-            deadLetterErrorDescription: exception.StackTrace, cancellationToken: cancellationToken);
-    }
+    Task DeadLetterMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, DeadLetterRequest request, CancellationToken cancellationToken) =>
+        messageActions.DeadLetterMessageAsync(message,
+            request.PropertiesToModify,
+            request.DeadLetterReason,
+            request.DeadLetterErrorDescription,
+            cancellationToken);
 
     static string GetNativeMessageId(ServiceBusReceivedMessage message)
     {

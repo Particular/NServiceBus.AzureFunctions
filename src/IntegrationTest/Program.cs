@@ -16,6 +16,7 @@ builder.Services.AddSingleton<GlobalTestStorage>();
 builder.Services.AddSingleton(new MyComponent("global"));
 
 builder.AddNServiceBusFunctions();
+
 builder.AddSendOnlyNServiceBusEndpoint("client", configuration =>
 {
     configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("client")));

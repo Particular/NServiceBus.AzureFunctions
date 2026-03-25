@@ -23,27 +23,25 @@ public class DeadLetterMessageTests
     [Test]
     public void Should_convert_exception_to_dead_letter_request()
     {
-        Exception exception;
-
-        try
-        {
-            SimulateException();
-        }
-        catch (Exception e)
-        {
-            exception = e;
-        }
-
+        var exception = SimulateException();
         var request = new DeadLetterRequest(exception);
 
         // Make sure we follow microsoft guidance - https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues#application-level-dead-lettering
         Assert.AreEqual("System.InvalidOperationException - Test exception", request.DeadLetterReason, "DeadLetterReason should reflect exception type and message");
         Assert.AreEqual(request.DeadLetterErrorDescription, exception.StackTrace, "DeadLetterErrorDescription should contain stack trace");
         Assert.IsNull(request.PropertiesToModify, "PropertiesToModify should be null for exception-based dead lettering");
+        return;
 
-        void SimulateException()
+        Exception SimulateException()
         {
-            throw new InvalidOperationException("Test exception");
+            try
+            {
+                throw new InvalidOperationException("Test exception");
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
         }
     }
 

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.Core;
 using AzureFunctions.AzureServiceBus;
+using BitFaster.Caching.Lru;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,7 +55,7 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
             .ConfigureAwait(false);
 
         var serverlessTransportInfrastructure = new ServerlessTransportInfrastructure(baseTransportInfrastructure,
-            receiver => new PipelineInvokingMessageProcessor(receiver, hostSettings.ServiceProvider.GetRequiredService<ILogger<PipelineInvokingMessageProcessor>>()));
+            receiver => new PipelineInvokingMessageProcessor(receiver, new FastConcurrentLru<string, bool>(1_000), hostSettings.ServiceProvider.GetRequiredService<ILogger<PipelineInvokingMessageProcessor>>()));
 
         var isSendOnly = hostSettings.CoreSettings.GetOrDefault<bool>(SendOnlyConfigKey);
 

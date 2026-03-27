@@ -4,6 +4,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using BitFaster.Caching;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using NServiceBus.Extensibility;
@@ -13,10 +14,12 @@ using NServiceBus.Transport.AzureServiceBus;
 class PipelineInvokingMessageProcessor : IMessageReceiver
 {
     public PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver,
+        ICache<string, bool> messagesToBeCompleted,
         ILogger<PipelineInvokingMessageProcessor> logger,
         Func<ServiceBusReceivedMessage, Dictionary<string, string?>>? headerExtractor = null)
     {
         this.baseTransportReceiver = baseTransportReceiver;
+        this.messagesToBeCompleted = messagesToBeCompleted;
         this.logger = logger;
 
         // we do this to enable tests to simulate exceptions when extracting headers
@@ -37,7 +40,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        var nativeMessageId = message.MessageId;
+        string nativeMessageId = message.MessageId;
         Dictionary<string, string?> headers;
         Dictionary<string, object>? messagePropertiesToModifyOnFailure = null;
         BinaryData body;
@@ -47,7 +50,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         {
             if (message.ApplicationProperties.TryGetValue(Headers.MessageId, out var nsbMessageId))
             {
-                nativeMessageId = nsbMessageId.ToString();
+                nativeMessageId = nsbMessageId.ToString()!;
             }
             else
             {
@@ -56,6 +59,14 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 // this makes sure that if we abandon or dead letter the message the ID we generated will be used as the message id
                 messagePropertiesToModifyOnFailure = new Dictionary<string, object> { { Headers.MessageId, nativeMessageId } };
             }
+        }
+
+        if (messagesToBeCompleted.TryRemove(nativeMessageId))
+        {
+            logger.LogInformation($"Message {nativeMessageId} was already processed and will be completed");
+
+            await SafeCompleteMessage(messageActions, nativeMessageId, message, CancellationToken.None).ConfigureAwait(false);
+            return;
         }
 
         try
@@ -85,7 +96,8 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
 
             azureServiceBusTransportTransaction.Commit();
-            await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
+
+            await SafeCompleteMessage(messageActions, nativeMessageId, message, CancellationToken.None).ConfigureAwait(false);
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
@@ -142,7 +154,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             if (errorHandleResult == ErrorHandleResult.Handled)
             {
                 azureServiceBusTransportTransaction.Commit();
-                await messageActions.CompleteMessageAsync(message, CancellationToken.None).ConfigureAwait(false);
+                await SafeCompleteMessage(messageActions, nativeMessageId, message, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
@@ -187,6 +199,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 request.DeadLetterErrorDescription,
                 cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Dead letter message failed.");
@@ -208,6 +221,23 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
     }
 
+    async Task SafeCompleteMessage(ServiceBusMessageActions messageActions, string nativeMessageId, ServiceBusReceivedMessage message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await messageActions.CompleteMessageAsync(message, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            messagesToBeCompleted.AddOrUpdate(nativeMessageId, true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Complete message failed.");
+            messagesToBeCompleted.AddOrUpdate(nativeMessageId, true);
+        }
+    }
+
     public Task StartReceive(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     // No-op because the rate at which Azure Functions pushes messages to the pipeline can't be controlled.
@@ -223,6 +253,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
     OnError? onError;
 
     readonly IMessageReceiver baseTransportReceiver;
+    readonly ICache<string, bool> messagesToBeCompleted;
     readonly ILogger<PipelineInvokingMessageProcessor> logger;
     readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders;
 }

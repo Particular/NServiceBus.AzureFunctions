@@ -25,9 +25,9 @@ public class GlobalTestStorage
 
         var sortedMessages = list
             .OrderBy(m => m.Order)
-                .ThenBy(m => m.MessageType)
-                .ThenBy(m => m.SendingEndpoint)
-                .ThenBy(m => m.ReceivingEndpoint)
+            .ThenBy(m => m.MessageType)
+            .ThenBy(m => m.SendingEndpoint)
+            .ThenBy(m => m.ReceivingEndpoint)
             .ToArray();
 
         return new Payload(sortedMessages);
@@ -39,8 +39,9 @@ public class TestStorage(string endpointName, GlobalTestStorage globalStorage)
     public void LogMessage<T>(string testName, T message, IMessageHandlerContext context)
         where T : class
     {
-        var sendingEndpoint = context.MessageHeaders[Headers.OriginatingEndpoint] ?? "<unknown>";
+        var sendingEndpoint = context.MessageHeaders.GetValueOrDefault(Headers.OriginatingEndpoint, "<unknown>");
         var storageOrder = context.Extensions.Get<int>("TestStorageOrder");
+
         var rec = new MessageReceived(message.GetType().FullName!, storageOrder, sendingEndpoint, endpointName);
         globalStorage.Add(testName, rec);
     }

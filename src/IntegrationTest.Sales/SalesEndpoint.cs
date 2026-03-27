@@ -24,11 +24,12 @@ public partial class SalesEndpoint
 
         configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
         configuration.AddHandler<Handlers.SubmitOrderHandler>();
+        configuration.AuditProcessedMessagesTo("audit");
 
         // Use the dead letter queue for failures
         configuration.Recoverability().CustomPolicy((_, context) =>
         {
-            if (context.ImmediateProcessingFailures == 0)
+            if (context.ImmediateProcessingFailures == 1)
             {
                 return RecoverabilityAction.ImmediateRetry();
             }

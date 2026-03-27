@@ -36,14 +36,21 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        string nativeMessageId;
+        var nativeMessageId = message.MessageId;
         Dictionary<string, string?> headers;
+        Dictionary<string, object>? messagePropertiesToModifyOnFailure = null;
         BinaryData body;
         var contextBag = new ContextBag();
 
+        if (string.IsNullOrEmpty(nativeMessageId))
+        {
+            nativeMessageId = Guid.NewGuid().ToString();
+
+            messagePropertiesToModifyOnFailure = new Dictionary<string, object> { { ServiceBusMessageIdKey, nativeMessageId } };
+        }
+
         try
         {
-            nativeMessageId = GetNativeMessageId(message);
             headers = extractHeaders(message);
             body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
 
@@ -53,7 +60,9 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         {
             logger.LogError(ex, "Message dead lettered due to issues with extracting message metadata.");
 
-            await SafeDeadLetterMessage(messageActions, message, new DeadLetterRequest(ex), CancellationToken.None).ConfigureAwait(false);
+            var deadLetterRequest = new DeadLetterRequest(ex, messagePropertiesToModifyOnFailure);
+
+            await SafeDeadLetterMessage(messageActions, message, deadLetterRequest, CancellationToken.None).ConfigureAwait(false);
             return;
         }
 
@@ -87,28 +96,36 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
                 logger.LogDebug(ex, "OnError canceled.");
-                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                await messageActions.AbandonMessageAsync(message, propertiesToModify: messagePropertiesToModifyOnFailure, cancellationToken: CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (ServiceBusException ex) when (ex.IsTransient || ex.Reason == ServiceBusFailureReason.MessageLockLost)
             {
                 logger.LogWarning(ex, "OnError failed due to transient exception.");
-                await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                await messageActions.AbandonMessageAsync(message, propertiesToModify: messagePropertiesToModifyOnFailure, cancellationToken: CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex)
             {
                 logger.LogError(exception, "Message dead lettered due to exception in OnError.");
 
-                await SafeDeadLetterMessage(messageActions, message, new DeadLetterRequest(ex), CancellationToken.None).ConfigureAwait(false);
+                await SafeDeadLetterMessage(messageActions, message, new DeadLetterRequest(ex, messagePropertiesToModifyOnFailure), CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
-            if (azureServiceBusTransportTransaction.TransportTransaction.TryGet<DeadLetterRequest>(out var deadLetterRequest))
+            if (azureServiceBusTransportTransaction.TransportTransaction.TryGet<DeadLetterRequest>(out var applicationDeadLetterRequest))
             {
-                logger.LogError($"User requested {nativeMessageId} to be dead lettered due to {deadLetterRequest.DeadLetterReason}: {deadLetterRequest.DeadLetterErrorDescription}");
+                logger.LogError($"User requested {nativeMessageId} to be dead lettered due to {applicationDeadLetterRequest.DeadLetterReason}: {applicationDeadLetterRequest.DeadLetterErrorDescription}");
 
-                await SafeDeadLetterMessage(messageActions, message, deadLetterRequest, CancellationToken.None).ConfigureAwait(false);
+                if (messagePropertiesToModifyOnFailure is not null)
+                {
+                    foreach (var kvp in messagePropertiesToModifyOnFailure)
+                    {
+                        applicationDeadLetterRequest.PropertiesToModify[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                await SafeDeadLetterMessage(messageActions, message, applicationDeadLetterRequest, CancellationToken.None).ConfigureAwait(false);
 
                 return;
             }
@@ -120,7 +137,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 return;
             }
 
-            await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            await messageActions.AbandonMessageAsync(message, propertiesToModify: messagePropertiesToModifyOnFailure, cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
     }
 
@@ -168,16 +185,6 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
     }
 
-    static string GetNativeMessageId(ServiceBusReceivedMessage message)
-    {
-        if (string.IsNullOrEmpty(message.MessageId))
-        {
-            throw new Exception("Azure Service Bus MessageId is required, but was not found. Ensure to assign MessageId to all Service Bus messages.");
-        }
-
-        return message.MessageId;
-    }
-
     public Task StartReceive(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     // No-op because the rate at which Azure Functions pushes messages to the pipeline can't be controlled.
@@ -195,4 +202,6 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
     readonly IMessageReceiver baseTransportReceiver;
     readonly ILogger<PipelineInvokingMessageProcessor> logger;
     readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders;
+
+    internal const string ServiceBusMessageIdKey = "MessageId";
 }

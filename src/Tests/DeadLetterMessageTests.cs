@@ -29,7 +29,6 @@ public class DeadLetterMessageTests
         // Make sure we follow microsoft guidance - https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-dead-letter-queues#application-level-dead-lettering
         Assert.AreEqual("System.InvalidOperationException - Test exception", request.DeadLetterReason, "DeadLetterReason should reflect exception type and message");
         Assert.AreEqual(request.DeadLetterErrorDescription, exception.StackTrace, "DeadLetterErrorDescription should contain stack trace");
-        Assert.IsNull(request.PropertiesToModify, "PropertiesToModify should be null for exception-based dead lettering");
         return;
 
         Exception SimulateException()

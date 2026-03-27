@@ -29,7 +29,7 @@ public partial class SalesEndpoint
         // Use the dead letter queue for failures
         configuration.Recoverability().CustomPolicy((_, context) =>
         {
-            if (context.ImmediateProcessingFailures == 1)
+            if (context.ImmediateProcessingFailures < 3)
             {
                 return RecoverabilityAction.ImmediateRetry();
             }

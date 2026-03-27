@@ -290,8 +290,27 @@ public class MessageProcessorTests
         }
     }
 
+    [Test]
+    public async Task Show_log_and_swallow_exceptions_from_dead_lettering_unless_invocation_is_cancelled()
+    {
+        var dlqException = new Exception("dlqFailed");
+        var messageActions = new TestableMessageActions
+        {
+            DeadLetterMessage = (_, _, _, _, _) => throw dlqException,
+        };
+        var result = await ProcessMessage(headerExtractor: _ => throw new Exception("simulated exception"), messageActions: messageActions);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Should be logged as debug");
+            Assert.AreSame(result.LogCollector.LatestRecord.Exception, dlqException);
+        }
+    }
+
     async Task<ProcessingResult> ProcessMessage(
         ServiceBusReceivedMessage? message = null,
+        TestableMessageActions? messageActions = null,
         Func<MessageContext, CancellationToken, Task>? onMessage = null,
         Func<ErrorContext, CancellationToken, Task<ErrorHandleResult>>? onError = null,
         Func<ServiceBusReceivedMessage, Dictionary<string, string?>>? headerExtractor = null,
@@ -300,12 +319,12 @@ public class MessageProcessorTests
         message ??= ServiceBusModelFactory.ServiceBusReceivedMessage(messageId: Guid.NewGuid().ToString());
         onMessage ??= (_, _) => Task.CompletedTask;
         onError ??= (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired);
+        messageActions ??= new TestableMessageActions();
 
         var fakeLogger = new FakeLogger<PipelineInvokingMessageProcessor>();
         var processor = new PipelineInvokingMessageProcessor(new FakeBaseReceiver(), fakeLogger, headerExtractor);
         MessageContext? capturedMessageContext = null;
         ErrorContext? capturedErrorContext = null;
-        var messageActions = new TestableMessageActions();
 
         await processor.Initialize(PushRuntimeSettings.Default,
             async (msgContext, token) =>
@@ -338,22 +357,26 @@ public class MessageProcessorTests
         public bool WasDeadLettered => DeadLetterDetails is not null;
         public DeadLetterCallDetails? DeadLetterDetails { get; private set; }
 
+        public Func<ServiceBusReceivedMessage, CancellationToken, Task>? CompleteMessage { get; set; }
+        public Func<ServiceBusReceivedMessage, IDictionary<string, object>?, CancellationToken, Task>? AbandonMessage { get; set; }
+        public Func<ServiceBusReceivedMessage, Dictionary<string, object>?, string?, string?, CancellationToken, Task>? DeadLetterMessage { get; set; }
+
         public override Task CompleteMessageAsync(ServiceBusReceivedMessage message, CancellationToken cancellationToken = new CancellationToken())
         {
             WasCompleted = true;
-            return Task.CompletedTask;
+            return CompleteMessage != null ? CompleteMessage(message, cancellationToken) : Task.CompletedTask;
         }
 
         public override Task AbandonMessageAsync(ServiceBusReceivedMessage message, IDictionary<string, object>? propertiesToModify = null, CancellationToken cancellationToken = new CancellationToken())
         {
             WasAbandoned = true;
-            return Task.CompletedTask;
+            return AbandonMessage != null ? AbandonMessage(message, propertiesToModify, cancellationToken) : Task.CompletedTask;
         }
 
         public override Task DeadLetterMessageAsync(ServiceBusReceivedMessage message, Dictionary<string, object>? propertiesToModify = null, string? deadLetterReason = null, string? deadLetterErrorDescription = null, CancellationToken cancellationToken = new CancellationToken())
         {
             DeadLetterDetails = new(deadLetterReason, deadLetterErrorDescription, propertiesToModify);
-            return Task.CompletedTask;
+            return DeadLetterMessage != null ? DeadLetterMessage(message, propertiesToModify, deadLetterReason, deadLetterErrorDescription, cancellationToken) : Task.CompletedTask;
         }
 
         public record DeadLetterCallDetails(string? DeadLetterReason, string? DeadLetterErrorDescription, Dictionary<string, object>? DeadLetterProperties);

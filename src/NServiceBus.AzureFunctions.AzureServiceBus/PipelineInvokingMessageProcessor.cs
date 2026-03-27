@@ -81,7 +81,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
             logger.LogDebug(ex, "Message processing canceled.");
-            await messageActions.AbandonMessageAsync(message, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -96,13 +96,13 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
                 logger.LogDebug(ex, "OnError canceled.");
-                await messageActions.AbandonMessageAsync(message, propertiesToModify: messagePropertiesToModifyOnFailure, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (ServiceBusException ex) when (ex.IsTransient || ex.Reason == ServiceBusFailureReason.MessageLockLost)
             {
                 logger.LogWarning(ex, "OnError failed due to transient exception.");
-                await messageActions.AbandonMessageAsync(message, propertiesToModify: messagePropertiesToModifyOnFailure, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex)
@@ -137,7 +137,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 return;
             }
 
-            await messageActions.AbandonMessageAsync(message, propertiesToModify: messagePropertiesToModifyOnFailure, cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
         }
     }
 
@@ -182,6 +182,21 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Dead letter message failed.");
+        }
+    }
+
+    async Task SafeAbandonMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, Dictionary<string, object>? propertiesToModify, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await messageActions.AbandonMessageAsync(message,
+                propertiesToModify,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Abandon message failed.");
         }
     }
 

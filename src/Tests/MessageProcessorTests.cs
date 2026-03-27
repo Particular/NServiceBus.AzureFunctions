@@ -373,15 +373,34 @@ public class MessageProcessorTests
     [Test]
     public async Task Show_log_and_swallow_exceptions_from_dead_lettering_unless_invocation_is_cancelled()
     {
-        var dlqException = new Exception("dlqFailed");
-        var messageActions = new TestableMessageActions { DeadLetterMessage = (_, _, _, _, _) => throw dlqException };
+        var exception = new Exception("dlg failed");
+        var messageActions = new TestableMessageActions { DeadLetterMessage = (_, _, _, _, _) => throw exception };
         var result = await ProcessMessage(headerExtractor: _ => throw new Exception("simulated exception"), messageActions: messageActions);
 
         using (Assert.EnterMultipleScope())
         {
             Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
             Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Should be logged as debug");
-            Assert.AreSame(result.LogCollector.LatestRecord.Exception, dlqException);
+            Assert.AreSame(result.LogCollector.LatestRecord.Exception, exception);
+        }
+    }
+
+    [Test]
+    public async Task Show_log_and_swallow_exceptions_from_abandon_unless_invocation_is_cancelled()
+    {
+        var exception = new Exception("abandon failed");
+        var messageActions = new TestableMessageActions { AbandonMessage = (_, _, _) => throw exception };
+
+        var result = await ProcessMessage(
+            onMessage: (_, _) => throw new Exception("simulated exception"),
+            onError: (_, _) => Task.FromResult(ErrorHandleResult.RetryRequired),
+            messageActions: messageActions);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.True(result.MessageActions.WasAbandoned, "Message should be abandoned");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Should be logged as debug");
+            Assert.AreSame(result.LogCollector.LatestRecord.Exception, exception);
         }
     }
 

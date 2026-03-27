@@ -26,6 +26,14 @@ public partial class SalesEndpoint
         configuration.AddHandler<Handlers.SubmitOrderHandler>();
 
         // Use the dead letter queue for failures
-        configuration.Recoverability().CustomPolicy((_, context) => new DeadLetterMessage(context.Exception));
+        configuration.Recoverability().CustomPolicy((_, context) =>
+        {
+            if (context.ImmediateProcessingFailures == 0)
+            {
+                return RecoverabilityAction.ImmediateRetry();
+            }
+
+            return new DeadLetterMessage(context.Exception);
+        });
     }
 }

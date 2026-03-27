@@ -42,7 +42,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         BinaryData body;
         var contextBag = new ContextBag();
 
-        if (string.IsNullOrEmpty(nativeMessageId))
+        if (string.IsNullOrWhiteSpace(nativeMessageId))
         {
             nativeMessageId = Guid.NewGuid().ToString();
 

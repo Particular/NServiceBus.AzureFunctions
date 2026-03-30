@@ -12,21 +12,13 @@ using Transport;
 using NServiceBus.Transport.AzureServiceBus;
 using static PipelineInvokingMessageProcessorLog;
 
-class PipelineInvokingMessageProcessor : IMessageReceiver
+class PipelineInvokingMessageProcessor(
+    IMessageReceiver baseTransportReceiver,
+    ICache<string, bool> messagesToBeCompleted,
+    ILogger<PipelineInvokingMessageProcessor> logger,
+    Func<ServiceBusReceivedMessage, Dictionary<string, string?>>? headerExtractor = null)
+    : IMessageReceiver
 {
-    public PipelineInvokingMessageProcessor(IMessageReceiver baseTransportReceiver,
-        ICache<string, bool> messagesToBeCompleted,
-        ILogger<PipelineInvokingMessageProcessor> logger,
-        Func<ServiceBusReceivedMessage, Dictionary<string, string?>>? headerExtractor = null)
-    {
-        this.baseTransportReceiver = baseTransportReceiver;
-        this.messagesToBeCompleted = messagesToBeCompleted;
-        this.logger = logger;
-
-        // we do this to enable tests to simulate exceptions when extracting headers
-        extractHeaders = headerExtractor ?? GetNServiceBusHeaders;
-    }
-
     public Task Initialize(PushRuntimeSettings limitations, OnMessage onMessage, OnError onError,
         CancellationToken cancellationToken = default)
     {
@@ -83,7 +75,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             // we need to clone the headers since the core pipeline might mutate them
             var messageContext = new MessageContext(nativeMessageId, new Dictionary<string, string?>(headers), body, azureServiceBusTransportTransaction.TransportTransaction, ReceiveAddress, contextBag);
 
-            await onMessage!(messageContext, cancellationToken).ConfigureAwait(false);
+            await onMessage(messageContext, cancellationToken).ConfigureAwait(false);
 
             azureServiceBusTransportTransaction.Commit();
 
@@ -102,7 +94,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             {
                 // No need to clone the message header here since we do not make use of them after on error has executed
                 var errorContext = new ErrorContext(exception, headers, nativeMessageId, body, azureServiceBusTransportTransaction.TransportTransaction, message.DeliveryCount, ReceiveAddress, contextBag);
-                errorHandleResult = await onError!.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
+                errorHandleResult = await onError.Invoke(errorContext, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
@@ -144,7 +136,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
     }
 
-    Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message)
+    static Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message)
     {
         var headers = new Dictionary<string, string?>(message.ApplicationProperties.Count);
 
@@ -229,13 +221,11 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
     public string Id => baseTransportReceiver.Id;
     public string ReceiveAddress => baseTransportReceiver.ReceiveAddress;
 
-    OnMessage? onMessage;
-    OnError? onError;
+    OnMessage onMessage = static (_, _) => Task.CompletedTask;
+    OnError onError = static (_, _) => Task.FromResult(ErrorHandleResult.Handled);
 
-    readonly IMessageReceiver baseTransportReceiver;
-    readonly ICache<string, bool> messagesToBeCompleted;
-    readonly ILogger<PipelineInvokingMessageProcessor> logger;
-    readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders;
+    // we do this to enable tests to simulate exceptions when extracting headers
+    readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders = headerExtractor ?? GetNServiceBusHeaders;
 }
 
 static partial class PipelineInvokingMessageProcessorLog

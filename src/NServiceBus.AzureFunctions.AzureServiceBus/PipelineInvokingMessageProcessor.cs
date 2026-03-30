@@ -7,9 +7,10 @@ using Azure.Messaging.ServiceBus;
 using BitFaster.Caching;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using NServiceBus.Extensibility;
-using NServiceBus.Transport;
+using Extensibility;
+using Transport;
 using NServiceBus.Transport.AzureServiceBus;
+using static PipelineInvokingMessageProcessorLog;
 
 class PipelineInvokingMessageProcessor : IMessageReceiver
 {
@@ -63,7 +64,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
         if (messagesToBeCompleted.TryRemove(nativeMessageId))
         {
-            logger.LogInformation($"Message {nativeMessageId} was already processed and will be completed");
+            MessageAlreadyProcessed(logger, nativeMessageId);
 
             await SafeCompleteMessage(messageActions, nativeMessageId, message, CancellationToken.None).ConfigureAwait(false);
             return;
@@ -78,7 +79,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Message dead lettered due to issues with extracting message metadata.");
+            MessageDeadLetteredDueToMetadataExtractionFailure(logger, ex);
 
             var deadLetterRequest = new DeadLetterRequest(ex, messagePropertiesToModifyOnFailure);
 
@@ -101,7 +102,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
-            logger.LogDebug(ex, "Message processing canceled.");
+            MessageProcessingCanceled(logger, ex);
             await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
@@ -116,19 +117,19 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             }
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
-                logger.LogDebug(ex, "OnError canceled.");
+                OnErrorCanceled(logger, ex);
                 await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (ServiceBusException ex) when (ex.IsTransient || ex.Reason == ServiceBusFailureReason.MessageLockLost)
             {
-                logger.LogWarning(ex, "OnError failed due to transient exception.");
+                OnErrorFailedDueToTransientException(logger, ex);
                 await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex)
             {
-                logger.LogError(exception, "Message dead lettered due to exception in OnError.");
+                MessageDeadLetteredDueToExceptionInOnError(logger, exception);
 
                 await SafeDeadLetterMessage(messageActions, message, new DeadLetterRequest(ex, messagePropertiesToModifyOnFailure), CancellationToken.None).ConfigureAwait(false);
                 return;
@@ -136,7 +137,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
             if (azureServiceBusTransportTransaction.TransportTransaction.TryGet<DeadLetterRequest>(out var applicationDeadLetterRequest))
             {
-                logger.LogError($"User requested {nativeMessageId} to be dead lettered due to {applicationDeadLetterRequest.DeadLetterReason}: {applicationDeadLetterRequest.DeadLetterErrorDescription}");
+                UserRequestedDeadLetter(logger, nativeMessageId, applicationDeadLetterRequest.DeadLetterReason, applicationDeadLetterRequest.DeadLetterErrorDescription);
 
                 if (messagePropertiesToModifyOnFailure is not null)
                 {
@@ -202,7 +203,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Dead letter message failed.");
+            DeadLetterMessageFailed(logger, ex);
         }
     }
 
@@ -217,7 +218,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Abandon message failed.");
+            AbandonMessageFailed(logger, ex);
         }
     }
 
@@ -233,7 +234,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "Complete message failed.");
+            CompleteMessageFailed(logger, ex);
             messagesToBeCompleted.AddOrUpdate(nativeMessageId, true);
         }
     }
@@ -256,4 +257,67 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
     readonly ICache<string, bool> messagesToBeCompleted;
     readonly ILogger<PipelineInvokingMessageProcessor> logger;
     readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders;
+}
+
+static partial class PipelineInvokingMessageProcessorLog
+{
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Information,
+        Message = "Message {MessageId} was already processed and will be completed")]
+    internal static partial void MessageAlreadyProcessed(ILogger logger, string messageId);
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Error,
+        Message = "Message dead lettered due to issues with extracting message metadata.")]
+    internal static partial void MessageDeadLetteredDueToMetadataExtractionFailure(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Debug,
+        Message = "Message processing canceled.")]
+    internal static partial void MessageProcessingCanceled(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 3,
+        Level = LogLevel.Debug,
+        Message = "OnError canceled.")]
+    internal static partial void OnErrorCanceled(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 4,
+        Level = LogLevel.Warning,
+        Message = "OnError failed due to transient exception.")]
+    internal static partial void OnErrorFailedDueToTransientException(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 5,
+        Level = LogLevel.Error,
+        Message = "Message dead lettered due to exception in OnError.")]
+    internal static partial void MessageDeadLetteredDueToExceptionInOnError(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 6,
+        Level = LogLevel.Error,
+        Message = "User requested {MessageId} to be dead lettered due to {DeadLetterReason}: {DeadLetterErrorDescription}")]
+    internal static partial void UserRequestedDeadLetter(ILogger logger, string messageId, string deadLetterReason, string deadLetterErrorDescription);
+
+    [LoggerMessage(
+        EventId = 7,
+        Level = LogLevel.Debug,
+        Message = "Dead letter message failed.")]
+    internal static partial void DeadLetterMessageFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 8,
+        Level = LogLevel.Debug,
+        Message = "Abandon message failed.")]
+    internal static partial void AbandonMessageFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = 9,
+        Level = LogLevel.Debug,
+        Message = "Complete message failed.")]
+    internal static partial void CompleteMessageFailed(ILogger logger, Exception exception);
 }

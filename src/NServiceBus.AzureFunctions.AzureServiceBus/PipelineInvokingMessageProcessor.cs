@@ -73,7 +73,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         try
         {
             headers = extractHeaders(message);
-            body = message.Body ?? BinaryData.FromBytes(ReadOnlyMemory<byte>.Empty);
+            body = message.Body ?? BinaryData.Empty;
 
             contextBag.Set(message);
         }

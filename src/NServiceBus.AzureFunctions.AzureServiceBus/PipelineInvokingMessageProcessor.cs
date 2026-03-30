@@ -43,7 +43,6 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
     {
         string nativeMessageId = message.MessageId;
         Dictionary<string, string?> headers;
-        Dictionary<string, object>? messagePropertiesToModifyOnFailure = null;
         BinaryData body;
         var contextBag = new ContextBag();
 
@@ -55,10 +54,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             }
             else
             {
-                nativeMessageId = Guid.CreateVersion7().ToString();
-
-                // this makes sure that if we abandon or dead letter the message the ID we generated will be used as the message id
-                messagePropertiesToModifyOnFailure = new Dictionary<string, object> { { Headers.MessageId, nativeMessageId } };
+                nativeMessageId = GuidHelper.CreateVersion8(message.EnqueuedTime, message.SequenceNumber).ToString();
             }
         }
 
@@ -81,7 +77,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         {
             MessageDeadLetteredDueToMetadataExtractionFailure(logger, ex);
 
-            var deadLetterRequest = new DeadLetterRequest(ex, messagePropertiesToModifyOnFailure);
+            var deadLetterRequest = new DeadLetterRequest(ex);
 
             await SafeDeadLetterMessage(messageActions, message, deadLetterRequest, CancellationToken.None).ConfigureAwait(false);
             return;
@@ -103,7 +99,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
             MessageProcessingCanceled(logger, ex);
-            await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
+            await SafeAbandonMessage(messageActions, message, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -118,34 +114,26 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
                 OnErrorCanceled(logger, ex);
-                await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
+                await SafeAbandonMessage(messageActions, message, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (ServiceBusException ex) when (ex.IsTransient || ex.Reason == ServiceBusFailureReason.MessageLockLost)
             {
                 OnErrorFailedDueToTransientException(logger, ex);
-                await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
+                await SafeAbandonMessage(messageActions, message, CancellationToken.None).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex)
             {
                 MessageDeadLetteredDueToExceptionInOnError(logger, exception);
 
-                await SafeDeadLetterMessage(messageActions, message, new DeadLetterRequest(ex, messagePropertiesToModifyOnFailure), CancellationToken.None).ConfigureAwait(false);
+                await SafeDeadLetterMessage(messageActions, message, new DeadLetterRequest(ex), CancellationToken.None).ConfigureAwait(false);
                 return;
             }
 
             if (azureServiceBusTransportTransaction.TransportTransaction.TryGet<DeadLetterRequest>(out var applicationDeadLetterRequest))
             {
                 UserRequestedDeadLetter(logger, nativeMessageId, applicationDeadLetterRequest.DeadLetterReason, applicationDeadLetterRequest.DeadLetterErrorDescription);
-
-                if (messagePropertiesToModifyOnFailure is not null)
-                {
-                    foreach (var kvp in messagePropertiesToModifyOnFailure)
-                    {
-                        applicationDeadLetterRequest.PropertiesToModify[kvp.Key] = kvp.Value;
-                    }
-                }
 
                 await SafeDeadLetterMessage(messageActions, message, applicationDeadLetterRequest, CancellationToken.None).ConfigureAwait(false);
 
@@ -159,7 +147,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
                 return;
             }
 
-            await SafeAbandonMessage(messageActions, message, messagePropertiesToModifyOnFailure, CancellationToken.None).ConfigureAwait(false);
+            await SafeAbandonMessage(messageActions, message, CancellationToken.None).ConfigureAwait(false);
         }
     }
 
@@ -207,13 +195,11 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
         }
     }
 
-    async Task SafeAbandonMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, Dictionary<string, object>? propertiesToModify, CancellationToken cancellationToken)
+    async Task SafeAbandonMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, CancellationToken cancellationToken)
     {
         try
         {
-            await messageActions.AbandonMessageAsync(message,
-                propertiesToModify,
-                cancellationToken).ConfigureAwait(false);
+            await messageActions.AbandonMessageAsync(message, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex)

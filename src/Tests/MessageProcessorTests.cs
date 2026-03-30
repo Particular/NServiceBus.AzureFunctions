@@ -430,7 +430,7 @@ public class MessageProcessorTests
         using (Assert.EnterMultipleScope())
         {
             Assert.True(result.MessageActions.WasDeadLettered, "Message should be dead lettered");
-            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Should be logged as debug");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Warning, "Should be logged as warning");
             Assert.AreSame(result.LogCollector.LatestRecord.Exception, exception);
         }
     }
@@ -449,7 +449,7 @@ public class MessageProcessorTests
         using (Assert.EnterMultipleScope())
         {
             Assert.True(result.MessageActions.WasAbandoned, "Message should be abandoned");
-            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Debug, "Should be logged as debug");
+            Assert.AreEqual(result.LogCollector.LatestRecord.Level, Microsoft.Extensions.Logging.LogLevel.Warning, "Should be logged as warning");
             Assert.AreSame(result.LogCollector.LatestRecord.Exception, exception);
         }
     }

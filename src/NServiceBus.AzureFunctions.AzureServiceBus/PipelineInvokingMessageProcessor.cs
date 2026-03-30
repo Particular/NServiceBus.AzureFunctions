@@ -305,19 +305,19 @@ static partial class PipelineInvokingMessageProcessorLog
 
     [LoggerMessage(
         EventId = 7,
-        Level = LogLevel.Debug,
+        Level = LogLevel.Warning,
         Message = "Dead letter message failed.")]
     internal static partial void DeadLetterMessageFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = 8,
-        Level = LogLevel.Debug,
+        Level = LogLevel.Warning,
         Message = "Abandon message failed.")]
     internal static partial void AbandonMessageFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = 9,
-        Level = LogLevel.Debug,
+        Level = LogLevel.Warning,
         Message = "Complete message failed.")]
     internal static partial void CompleteMessageFailed(ILogger logger, Exception exception);
 }

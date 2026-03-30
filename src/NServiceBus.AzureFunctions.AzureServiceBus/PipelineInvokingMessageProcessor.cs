@@ -55,7 +55,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
             }
             else
             {
-                nativeMessageId = Guid.NewGuid().ToString();
+                nativeMessageId = Guid.CreateVersion7().ToString();
 
                 // this makes sure that if we abandon or dead letter the message the ID we generated will be used as the message id
                 messagePropertiesToModifyOnFailure = new Dictionary<string, object> { { Headers.MessageId, nativeMessageId } };

@@ -48,14 +48,7 @@ class PipelineInvokingMessageProcessor : IMessageReceiver
 
         if (string.IsNullOrWhiteSpace(nativeMessageId))
         {
-            if (message.ApplicationProperties.TryGetValue(Headers.MessageId, out var nsbMessageId))
-            {
-                nativeMessageId = nsbMessageId.ToString()!;
-            }
-            else
-            {
-                nativeMessageId = GuidHelper.CreateVersion8(message.EnqueuedTime, message.SequenceNumber).ToString();
-            }
+            nativeMessageId = message.ApplicationProperties.TryGetValue(Headers.MessageId, out var nsbMessageId) ? nsbMessageId.ToString()! : GuidHelper.CreateVersion8(message.EnqueuedTime, message.SequenceNumber).ToString();
         }
 
         if (messagesToBeCompleted.TryRemove(nativeMessageId))

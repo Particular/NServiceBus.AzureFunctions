@@ -9,7 +9,12 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <LangVersion>14.0</LangVersion>
+    <DefineConstants>$(DefineConstants);FIXES</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\NServiceBus.AzureFunctions.Analyzer\DiagnosticIds.cs" Link="DiagnosticIds.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- this package can only be upgraded when we drop support for older versions of Visual Studio -->

@@ -2,7 +2,10 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 using Microsoft.CodeAnalysis;
 
-public static class DiagnosticIds
+#if !FIXES
+public
+#endif
+static class DiagnosticIds
 {
     public const string ClassMustBePartial = "NSBFUNC001";
     public const string ShouldNotImplementIHandleMessages = "NSBFUNC002";

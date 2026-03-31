@@ -7,14 +7,13 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using NServiceBus.AzureFunctions.Analyzer;
 
 [ExportCodeFixProvider(LanguageNames.CSharp), Shared]
 public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
 {
-    const string DiagnosticId = "NSBFUNC007";
-
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(DiagnosticId);
+        ImmutableArray.Create(DiagnosticIds.InvalidFunctionMethod);
 
     public override FixAllProvider? GetFixAllProvider() =>
         WellKnownFixAllProviders.BatchFixer;
@@ -58,7 +57,7 @@ public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
             CodeAction.Create(
                 title: "Fix NServiceBus function method",
                 createChangedDocument: ct => FixFunctionMethod(context.Document, root, methodDeclaration, classDeclaration, properties, ct),
-                equivalenceKey: DiagnosticId),
+                equivalenceKey: DiagnosticIds.InvalidFunctionMethod),
             diagnostic);
     }
 

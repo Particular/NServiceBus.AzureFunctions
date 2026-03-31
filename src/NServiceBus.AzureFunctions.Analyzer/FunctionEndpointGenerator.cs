@@ -7,12 +7,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
+        => InitializeGenerator(context, AzureServiceBusTrigger);
+
+    internal static void InitializeGenerator(IncrementalGeneratorInitializationContext context, TriggerDefinition triggerDefinition)
     {
         var extractionResults = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "NServiceBus.NServiceBusFunctionAttribute",
                 predicate: static (node, _) => node is ClassDeclarationSyntax or MethodDeclarationSyntax,
-                transform: static (ctx, ct) => Parser.Extract(ctx, ct))
+                transform: (ctx, ct) => Parser.Extract(ctx, triggerDefinition, ct))
             .WithTrackingName(TrackingNames.Extraction);
 
         var diagnostics = extractionResults

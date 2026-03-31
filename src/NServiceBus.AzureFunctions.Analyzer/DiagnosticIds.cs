@@ -10,6 +10,7 @@ public static class DiagnosticIds
     public const string MissingAddNServiceBusFunctionsCall = "NSBFUNC004";
     public const string MultipleConfigureMethods = "NSBFUNC005";
     public const string AutoCompleteEnabled = "NSBFUNC006";
+    public const string InvalidFunctionMethod = "NSBFUNC007";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -47,6 +48,14 @@ public static class DiagnosticIds
         id: AutoCompleteEnabled,
         title: "Message auto completion must be explicitly disabled",
         messageFormat: "The auto complete property on the service bus trigger for method '{0}' must be explicitly set to false",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor InvalidFunctionMethodDescriptor = new(
+        id: InvalidFunctionMethod,
+        title: "Invalid NServiceBus function method",
+        messageFormat: "Method '{0}' is not a valid NServiceBus function: {1}",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

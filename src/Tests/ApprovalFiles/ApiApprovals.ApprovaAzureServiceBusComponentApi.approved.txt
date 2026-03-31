@@ -6,12 +6,18 @@ namespace NServiceBus.AzureFunctions.AzureServiceBus
         public AzureServiceBusMessageProcessor(NServiceBus.AzureServiceBusServerlessTransport transport, string endpointName) { }
         public System.Threading.Tasks.Task Process(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message, Microsoft.Azure.Functions.Worker.ServiceBusMessageActions messageActions, Microsoft.Azure.Functions.Worker.FunctionContext functionContext, System.Threading.CancellationToken cancellationToken = default) { }
     }
-    public class DeadLetterMessage : NServiceBus.RecoverabilityAction
+    public sealed class DeadLetterMessage : NServiceBus.RecoverabilityAction
     {
-        public DeadLetterMessage(System.Exception exception) { }
-        public DeadLetterMessage(string deadLetterReason, string deadLetterErrorDescription, System.Collections.Generic.Dictionary<string, object>? propertiesToModify = null) { }
         public override NServiceBus.Transport.ErrorHandleResult ErrorHandleResult { get; }
         public override System.Collections.Generic.IReadOnlyCollection<NServiceBus.Pipeline.IRoutingContext> GetRoutingContexts(NServiceBus.Pipeline.IRecoverabilityActionContext context) { }
+    }
+    public static class RecoverabilityActionExtensions
+    {
+        extension(NServiceBus.RecoverabilityAction _)
+        {
+            public static NServiceBus.AzureFunctions.AzureServiceBus.DeadLetterMessage DeadLetter(string deadLetterReason, string deadLetterErrorDescription, System.Collections.Generic.Dictionary<string, object>? propertiesToModify = null) { }
+            public static NServiceBus.AzureFunctions.AzureServiceBus.DeadLetterMessage DeadLetter(System.Exception exception) { }
+        }
     }
 }
 namespace NServiceBus

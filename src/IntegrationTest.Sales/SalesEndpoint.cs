@@ -34,7 +34,7 @@ public partial class SalesEndpoint
                 return RecoverabilityAction.ImmediateRetry();
             }
 
-            return new DeadLetterMessage(context.Exception);
+            return RecoverabilityAction.DeadLetter(context.Exception);
         });
     }
 }

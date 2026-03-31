@@ -3,12 +3,12 @@ namespace NServiceBus.AzureFunctions.AzureServiceBus;
 using Pipeline;
 using Transport;
 
-public class DeadLetterMessage : RecoverabilityAction
+public sealed class DeadLetterMessage : RecoverabilityAction
 {
-    public DeadLetterMessage(string deadLetterReason, string deadLetterErrorDescription, Dictionary<string, object>? propertiesToModify = null) =>
+    internal DeadLetterMessage(string deadLetterReason, string deadLetterErrorDescription, Dictionary<string, object>? propertiesToModify = null) =>
         deadLetterRequest = new DeadLetterRequest(deadLetterReason, deadLetterErrorDescription, propertiesToModify);
 
-    public DeadLetterMessage(Exception exception) =>
+    internal DeadLetterMessage(Exception exception) =>
         deadLetterRequest = new DeadLetterRequest(exception);
 
     public override IReadOnlyCollection<IRoutingContext> GetRoutingContexts(IRecoverabilityActionContext context)

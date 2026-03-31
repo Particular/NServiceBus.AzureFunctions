@@ -125,12 +125,24 @@ public sealed partial class FunctionEndpointGenerator
                             queueName = pAttr.ConstructorArguments[0].Value as string;
                         }
 
+                        var autoCompleteEnabled = true;
                         foreach (var namedArg in pAttr.NamedArguments)
                         {
                             if (namedArg.Key == "Connection")
                             {
                                 connectionName = namedArg.Value.Value as string;
                             }
+
+                            if (namedArg.Key == "AutoCompleteMessages")
+                            {
+                                var autoComplete = namedArg.Value.Value as bool?;
+                                autoCompleteEnabled = autoComplete!.Value;
+                            }
+                        }
+
+                        if (autoCompleteEnabled)
+                        {
+                            diagnostics.Add(CreateDiagnostic(DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled, method, method.Name));
                         }
 
                         messageParamName = param.Name;

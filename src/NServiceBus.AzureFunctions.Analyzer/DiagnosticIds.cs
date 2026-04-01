@@ -39,6 +39,15 @@ static class DiagnosticIds
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    internal static readonly DiagnosticDescriptor MissingAddNServiceBusFunctionsCallDescriptor = new(
+        id: MissingAddNServiceBusFunctionsCall,
+        title: "AddNServiceBusFunctions() is not called",
+        messageFormat: "This project has NServiceBus endpoint registrations but does not call builder.AddNServiceBusFunctions(). Endpoints will not be started.",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        customTags: [WellKnownDiagnosticTags.CompilationEnd]);
+
     internal static readonly DiagnosticDescriptor MultipleConfigureMethodsDescriptor = new(
         id: MultipleConfigureMethods,
         title: "Multiple configuration methods found",
@@ -62,13 +71,4 @@ static class DiagnosticIds
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
-
-    internal static readonly DiagnosticDescriptor MissingAddNServiceBusFunctionsCallDescriptor = new(
-        id: MissingAddNServiceBusFunctionsCall,
-        title: "AddNServiceBusFunctions() is not called",
-        messageFormat: "This project has NServiceBus endpoint registrations but does not call builder.AddNServiceBusFunctions(). Endpoints will not be started.",
-        category: "NServiceBus.AzureFunctions",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 }

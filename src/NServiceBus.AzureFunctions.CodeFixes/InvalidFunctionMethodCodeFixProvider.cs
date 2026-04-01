@@ -1,7 +1,9 @@
 namespace NServiceBus.AzureFunctions.CodeFixes;
 
+using System;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -43,9 +45,13 @@ public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
         }
 
         var properties = diagnostic.Properties;
+        var hasMissingAdditionalParameter = properties.Any(kvp => kvp.Key.StartsWith("Missing", StringComparison.Ordinal)
+            && kvp.Key is not "MissingFunctionContext"
+            && kvp.Key is not "MissingCancellationToken"
+            && kvp.Key is not "MissingConfigureMethod");
         var hasFixes = properties.ContainsKey("MissingFunctionContext")
             || properties.ContainsKey("MissingCancellationToken")
-            || properties.ContainsKey("MissingMessageActions")
+            || hasMissingAdditionalParameter
             || properties.ContainsKey("MissingConfigureMethod");
 
         if (!hasFixes)
@@ -75,10 +81,21 @@ public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
         // Add missing parameters to the method signature
         var paramsToAdd = new List<ParameterSyntax>();
 
-        if (properties.ContainsKey("MissingMessageActions") && properties.TryGetValue("MissingMessageActions", out var messageActionsType) && messageActionsType is not null)
+        foreach (var property in properties
+                     .Where(kvp => kvp.Key.StartsWith("Missing", StringComparison.Ordinal)
+                         && kvp.Key is not "MissingFunctionContext"
+                         && kvp.Key is not "MissingCancellationToken"
+                         && kvp.Key is not "MissingConfigureMethod"))
         {
-            paramsToAdd.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier("messageActions"))
-                .WithType(SyntaxFactory.ParseTypeName(messageActionsType)));
+            if (property.Value is null)
+            {
+                continue;
+            }
+
+            var propertySuffix = property.Key.Substring("Missing".Length);
+            var parameterName = char.ToLowerInvariant(propertySuffix[0]) + propertySuffix.Substring(1);
+            paramsToAdd.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier(parameterName))
+                .WithType(SyntaxFactory.ParseTypeName(property.Value)));
         }
 
         if (properties.ContainsKey("MissingFunctionContext"))

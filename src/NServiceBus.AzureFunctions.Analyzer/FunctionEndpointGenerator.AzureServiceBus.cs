@@ -14,6 +14,8 @@ public sealed partial class FunctionEndpointGenerator
         }.ToImmutableEquatableArray(),
         ProcessorTypeFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor",
         ConnectionPropertyName: "Connection",
+        AutoCompletePropertyName: "AutoCompleteMessages",
+        RequireAutoCompleteFalse: true,
         ProcessMethodName: "Process",
         Shape: TriggerShape.Required(
             ParameterRole.TriggerMessage,

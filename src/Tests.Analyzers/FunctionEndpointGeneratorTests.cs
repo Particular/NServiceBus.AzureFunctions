@@ -394,7 +394,7 @@ public class FunctionEndpointGeneratorTests
                     }
                     """));
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain("trigger attribute does not specify a queue or entity name"));
+        Assert.That(diagnostic.GetMessage(), Does.Contain("trigger attribute does not specify an address or entity name"));
     }
 
     [Test]

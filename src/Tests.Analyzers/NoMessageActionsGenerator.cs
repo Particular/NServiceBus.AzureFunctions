@@ -17,6 +17,8 @@ class NoMessageActionsGenerator : IIncrementalGenerator
                 AdditionalParameterTypes: ImmutableEquatableArray<FunctionEndpointGenerator.AdditionalParameterType>.Empty,
                 ProcessorTypeFullyQualified: "global::Demo.Testing.TestProcessor",
                 ConnectionPropertyName: "ConnSetting",
+                AutoCompletePropertyName: null,
+                RequireAutoCompleteFalse: false,
                 ProcessMethodName: "Process",
                 Shape: FunctionEndpointGenerator.TriggerShape.Required(
                     FunctionEndpointGenerator.ParameterRole.TriggerMessage,

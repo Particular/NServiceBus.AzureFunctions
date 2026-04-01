@@ -97,8 +97,8 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
-            string? queueName = null;
-            string? connectionName = null;
+            string? addressName = null;
+            string? connectionSettingName = null;
             string? messageParamName = null;
             string? functionContextParamName = null;
             string? cancellationTokenParamName = null;
@@ -134,25 +134,28 @@ public sealed partial class FunctionEndpointGenerator
 
                         if (pAttr.ConstructorArguments.Length > 0)
                         {
-                            queueName = pAttr.ConstructorArguments[0].Value as string;
+                            addressName = pAttr.ConstructorArguments[0].Value as string;
                         }
 
-                        var autoCompleteEnabled = true;
+                        var autoCompleteEnabled = triggerDefinition.RequireAutoCompleteFalse;
                         foreach (var namedArg in pAttr.NamedArguments)
                         {
-                            if (namedArg.Key == triggerDefinition.ConnectionPropertyName)
+                            if (triggerDefinition.ConnectionPropertyName is not null
+                                && namedArg.Key == triggerDefinition.ConnectionPropertyName)
                             {
-                                connectionName = namedArg.Value.Value as string;
+                                connectionSettingName = namedArg.Value.Value as string;
                             }
 
-                            if (namedArg.Key == "AutoCompleteMessages")
+                            if (triggerDefinition.RequireAutoCompleteFalse
+                                && triggerDefinition.AutoCompletePropertyName is not null
+                                && namedArg.Key == triggerDefinition.AutoCompletePropertyName)
                             {
                                 var autoComplete = namedArg.Value.Value as bool?;
                                 autoCompleteEnabled = autoComplete!.Value;
                             }
                         }
 
-                        if (autoCompleteEnabled)
+                        if (triggerDefinition.RequireAutoCompleteFalse && autoCompleteEnabled)
                         {
                             diagnostics.Add(CreateDiagnostic(DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled, method, method.Name));
                         }
@@ -189,9 +192,9 @@ public sealed partial class FunctionEndpointGenerator
                 problems.Add("must declare exactly one trigger parameter");
             }
 
-            if (messageParamName is not null && queueName is null)
+            if (messageParamName is not null && addressName is null)
             {
-                problems.Add("trigger attribute does not specify a queue or entity name");
+                problems.Add("trigger attribute does not specify an address or entity name");
             }
 
             if (functionContextParamName is null)
@@ -253,7 +256,7 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
-            connectionName ??= "";
+            connectionSettingName ??= "";
 
             var ns = containingType.ContainingNamespace.ToDisplayString();
             var className = containingType.Name;
@@ -297,7 +300,7 @@ public sealed partial class FunctionEndpointGenerator
             return new FunctionSpec(
                 ns, className, accessibility, method.Name, returnType,
                 paramList.ToString(), functionContextParamName!,
-                functionName, queueName!, connectionName,
+                functionName, addressName!, connectionSettingName,
                 triggerDefinition.ProcessorTypeFullyQualified, processCallExpression, configureMethod!.Value);
         }
 
@@ -506,8 +509,8 @@ public sealed partial class FunctionEndpointGenerator
         string ParameterList,
         string FunctionContextParamName,
         string FunctionName,
-        string QueueName,
-        string ConnectionName,
+        string AddressName,
+        string ConnectionSettingName,
         string ProcessorTypeFullyQualified,
         string ProcessCallExpression,
         ConfigureMethodSpec ConfigureMethod);

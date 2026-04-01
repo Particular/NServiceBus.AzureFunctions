@@ -15,8 +15,8 @@ public sealed partial class FunctionEndpointGenerator
     /// <remarks>
     /// Current assumptions:
     /// <list type="bullet">
-    /// <item>Queue/entity name is the first constructor argument of the trigger attribute.</item>
-    /// <item>Connection name is a named property on the trigger attribute, identified by <see cref="ConnectionPropertyName"/>.</item>
+    /// <item>Address/entity name is the first constructor argument of the trigger attribute.</item>
+    /// <item>Connection setting name can be read from a named trigger property, if <see cref="ConnectionPropertyName"/> is configured.</item>
     /// <item>Trigger method signatures are validated against <see cref="TriggerShape"/>.</item>
     /// </list>
     /// </remarks>
@@ -24,7 +24,9 @@ public sealed partial class FunctionEndpointGenerator
         string TriggerAttributeMetadataName,
         ImmutableEquatableArray<AdditionalParameterType> AdditionalParameterTypes,
         string ProcessorTypeFullyQualified,
-        string ConnectionPropertyName,
+        string? ConnectionPropertyName,
+        string? AutoCompletePropertyName,
+        bool RequireAutoCompleteFalse,
         string ProcessMethodName,
         TriggerShape Shape);
 

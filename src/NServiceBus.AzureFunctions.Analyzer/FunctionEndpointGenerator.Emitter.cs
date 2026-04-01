@@ -97,7 +97,7 @@ public sealed partial class FunctionEndpointGenerator
             foreach (var func in functions.OrderBy(f => f.FunctionName, StringComparer.Ordinal))
             {
                 writer.WriteLine("yield return new global::NServiceBus.FunctionManifest(");
-                writer.WriteLine($"    \"{func.FunctionName}\", \"{func.QueueName}\", \"{func.ConnectionName}\",");
+                writer.WriteLine($"    \"{func.FunctionName}\", \"{func.AddressName}\", \"{func.ConnectionSettingName}\",");
                 writer.WriteLine($"    {GenerateConfigureMethodCall(func.ConfigureMethod)});");
             }
 

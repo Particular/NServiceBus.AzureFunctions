@@ -16,6 +16,7 @@ public sealed partial class FunctionEndpointGenerator
         ConnectionPropertyName: "Connection",
         AutoCompletePropertyName: "AutoCompleteMessages",
         RequireAutoCompleteFalse: true,
+        RegistrationMethodFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusFunctionManifestRegistration.Register",
         ProcessMethodName: "Process",
         Shape: TriggerShape.Required(
             ParameterRole.TriggerMessage,

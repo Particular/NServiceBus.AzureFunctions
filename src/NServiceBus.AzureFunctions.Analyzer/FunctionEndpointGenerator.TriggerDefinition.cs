@@ -27,6 +27,7 @@ public sealed partial class FunctionEndpointGenerator
         string? ConnectionPropertyName,
         string? AutoCompletePropertyName,
         bool RequireAutoCompleteFalse,
+        string RegistrationMethodFullyQualified,
         string ProcessMethodName,
         TriggerShape Shape);
 

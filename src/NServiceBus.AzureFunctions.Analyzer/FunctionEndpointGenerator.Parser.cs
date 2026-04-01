@@ -301,7 +301,7 @@ public sealed partial class FunctionEndpointGenerator
                 ns, className, accessibility, method.Name, returnType,
                 paramList.ToString(), functionContextParamName!,
                 functionName, addressName!, connectionSettingName,
-                triggerDefinition.ProcessorTypeFullyQualified, processCallExpression, configureMethod!.Value);
+                triggerDefinition.ProcessorTypeFullyQualified, triggerDefinition.RegistrationMethodFullyQualified, processCallExpression, configureMethod!.Value);
         }
 
         static ParameterRole? ClassifyParameterRole(IParameterSymbol parameter, bool hasTriggerAttribute, FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -512,6 +512,7 @@ public sealed partial class FunctionEndpointGenerator
         string AddressName,
         string ConnectionSettingName,
         string ProcessorTypeFullyQualified,
+        string RegistrationMethodFullyQualified,
         string ProcessCallExpression,
         ConfigureMethodSpec ConfigureMethod);
 

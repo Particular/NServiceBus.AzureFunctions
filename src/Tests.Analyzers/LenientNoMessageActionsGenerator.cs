@@ -15,6 +15,7 @@ class LenientNoMessageActionsGenerator : IIncrementalGenerator
                 ConnectionPropertyName: "ConnSetting",
                 AutoCompletePropertyName: null,
                 RequireAutoCompleteFalse: false,
+                RegistrationMethodFullyQualified: "global::Demo.Testing.TestFunctionManifestRegistration.Register",
                 ProcessMethodName: "Process",
                 Shape: FunctionEndpointGenerator.TriggerShape.RequiredAllowingAdditionalParameters(
                     FunctionEndpointGenerator.ParameterRole.TriggerMessage,

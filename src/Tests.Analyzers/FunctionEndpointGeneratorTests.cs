@@ -465,6 +465,11 @@ public class FunctionEndpointGeneratorTests
                 public bool AutoCompleteMessages { get; set; }
             }
 
+            public static class TestFunctionManifestRegistration
+            {
+                public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.FunctionManifest __) { }
+            }
+
             {{classBody}}
             """;
     }

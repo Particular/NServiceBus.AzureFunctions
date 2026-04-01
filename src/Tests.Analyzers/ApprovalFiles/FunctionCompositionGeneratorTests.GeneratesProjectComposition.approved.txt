@@ -44,9 +44,9 @@ namespace My.FunctionApp
                 global::NServiceBus.NServiceBusFunctionsInfrastructure.Initialize(builder);
 
                 foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_GeneratesProjectComposition_4d91953014478208.GetFunctionManifests())
-                    global::NServiceBus.FunctionsHostApplicationBuilderExtensions.AddNServiceBusFunction(builder, manifest);
+                    manifest.Register(builder, manifest);
                 foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_NServiceBus_AzureFunctions_AzureServiceBus_e560d8ca34e34763.GetFunctionManifests())
-                    global::NServiceBus.FunctionsHostApplicationBuilderExtensions.AddNServiceBusFunction(builder, manifest);
+                    manifest.Register(builder, manifest);
             }
         }
     }
@@ -90,7 +90,8 @@ namespace NServiceBus.Generated
         {
             yield return new global::NServiceBus.FunctionManifest(
                 "ProcessOrder", "sales-queue", "AzureServiceBus",
-                (endpointconfiguration, iconfiguration, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfiguration, ihostenvironment));
+                (endpointconfiguration, iconfiguration, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfiguration, ihostenvironment),
+                global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusFunctionManifestRegistration.Register);
             yield break;
         }
     }

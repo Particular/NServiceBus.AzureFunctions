@@ -98,7 +98,8 @@ public sealed partial class FunctionEndpointGenerator
             {
                 writer.WriteLine("yield return new global::NServiceBus.FunctionManifest(");
                 writer.WriteLine($"    \"{func.FunctionName}\", \"{func.AddressName}\", \"{func.ConnectionSettingName}\",");
-                writer.WriteLine($"    {GenerateConfigureMethodCall(func.ConfigureMethod)});");
+                writer.WriteLine($"    {GenerateConfigureMethodCall(func.ConfigureMethod)},");
+                writer.WriteLine($"    {func.RegistrationMethodFullyQualified});");
             }
 
             writer.WriteLine("yield break;");

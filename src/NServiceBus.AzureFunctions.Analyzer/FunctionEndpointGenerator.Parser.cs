@@ -181,7 +181,7 @@ public sealed partial class FunctionEndpointGenerator
                 }
             }
 
-            var problems = new List<string>();
+            var problems = ImmutableList.CreateBuilder<string>();
 
             if (triggerParameterCount == 0)
             {

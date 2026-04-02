@@ -11,11 +11,17 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
 
     internal static void InitializeGenerator(IncrementalGeneratorInitializationContext context, TriggerDefinition triggerDefinition)
     {
-        var extractionResults = context.SyntaxProvider
+        var extractionCandidates = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "NServiceBus.NServiceBusFunctionAttribute",
                 predicate: static (node, _) => node is ClassDeclarationSyntax or MethodDeclarationSyntax,
-                transform: (ctx, ct) => Parser.Extract(ctx, triggerDefinition, ct))
+                transform: static (ctx, _) => ctx);
+
+        var triggerDefinitionProvider = CreateTriggerDefinitionProvider(context, triggerDefinition);
+
+        var extractionResults = extractionCandidates
+            .Combine(triggerDefinitionProvider)
+            .Select(static (pair, ct) => Parser.Extract(pair.Left, pair.Right, ct))
             .WithTrackingName(TrackingNames.Extraction);
 
         var diagnostics = extractionResults
@@ -38,5 +44,10 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.Combined);
 
         context.RegisterSourceOutput(combined, static (spc, data) => Emitter.Emit(spc, data.Left, data.Right));
+
+        static IncrementalValueProvider<TriggerDefinition> CreateTriggerDefinitionProvider(
+            IncrementalGeneratorInitializationContext context,
+            TriggerDefinition triggerDefinition) =>
+            context.CompilationProvider.Select((_, _) => triggerDefinition);
     }
 }

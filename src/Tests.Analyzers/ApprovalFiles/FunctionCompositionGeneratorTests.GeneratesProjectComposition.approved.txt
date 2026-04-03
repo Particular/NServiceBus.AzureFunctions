@@ -44,9 +44,13 @@ namespace My.FunctionApp
                 global::NServiceBus.NServiceBusFunctionsInfrastructure.Initialize(builder);
 
                 foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_GeneratesProjectComposition_4d91953014478208.GetFunctionManifests())
+                {
                     manifest.Register(builder, manifest);
+                }
                 foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_NServiceBus_AzureFunctions_AzureServiceBus_e560d8ca34e34763.GetFunctionManifests())
+                {
                     manifest.Register(builder, manifest);
+                }
             }
         }
     }

@@ -59,7 +59,7 @@ public sealed partial class FunctionEndpointGenerator
             return new NamedProperty(propertyName);
         }
 
-        public static AddressExtractionPolicy FromConstructorParameterNamed(string parameterName)
+        public static AddressExtractionPolicy FromNamedConstructorParameter(string parameterName)
         {
             if (string.IsNullOrWhiteSpace(parameterName))
             {

@@ -12,7 +12,7 @@ class LenientNoMessageActionsGenerator : IIncrementalGenerator
                 TriggerAttributeMetadataName: "Demo.Testing.TestTriggerAttribute",
                 AdditionalParameterTypes: ImmutableEquatableArray<FunctionEndpointGenerator.AdditionalParameterType>.Empty,
                 ProcessorTypeFullyQualified: "global::Demo.Testing.TestProcessor",
-                AddressExtraction: FunctionEndpointGenerator.AddressExtractionPolicy.FromConstructorParameterNamed("queueName"),
+                AddressExtraction: FunctionEndpointGenerator.AddressExtractionPolicy.FromNamedConstructorParameter("queueName"),
                 ConnectionSetting: FunctionEndpointGenerator.ConnectionSettingPolicy.FromNamedProperty("ConnSetting"),
                 AutoComplete: FunctionEndpointGenerator.AutoCompletePolicy.None,
                 RegistrationMethodFullyQualified: "global::Demo.Testing.TestFunctionManifestRegistration.Register",

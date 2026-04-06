@@ -132,32 +132,25 @@ public sealed partial class FunctionEndpointGenerator
                             messageParamName = param.Name;
                         }
 
-                        if (pAttr.ConstructorArguments.Length > 0)
+                        if (TryExtractAddress(pAttr, triggerDefinition.AddressExtraction, out var extractedAddress))
                         {
-                            addressName = pAttr.ConstructorArguments[0].Value as string;
+                            addressName = extractedAddress;
                         }
 
-                        var autoCompleteEnabled = triggerDefinition.RequireAutoCompleteFalse;
-                        foreach (var namedArg in pAttr.NamedArguments)
+                        if (TryExtractConnectionSetting(pAttr, triggerDefinition.ConnectionSetting, out var extractedConnectionSetting))
                         {
-                            if (triggerDefinition.ConnectionPropertyName is not null
-                                && namedArg.Key == triggerDefinition.ConnectionPropertyName)
-                            {
-                                connectionSettingName = namedArg.Value.Value as string;
-                            }
-
-                            if (triggerDefinition.RequireAutoCompleteFalse
-                                && triggerDefinition.AutoCompletePropertyName is not null
-                                && namedArg.Key == triggerDefinition.AutoCompletePropertyName)
-                            {
-                                var autoComplete = namedArg.Value.Value as bool?;
-                                autoCompleteEnabled = autoComplete!.Value;
-                            }
+                            connectionSettingName = extractedConnectionSetting;
                         }
 
-                        if (triggerDefinition.RequireAutoCompleteFalse && autoCompleteEnabled)
+                        if (triggerDefinition.AutoComplete is AutoCompletePolicy.MustBeFalse autoCompletePolicy
+                            && IsAutoCompleteEnabled(pAttr, autoCompletePolicy))
                         {
-                            diagnostics.Add(CreateDiagnostic(DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled, method, method.Name));
+                            diagnostics.Add(CreateDiagnostic(
+                                DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled,
+                                method,
+                                method.Name,
+                                autoCompletePolicy.PropertyName,
+                                knownTypes.TriggerAttribute.Name));
                         }
                     }
                 }
@@ -369,6 +362,71 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             return roleIndex == shape.OrderedParameters.Count;
+        }
+
+        static bool TryExtractAddress(AttributeData triggerAttribute, AddressExtractionPolicy policy, [NotNullWhen(true)] out string? address)
+        {
+            switch (policy)
+            {
+                case AddressExtractionPolicy.ConstructorArgument(var index)
+                    when triggerAttribute.ConstructorArguments.Length > index:
+                    address = triggerAttribute.ConstructorArguments[index].Value as string;
+                    return address is not null;
+
+                case AddressExtractionPolicy.ConstructorArgument:
+                    address = null;
+                    return false;
+
+                case AddressExtractionPolicy.NamedProperty(var propertyName):
+                    return TryGetNamedArgumentString(triggerAttribute, propertyName, out address);
+
+                default:
+                    throw new InvalidOperationException($"Unsupported address extraction policy: {policy.GetType().Name}.");
+            }
+        }
+
+        static bool TryExtractConnectionSetting(AttributeData triggerAttribute, ConnectionSettingPolicy policy, [NotNullWhen(true)] out string? connectionSetting)
+        {
+            switch (policy)
+            {
+                case ConnectionSettingPolicy.NamedProperty(var propertyName):
+                    return TryGetNamedArgumentString(triggerAttribute, propertyName, out connectionSetting);
+
+                case ConnectionSettingPolicy.None:
+                    connectionSetting = null;
+                    return false;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported connection setting policy: {policy.GetType().Name}.");
+            }
+        }
+
+        static bool IsAutoCompleteEnabled(AttributeData triggerAttribute, AutoCompletePolicy.MustBeFalse policy)
+        {
+            foreach (var namedArg in triggerAttribute.NamedArguments)
+            {
+                if (namedArg.Key == policy.PropertyName)
+                {
+                    return namedArg.Value.Value as bool? ?? true;
+                }
+            }
+
+            return true;
+        }
+
+        static bool TryGetNamedArgumentString(AttributeData triggerAttribute, string propertyName, [NotNullWhen(true)] out string? value)
+        {
+            foreach (var namedArg in triggerAttribute.NamedArguments)
+            {
+                if (namedArg.Key == propertyName)
+                {
+                    value = namedArg.Value.Value as string;
+                    return value is not null;
+                }
+            }
+
+            value = null;
+            return false;
         }
 
         static string FormatShape(ImmutableEquatableArray<ParameterRole> orderedParameters)

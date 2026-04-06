@@ -13,9 +13,9 @@ public sealed partial class FunctionEndpointGenerator
             new("Microsoft.Azure.Functions.Worker.ServiceBusMessageActions", MessageActions)
         }.ToImmutableEquatableArray(),
         ProcessorTypeFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor",
-        ConnectionPropertyName: "Connection",
-        AutoCompletePropertyName: "AutoCompleteMessages",
-        RequireAutoCompleteFalse: true,
+        AddressExtraction: AddressExtractionPolicy.FromConstructorArgument(0),
+        ConnectionSetting: ConnectionSettingPolicy.FromNamedProperty("Connection"),
+        AutoComplete: AutoCompletePolicy.MustBeFalseFor("AutoCompleteMessages"),
         RegistrationMethodFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusFunctionManifestRegistration.Register",
         ProcessMethodName: "Process",
         Shape: TriggerShape.Required(

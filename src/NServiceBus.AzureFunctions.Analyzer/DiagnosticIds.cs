@@ -59,7 +59,7 @@ static class DiagnosticIds
     internal static readonly DiagnosticDescriptor AutoCompleteMustBeExplicitlyDisabled = new(
         id: AutoCompleteEnabled,
         title: "Message auto completion must be explicitly disabled",
-        messageFormat: "The trigger auto complete property for method '{0}' must be explicitly set to false",
+        messageFormat: "The '{1}' property on [{2}] for method '{0}' must be explicitly set to false",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

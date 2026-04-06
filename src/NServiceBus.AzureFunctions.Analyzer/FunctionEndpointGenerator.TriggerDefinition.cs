@@ -36,6 +36,7 @@ public sealed partial class FunctionEndpointGenerator
     internal abstract record AddressExtractionPolicy
     {
         internal sealed record ConstructorArgument(int Index) : AddressExtractionPolicy;
+        internal sealed record ConstructorParameterNamed(string ParameterName) : AddressExtractionPolicy;
         internal sealed record NamedProperty(string PropertyName) : AddressExtractionPolicy;
 
         public static AddressExtractionPolicy FromConstructorArgument(int index)
@@ -56,6 +57,16 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             return new NamedProperty(propertyName);
+        }
+
+        public static AddressExtractionPolicy FromConstructorParameterNamed(string parameterName)
+        {
+            if (string.IsNullOrWhiteSpace(parameterName))
+            {
+                throw new ArgumentException("Parameter name cannot be null or whitespace.", nameof(parameterName));
+            }
+
+            return new ConstructorParameterNamed(parameterName);
         }
     }
 

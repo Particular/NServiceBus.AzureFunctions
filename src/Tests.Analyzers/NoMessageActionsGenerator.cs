@@ -16,7 +16,7 @@ class NoMessageActionsGenerator : IIncrementalGenerator
                 TriggerAttributeMetadataName: "Demo.Testing.TestTriggerAttribute",
                 AdditionalParameterTypes: ImmutableEquatableArray<FunctionEndpointGenerator.AdditionalParameterType>.Empty,
                 ProcessorTypeFullyQualified: "global::Demo.Testing.TestProcessor",
-                AddressExtraction: FunctionEndpointGenerator.AddressExtractionPolicy.FromConstructorArgument(0),
+                AddressExtraction: FunctionEndpointGenerator.AddressExtractionPolicy.FromConstructorParameterNamed("queueName"),
                 ConnectionSetting: FunctionEndpointGenerator.ConnectionSettingPolicy.FromNamedProperty("ConnSetting"),
                 AutoComplete: FunctionEndpointGenerator.AutoCompletePolicy.None,
                 RegistrationMethodFullyQualified: "global::Demo.Testing.TestFunctionManifestRegistration.Register",

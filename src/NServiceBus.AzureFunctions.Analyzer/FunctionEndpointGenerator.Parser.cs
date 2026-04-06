@@ -380,6 +380,9 @@ public sealed partial class FunctionEndpointGenerator
                 case AddressExtractionPolicy.NamedProperty(var propertyName):
                     return TryGetNamedArgumentString(triggerAttribute, propertyName, out address);
 
+                case AddressExtractionPolicy.ConstructorParameterNamed(var parameterName):
+                    return TryGetConstructorArgumentStringByParameterName(triggerAttribute, parameterName, out address);
+
                 default:
                     throw new InvalidOperationException($"Unsupported address extraction policy: {policy.GetType().Name}.");
             }
@@ -421,6 +424,35 @@ public sealed partial class FunctionEndpointGenerator
                 if (namedArg.Key == propertyName)
                 {
                     value = namedArg.Value.Value as string;
+                    return value is not null;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        static bool TryGetConstructorArgumentStringByParameterName(
+            AttributeData triggerAttribute,
+            string parameterName,
+            [NotNullWhen(true)] out string? value)
+        {
+            var constructor = triggerAttribute.AttributeConstructor;
+            if (constructor is null)
+            {
+                value = null;
+                return false;
+            }
+
+            var parameters = constructor.Parameters;
+            var arguments = triggerAttribute.ConstructorArguments;
+            var argumentCount = Math.Min(parameters.Length, arguments.Length);
+
+            for (var i = 0; i < argumentCount; i++)
+            {
+                if (parameters[i].Name == parameterName)
+                {
+                    value = arguments[i].Value as string;
                     return value is not null;
                 }
             }

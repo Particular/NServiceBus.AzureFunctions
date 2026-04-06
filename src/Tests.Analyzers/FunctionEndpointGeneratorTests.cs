@@ -398,6 +398,31 @@ public class FunctionEndpointGeneratorTests
     }
 
     [Test]
+    public void ReportsInvalidFunctionMethodWhenServiceBusTriggerUsesTopicSubscriptionConstructor()
+    {
+        var diagnostic = GetInvalidFunctionMethodDiagnostic<FunctionEndpointGenerator>("""
+           namespace Demo;
+
+           public partial class Functions
+           {
+               [NServiceBusFunction]
+               [Function("ProcessOrder")]
+               public partial Task Run(
+                   [ServiceBusTrigger("sales-topic", "sales-subscription", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
+                   ServiceBusMessageActions messageActions,
+                   FunctionContext context,
+                   CancellationToken cancellationToken);
+
+               public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
+               {
+               }
+           }
+           """);
+
+        Assert.That(diagnostic.GetMessage(), Does.Contain("trigger attribute does not specify an address or entity name"));
+    }
+
+    [Test]
     public void ReportsAllProblemsInSingleDiagnostic()
     {
         var diagnostic = GetInvalidFunctionMethodDiagnostic<NoMessageActionsGenerator>(

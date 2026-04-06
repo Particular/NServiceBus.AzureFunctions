@@ -13,7 +13,7 @@ public sealed partial class FunctionEndpointGenerator
             new("Microsoft.Azure.Functions.Worker.ServiceBusMessageActions", MessageActions)
         }.ToImmutableEquatableArray(),
         ProcessorTypeFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor",
-        AddressExtraction: AddressExtractionPolicy.FromConstructorArgument(0),
+        AddressExtraction: AddressExtractionPolicy.FromConstructorParameterNamed("queueName"),
         ConnectionSetting: ConnectionSettingPolicy.FromNamedProperty("Connection"),
         AutoComplete: AutoCompletePolicy.MustBeFalseFor("AutoCompleteMessages"),
         RegistrationMethodFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusFunctionManifestRegistration.Register",

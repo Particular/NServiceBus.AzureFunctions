@@ -400,7 +400,8 @@ public class FunctionEndpointGeneratorTests
     [Test]
     public void ReportsInvalidFunctionMethodWhenServiceBusTriggerUsesTopicSubscriptionConstructor()
     {
-        var diagnostic = GetInvalidFunctionMethodDiagnostic<FunctionEndpointGenerator>("""
+        var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource("""
            namespace Demo;
 
            public partial class Functions
@@ -408,18 +409,26 @@ public class FunctionEndpointGeneratorTests
                [NServiceBusFunction]
                [Function("ProcessOrder")]
                public partial Task Run(
-                   [ServiceBusTrigger("sales-topic", "sales-subscription", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
-                   ServiceBusMessageActions messageActions,
-                   FunctionContext context,
-                   CancellationToken cancellationToken);
+                    [ServiceBusTrigger("sales-topic", "sales-subscription", Connection = "AzureServiceBus", AutoCompleteMessages = true)] ServiceBusReceivedMessage message,
+                    ServiceBusMessageActions messageActions,
+                    FunctionContext context,
+                    CancellationToken cancellationToken);
 
                public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
                {
                }
-           }
-           """);
+            }
+           """)
+            .SuppressCompilationErrors()
+            .SuppressDiagnosticErrors()
+            .Run();
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain("trigger attribute does not specify an address or entity name"));
+        var diagnostics = result.GetGeneratorDiagnostics();
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidFunctionMethod));
+            Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.AutoCompleteEnabled));
+        }
     }
 
     [Test]

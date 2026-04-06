@@ -102,6 +102,8 @@ public sealed partial class FunctionEndpointGenerator
             string? messageParamName = null;
             string? functionContextParamName = null;
             string? cancellationTokenParamName = null;
+            string? autoCompletePropertyName = null;
+            var autoCompleteMustBeDisabled = false;
             var additionalParamNames = new Dictionary<ParameterRole, string>();
             var parameterRoles = new List<ParameterRole?>();
             var triggerParameterCount = 0;
@@ -145,12 +147,8 @@ public sealed partial class FunctionEndpointGenerator
                         if (triggerDefinition.AutoComplete is AutoCompletePolicy.MustBeFalse autoCompletePolicy
                             && IsAutoCompleteEnabled(pAttr, autoCompletePolicy))
                         {
-                            diagnostics.Add(CreateDiagnostic(
-                                DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled,
-                                method,
-                                method.Name,
-                                autoCompletePolicy.PropertyName,
-                                knownTypes.TriggerAttribute.Name));
+                            autoCompleteMustBeDisabled = true;
+                            autoCompletePropertyName ??= autoCompletePolicy.PropertyName;
                         }
                     }
                 }
@@ -247,6 +245,16 @@ public sealed partial class FunctionEndpointGenerator
                 var location = method.Locations.Length > 0 ? method.Locations[0] : null;
                 diagnostics.Add(Diagnostic.Create(DiagnosticIds.InvalidFunctionMethodDescriptor, location, properties.ToImmutable(), method.Name, string.Join(", ", problems)));
                 return null;
+            }
+
+            if (autoCompleteMustBeDisabled)
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled,
+                    method,
+                    method.Name,
+                    autoCompletePropertyName!,
+                    knownTypes.TriggerAttribute.Name));
             }
 
             connectionSettingName ??= "";

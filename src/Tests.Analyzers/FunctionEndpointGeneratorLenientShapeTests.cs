@@ -1,30 +1,19 @@
 namespace NServiceBus.AzureFunctions.Analyzers.Tests;
 
-static class TestSources
+using Particular.AnalyzerTesting;
+using NUnit.Framework;
+
+[TestFixture]
+public class FunctionEndpointGeneratorLenientShapeTests
 {
-    public const string ValidFunction = """
-        namespace Demo;
+    [Test]
+    public void GeneratesEndpointWithExtraUnrecognizedParametersWhenShapeAllowsAdditionalParameters() =>
+        SourceGeneratorTest.ForIncrementalGenerator<LenientNoMessageActionsGenerator>()
+            .WithSource(SourceWithAdditionalParameter)
+            .SuppressCompilationErrors()
+            .Approve();
 
-        public partial class Functions
-        {
-            [NServiceBusFunction]
-            [Function("ProcessOrder")]
-            public partial Task Run(
-                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
-                ServiceBusMessageActions messageActions,
-                FunctionContext context,
-                CancellationToken cancellationToken);
-
-            public static void ConfigureProcessOrder(
-                EndpointConfiguration endpointConfiguration,
-                IConfiguration iconfiguration,
-                IHostEnvironment ihostenvironment)
-            {
-            }
-        }
-        """;
-
-    public const string NoMessageActionsFunction = """
+    const string SourceWithAdditionalParameter = """
         namespace Demo.Testing;
 
         [System.AttributeUsage(System.AttributeTargets.Parameter)]
@@ -40,12 +29,15 @@ static class TestSources
             public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.FunctionManifest __) { }
         }
 
+        public class SomeCustomParameter { }
+
         public partial class Functions
         {
             [NServiceBusFunction]
             [Function("ProcessOrder")]
             public partial Task Run(
                 [TestTrigger("sales-queue", ConnSetting = "StorageConn", AutoCompleteMessages = false)] string message,
+                SomeCustomParameter extraParam,
                 FunctionContext context,
                 CancellationToken cancellationToken);
 

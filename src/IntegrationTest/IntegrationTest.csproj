@@ -13,6 +13,9 @@
     <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.CodeFixes\NServiceBus.AzureFunctions.CodeFixes.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\IntegrationTest.Shared\IntegrationTest.Shared.csproj" />
     <ProjectReference Include="..\IntegrationTest.Sales\IntegrationTest.Sales.csproj" />
     <ProjectReference Include="..\IntegrationTest.Billing\IntegrationTest.Billing.csproj" />

@@ -25,9 +25,9 @@ public static class FunctionEndpointConfigurationBuilder
             throw new InvalidOperationException($"Functions can't be send only endpoints, use {sendOnlyEndpointApiName}");
         }
 
-        if (functionManifest.Name != functionManifest.Queue)
+        if (functionManifest.Name != functionManifest.Address)
         {
-            endpointConfiguration.OverrideLocalAddress(functionManifest.Queue);
+            endpointConfiguration.OverrideLocalAddress(functionManifest.Address);
         }
 
         return endpointConfiguration;

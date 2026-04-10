@@ -2,7 +2,10 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 using Microsoft.CodeAnalysis;
 
-public static class DiagnosticIds
+#if !FIXES
+public
+#endif
+static class DiagnosticIds
 {
     public const string ClassMustBePartial = "NSBFUNC001";
     public const string ShouldNotImplementIHandleMessages = "NSBFUNC002";
@@ -10,6 +13,7 @@ public static class DiagnosticIds
     public const string MissingAddNServiceBusFunctionsCall = "NSBFUNC004";
     public const string MultipleConfigureMethods = "NSBFUNC005";
     public const string AutoCompleteEnabled = "NSBFUNC006";
+    public const string InvalidFunctionMethod = "NSBFUNC007";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -35,6 +39,15 @@ public static class DiagnosticIds
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    internal static readonly DiagnosticDescriptor MissingAddNServiceBusFunctionsCallDescriptor = new(
+        id: MissingAddNServiceBusFunctionsCall,
+        title: "AddNServiceBusFunctions() is not called",
+        messageFormat: "This project has NServiceBus endpoint registrations but does not call builder.AddNServiceBusFunctions(). Endpoints will not be started.",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        customTags: [WellKnownDiagnosticTags.CompilationEnd]);
+
     internal static readonly DiagnosticDescriptor MultipleConfigureMethodsDescriptor = new(
         id: MultipleConfigureMethods,
         title: "Multiple configuration methods found",
@@ -46,17 +59,16 @@ public static class DiagnosticIds
     internal static readonly DiagnosticDescriptor AutoCompleteMustBeExplicitlyDisabled = new(
         id: AutoCompleteEnabled,
         title: "Message auto completion must be explicitly disabled",
-        messageFormat: "The auto complete property on the service bus trigger for method '{0}' must be explicitly set to false",
+        messageFormat: "The '{1}' property on [{2}] for method '{0}' must be explicitly set to false",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    internal static readonly DiagnosticDescriptor MissingAddNServiceBusFunctionsCallDescriptor = new(
-        id: MissingAddNServiceBusFunctionsCall,
-        title: "AddNServiceBusFunctions() is not called",
-        messageFormat: "This project has NServiceBus endpoint registrations but does not call builder.AddNServiceBusFunctions(). Endpoints will not be started.",
+    internal static readonly DiagnosticDescriptor InvalidFunctionMethodDescriptor = new(
+        id: InvalidFunctionMethod,
+        title: "Invalid NServiceBus function method",
+        messageFormat: "Method '{0}' is not a valid NServiceBus function: {1}",
         category: "NServiceBus.AzureFunctions",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        customTags: [WellKnownDiagnosticTags.CompilationEnd]);
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

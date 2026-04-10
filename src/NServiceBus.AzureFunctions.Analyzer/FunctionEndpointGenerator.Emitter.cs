@@ -56,14 +56,14 @@ public sealed partial class FunctionEndpointGenerator
                     writer.WriteLine("{");
                     writer.Indentation++;
                     writer.WriteLine($"var processor = {func.FunctionContextParamName}.InstanceServices");
-                    writer.WriteLine($"    .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor>(\"{func.FunctionName}\");");
+                    writer.WriteLine($"    .GetKeyedService<{func.ProcessorTypeFullyQualified}>(\"{func.FunctionName}\");");
                     writer.WriteLine("if (processor is null)");
                     writer.WriteLine("{");
                     writer.Indentation++;
                     writer.WriteLine($"throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");
                     writer.Indentation--;
                     writer.WriteLine("}");
-                    writer.WriteLine($"return processor.Process({func.MessageParamName}, {func.MessageActionsParamName}, {func.FunctionContextParamName}, {func.CancellationTokenParamName});");
+                    writer.WriteLine($"return {func.ProcessCallExpression};");
                     writer.Indentation--;
                     writer.WriteLine("}");
                 }
@@ -97,8 +97,9 @@ public sealed partial class FunctionEndpointGenerator
             foreach (var func in functions.OrderBy(f => f.FunctionName, StringComparer.Ordinal))
             {
                 writer.WriteLine("yield return new global::NServiceBus.FunctionManifest(");
-                writer.WriteLine($"    \"{func.FunctionName}\", \"{func.QueueName}\", \"{func.ConnectionName}\",");
-                writer.WriteLine($"    {GenerateConfigureMethodCall(func.ConfigureMethod)});");
+                writer.WriteLine($"    \"{func.FunctionName}\", \"{func.AddressName}\", \"{func.ConnectionSettingName}\",");
+                writer.WriteLine($"    {GenerateConfigureMethodCall(func.ConfigureMethod)},");
+                writer.WriteLine($"    {func.RegistrationMethodFullyQualified});");
             }
 
             writer.WriteLine("yield break;");

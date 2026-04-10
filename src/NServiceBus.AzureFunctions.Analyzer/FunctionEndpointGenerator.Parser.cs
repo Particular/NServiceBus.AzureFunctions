@@ -1,5 +1,6 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
@@ -12,7 +13,7 @@ public sealed partial class FunctionEndpointGenerator
 {
     static class Parser
     {
-        internal static FunctionSpecs Extract(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken = default)
+        internal static FunctionSpecs Extract(GeneratorAttributeSyntaxContext context, TriggerDefinition triggerDefinition, CancellationToken cancellationToken = default)
         {
             if (context.Attributes.Length == 0)
             {
@@ -21,20 +22,20 @@ public sealed partial class FunctionEndpointGenerator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, out var knownTypes))
+            if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, triggerDefinition, out var knownTypes))
             {
                 return FunctionSpecs.Empty;
             }
 
             return context.TargetSymbol switch
             {
-                INamedTypeSymbol classSymbol => ExtractFromClass(classSymbol, knownTypes, cancellationToken),
-                IMethodSymbol methodSymbol => ExtractFromMethod(methodSymbol, knownTypes, cancellationToken),
+                INamedTypeSymbol classSymbol => ExtractFromClass(classSymbol, knownTypes, triggerDefinition, cancellationToken),
+                IMethodSymbol methodSymbol => ExtractFromMethod(methodSymbol, knownTypes, triggerDefinition, cancellationToken),
                 _ => FunctionSpecs.Empty
             };
         }
 
-        static FunctionSpecs ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
+        static FunctionSpecs ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, CancellationToken cancellationToken)
         {
             var functions = new List<FunctionSpec>();
             var diagnostics = new List<Diagnostic>();
@@ -54,7 +55,7 @@ public sealed partial class FunctionEndpointGenerator
                 cancellationToken.ThrowIfCancellationRequested();
                 if (member is IMethodSymbol method)
                 {
-                    var spec = ExtractFunctionSpec(method, knownTypes, diagnostics);
+                    var spec = ExtractFunctionSpec(method, knownTypes, triggerDefinition, diagnostics);
                     if (spec is not null)
                     {
                         functions.Add(spec);
@@ -65,7 +66,7 @@ public sealed partial class FunctionEndpointGenerator
             return new FunctionSpecs(functions.ToImmutableEquatableArray(), diagnostics.ToImmutableEquatableArray());
         }
 
-        static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, CancellationToken cancellationToken)
+        static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, CancellationToken cancellationToken)
         {
             var diagnostics = new List<Diagnostic>();
 
@@ -79,12 +80,12 @@ public sealed partial class FunctionEndpointGenerator
                 diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, methodSymbol.ContainingType, methodSymbol.ContainingType.Name));
             }
 
-            var spec = ExtractFunctionSpec(methodSymbol, knownTypes, diagnostics);
+            var spec = ExtractFunctionSpec(methodSymbol, knownTypes, triggerDefinition, diagnostics);
             var functions = spec is null ? ImmutableEquatableArray<FunctionSpec>.Empty : ((FunctionSpec[])[spec]).ToImmutableEquatableArray();
             return new FunctionSpecs(functions, diagnostics.ToImmutableEquatableArray());
         }
 
-        static FunctionSpec? ExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
+        static FunctionSpec? ExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, List<Diagnostic> diagnostics)
         {
             if (!TryGetFunctionAttribute(method, knownTypes, out var functionAttr) || functionAttr.ConstructorArguments.Length == 0)
             {
@@ -96,12 +97,16 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
-            string? queueName = null;
-            string? connectionName = null;
+            string? addressName = null;
+            string? connectionSettingName = null;
             string? messageParamName = null;
             string? functionContextParamName = null;
             string? cancellationTokenParamName = null;
-            string? messageActionsParamName = null;
+            string? autoCompletePropertyName = null;
+            var autoCompleteMustBeDisabled = false;
+            var additionalParamNames = new Dictionary<ParameterRole, string>();
+            var parameterRoles = new List<ParameterRole?>();
+            var triggerParameterCount = 0;
 
             var paramList = new StringBuilder();
 
@@ -116,64 +121,144 @@ public sealed partial class FunctionEndpointGenerator
                 var paramTypeFqn = param.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 paramList.Append(paramTypeFqn).Append(' ').Append(param.Name);
 
+                var hasTriggerAttribute = false;
                 foreach (var pAttr in param.GetAttributes())
                 {
-                    if (SymbolEqualityComparer.Default.Equals(pAttr.AttributeClass, knownTypes.ServiceBusTriggerAttribute))
+                    if (SymbolEqualityComparer.Default.Equals(pAttr.AttributeClass, knownTypes.TriggerAttribute))
                     {
-                        if (pAttr.ConstructorArguments.Length > 0)
+                        hasTriggerAttribute = true;
+                        triggerParameterCount++;
+
+                        if (triggerParameterCount == 1)
                         {
-                            queueName = pAttr.ConstructorArguments[0].Value as string;
+                            messageParamName = param.Name;
                         }
 
-                        var autoCompleteEnabled = true;
-                        foreach (var namedArg in pAttr.NamedArguments)
+                        if (TryExtractAddress(pAttr, triggerDefinition.AddressExtraction, out var extractedAddress))
                         {
-                            if (namedArg.Key == "Connection")
-                            {
-                                connectionName = namedArg.Value.Value as string;
-                            }
-
-                            if (namedArg.Key == "AutoCompleteMessages")
-                            {
-                                var autoComplete = namedArg.Value.Value as bool?;
-                                autoCompleteEnabled = autoComplete!.Value;
-                            }
+                            addressName = extractedAddress;
                         }
 
-                        if (autoCompleteEnabled)
+                        if (TryExtractConnectionSetting(pAttr, triggerDefinition.ConnectionSetting, out var extractedConnectionSetting))
                         {
-                            diagnostics.Add(CreateDiagnostic(DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled, method, method.Name));
+                            connectionSettingName = extractedConnectionSetting;
                         }
 
-                        messageParamName = param.Name;
+                        if (triggerDefinition.AutoComplete is AutoCompletePolicy.MustBeFalse autoCompletePolicy
+                            && IsAutoCompleteEnabled(pAttr, autoCompletePolicy))
+                        {
+                            autoCompleteMustBeDisabled = true;
+                            autoCompletePropertyName ??= autoCompletePolicy.PropertyName;
+                        }
                     }
                 }
 
-                if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.MessageActions))
+                var role = ClassifyParameterRole(param, hasTriggerAttribute, knownTypes);
+                parameterRoles.Add(role);
+
+                if (role is not null && knownTypes.AdditionalParameterSymbols.ContainsKey(role.Value) && !additionalParamNames.ContainsKey(role.Value))
                 {
-                    messageActionsParamName = param.Name;
+                    additionalParamNames[role.Value] = param.Name;
                 }
 
-                if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.FunctionContext))
+                if (role == ParameterRole.FunctionContext && functionContextParamName is null)
                 {
                     functionContextParamName = param.Name;
                 }
 
-                if (SymbolEqualityComparer.Default.Equals(param.Type, knownTypes.CancellationToken))
+                if (role == ParameterRole.CancellationToken && cancellationTokenParamName is null)
                 {
                     cancellationTokenParamName = param.Name;
                 }
             }
 
-            if (queueName is null || functionContextParamName is null || messageParamName is null || messageActionsParamName is null)
+            var problems = ImmutableList.CreateBuilder<string>();
+
+            if (triggerParameterCount == 0)
             {
+                problems.Add("missing a parameter with a trigger attribute");
+            }
+            else if (triggerParameterCount > 1)
+            {
+                problems.Add("must declare exactly one trigger parameter");
+            }
+
+            if (messageParamName is not null && addressName is null)
+            {
+                problems.Add("trigger attribute does not specify an address or entity name");
+            }
+
+            if (functionContextParamName is null)
+            {
+                problems.Add("missing FunctionContext parameter");
+            }
+
+            foreach (var kvp in knownTypes.AdditionalParameterSymbols)
+            {
+                if (!additionalParamNames.ContainsKey(kvp.Key))
+                {
+                    problems.Add($"missing {kvp.Key.Name} parameter");
+                }
+            }
+
+            if (cancellationTokenParamName is null)
+            {
+                problems.Add("missing CancellationToken parameter");
+            }
+
+            if (!MatchesShape(parameterRoles, triggerDefinition.Shape))
+            {
+                problems.Add($"parameters must match required shape {FormatShape(triggerDefinition.Shape.OrderedParameters)}");
+            }
+
+            var containingType = method.ContainingType;
+            var configureMethodName = $"Configure{functionName}";
+            var configureMethod = GetConfigureMethodSpec(containingType, functionName, knownTypes, diagnostics);
+            if (configureMethod is null)
+            {
+                problems.Add($"missing '{configureMethodName}' configuration method");
+            }
+
+            if (problems.Count > 0)
+            {
+                var properties = ImmutableDictionary.CreateBuilder<string, string?>();
+                properties.Add("ConfigureMethodName", configureMethodName);
+                if (functionContextParamName is null)
+                {
+                    properties.Add("MissingFunctionContext", "true");
+                }
+                if (cancellationTokenParamName is null)
+                {
+                    properties.Add("MissingCancellationToken", "true");
+                }
+                foreach (var kvp in knownTypes.AdditionalParameterSymbols)
+                {
+                    if (!additionalParamNames.ContainsKey(kvp.Key))
+                    {
+                        properties.Add($"Missing{kvp.Key.Name}", kvp.Value.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+                    }
+                }
+                if (configureMethod is null)
+                {
+                    properties.Add("MissingConfigureMethod", "true");
+                }
+                var location = method.Locations.Length > 0 ? method.Locations[0] : null;
+                diagnostics.Add(Diagnostic.Create(DiagnosticIds.InvalidFunctionMethodDescriptor, location, properties.ToImmutable(), method.Name, string.Join(", ", problems)));
                 return null;
             }
 
-            connectionName ??= "";
-            cancellationTokenParamName ??= "cancellationToken";
+            if (autoCompleteMustBeDisabled)
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled,
+                    method,
+                    method.Name,
+                    autoCompletePropertyName!,
+                    knownTypes.TriggerAttribute.Name));
+            }
 
-            var containingType = method.ContainingType;
+            connectionSettingName ??= "";
+
             var ns = containingType.ContainingNamespace.ToDisplayString();
             var className = containingType.Name;
             var returnType = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -190,17 +275,216 @@ public sealed partial class FunctionEndpointGenerator
                 _ => "public",
             };
 
-            var configureMethod = GetConfigureMethodSpec(containingType, functionName, knownTypes, diagnostics);
-            if (configureMethod is null)
+            var processArgParts = new List<string>();
+            foreach (var role in triggerDefinition.Shape.OrderedParameters)
             {
-                return null;
+                if (role == ParameterRole.TriggerMessage)
+                {
+                    processArgParts.Add(messageParamName!);
+                }
+                else if (role == ParameterRole.FunctionContext)
+                {
+                    processArgParts.Add(functionContextParamName!);
+                }
+                else if (role == ParameterRole.CancellationToken)
+                {
+                    processArgParts.Add(cancellationTokenParamName!);
+                }
+                else if (additionalParamNames.TryGetValue(role, out var name))
+                {
+                    processArgParts.Add(name);
+                }
             }
+            var processArgs = string.Join(", ", processArgParts);
+            var processCallExpression = $"processor.{triggerDefinition.ProcessMethodName}({processArgs})";
 
             return new FunctionSpec(
                 ns, className, accessibility, method.Name, returnType,
-                paramList.ToString(), messageParamName, messageActionsParamName, functionContextParamName,
-                cancellationTokenParamName, functionName, queueName, connectionName,
-                configureMethod.Value);
+                paramList.ToString(), functionContextParamName!,
+                functionName, addressName!, connectionSettingName,
+                triggerDefinition.ProcessorTypeFullyQualified, triggerDefinition.RegistrationMethodFullyQualified, processCallExpression, configureMethod!.Value);
+        }
+
+        static ParameterRole? ClassifyParameterRole(IParameterSymbol parameter, bool hasTriggerAttribute, FunctionEndpointGeneratorKnownTypes knownTypes)
+        {
+            if (hasTriggerAttribute)
+            {
+                return ParameterRole.TriggerMessage;
+            }
+
+            foreach (var kvp in knownTypes.AdditionalParameterSymbols)
+            {
+                if (SymbolEqualityComparer.Default.Equals(parameter.Type, kvp.Value))
+                {
+                    return kvp.Key;
+                }
+            }
+
+            if (SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.FunctionContext))
+            {
+                return ParameterRole.FunctionContext;
+            }
+
+            if (SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.CancellationToken))
+            {
+                return ParameterRole.CancellationToken;
+            }
+
+            return null;
+        }
+
+        static bool MatchesShape(List<ParameterRole?> actualParameterRoles, TriggerShape shape)
+        {
+            if (!shape.AllowAdditionalParameters)
+            {
+                if (actualParameterRoles.Count != shape.OrderedParameters.Count)
+                {
+                    return false;
+                }
+
+                for (var i = 0; i < actualParameterRoles.Count; i++)
+                {
+                    if (actualParameterRoles[i] is not { } role || role != shape.OrderedParameters[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            var roleIndex = 0;
+            for (var i = 0; i < actualParameterRoles.Count; i++)
+            {
+                if (actualParameterRoles[i] is not { } role)
+                {
+                    continue;
+                }
+
+                if (roleIndex >= shape.OrderedParameters.Count || role != shape.OrderedParameters[roleIndex])
+                {
+                    return false;
+                }
+
+                roleIndex++;
+            }
+
+            return roleIndex == shape.OrderedParameters.Count;
+        }
+
+        static bool TryExtractAddress(AttributeData triggerAttribute, AddressExtractionPolicy policy, [NotNullWhen(true)] out string? address)
+        {
+            switch (policy)
+            {
+                case AddressExtractionPolicy.ConstructorArgument(var index)
+                    when triggerAttribute.ConstructorArguments.Length > index:
+                    address = triggerAttribute.ConstructorArguments[index].Value as string;
+                    return address is not null;
+
+                case AddressExtractionPolicy.ConstructorArgument:
+                    address = null;
+                    return false;
+
+                case AddressExtractionPolicy.NamedProperty(var propertyName):
+                    return TryGetNamedArgumentString(triggerAttribute, propertyName, out address);
+
+                case AddressExtractionPolicy.ConstructorParameterNamed(var parameterName):
+                    return TryGetConstructorArgumentStringByParameterName(triggerAttribute, parameterName, out address);
+
+                default:
+                    throw new InvalidOperationException($"Unsupported address extraction policy: {policy.GetType().Name}.");
+            }
+        }
+
+        static bool TryExtractConnectionSetting(AttributeData triggerAttribute, ConnectionSettingPolicy policy, [NotNullWhen(true)] out string? connectionSetting)
+        {
+            switch (policy)
+            {
+                case ConnectionSettingPolicy.NamedProperty(var propertyName):
+                    return TryGetNamedArgumentString(triggerAttribute, propertyName, out connectionSetting);
+
+                case ConnectionSettingPolicy.None:
+                    connectionSetting = null;
+                    return false;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported connection setting policy: {policy.GetType().Name}.");
+            }
+        }
+
+        static bool IsAutoCompleteEnabled(AttributeData triggerAttribute, AutoCompletePolicy.MustBeFalse policy)
+        {
+            foreach (var namedArg in triggerAttribute.NamedArguments)
+            {
+                if (namedArg.Key == policy.PropertyName)
+                {
+                    return namedArg.Value.Value as bool? ?? true;
+                }
+            }
+
+            return true;
+        }
+
+        static bool TryGetNamedArgumentString(AttributeData triggerAttribute, string propertyName, [NotNullWhen(true)] out string? value)
+        {
+            foreach (var namedArg in triggerAttribute.NamedArguments)
+            {
+                if (namedArg.Key == propertyName)
+                {
+                    value = namedArg.Value.Value as string;
+                    return value is not null;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        static bool TryGetConstructorArgumentStringByParameterName(
+            AttributeData triggerAttribute,
+            string parameterName,
+            [NotNullWhen(true)] out string? value)
+        {
+            var constructor = triggerAttribute.AttributeConstructor;
+            if (constructor is null)
+            {
+                value = null;
+                return false;
+            }
+
+            var parameters = constructor.Parameters;
+            var arguments = triggerAttribute.ConstructorArguments;
+            var argumentCount = Math.Min(parameters.Length, arguments.Length);
+
+            for (var i = 0; i < argumentCount; i++)
+            {
+                if (parameters[i].Name == parameterName)
+                {
+                    value = arguments[i].Value as string;
+                    return value is not null;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        static string FormatShape(ImmutableEquatableArray<ParameterRole> orderedParameters)
+        {
+            var builder = new StringBuilder("[");
+
+            for (var i = 0; i < orderedParameters.Count; i++)
+            {
+                if (i > 0)
+                {
+                    builder.Append(", ");
+                }
+
+                builder.Append(orderedParameters[i]);
+            }
+
+            builder.Append(']');
+            return builder.ToString();
         }
 
         static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
@@ -321,13 +605,13 @@ public sealed partial class FunctionEndpointGenerator
         string MethodName,
         string ReturnType,
         string ParameterList,
-        string MessageParamName,
-        string MessageActionsParamName,
         string FunctionContextParamName,
-        string CancellationTokenParamName,
         string FunctionName,
-        string QueueName,
-        string ConnectionName,
+        string AddressName,
+        string ConnectionSettingName,
+        string ProcessorTypeFullyQualified,
+        string RegistrationMethodFullyQualified,
+        string ProcessCallExpression,
         ConfigureMethodSpec ConfigureMethod);
 
     internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics)
@@ -337,64 +621,76 @@ public sealed partial class FunctionEndpointGenerator
 
     readonly struct FunctionEndpointGeneratorKnownTypes(
         INamedTypeSymbol functionAttribute,
-        INamedTypeSymbol serviceBusTriggerAttribute,
+        INamedTypeSymbol triggerAttribute,
         INamedTypeSymbol functionContext,
         INamedTypeSymbol cancellationToken,
         INamedTypeSymbol endpointConfiguration,
         INamedTypeSymbol iHandleMessages,
         INamedTypeSymbol iConfiguration,
         INamedTypeSymbol iHostEnvironment,
-        INamedTypeSymbol messageActions)
+        ImmutableDictionary<ParameterRole, INamedTypeSymbol> additionalParameterSymbols)
     {
         public INamedTypeSymbol FunctionAttribute { get; } = functionAttribute;
-        public INamedTypeSymbol ServiceBusTriggerAttribute { get; } = serviceBusTriggerAttribute;
+        public INamedTypeSymbol TriggerAttribute { get; } = triggerAttribute;
         public INamedTypeSymbol FunctionContext { get; } = functionContext;
         public INamedTypeSymbol CancellationToken { get; } = cancellationToken;
         public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
         public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
         public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
         public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
-        public INamedTypeSymbol MessageActions { get; } = messageActions;
+        public ImmutableDictionary<ParameterRole, INamedTypeSymbol> AdditionalParameterSymbols { get; } = additionalParameterSymbols;
 
-        public static bool TryGet(Compilation compilation, out FunctionEndpointGeneratorKnownTypes knownTypes)
+        public static bool TryGet(Compilation compilation, TriggerDefinition triggerDefinition, out FunctionEndpointGeneratorKnownTypes knownTypes)
         {
             var functionAttribute =
                 compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute");
-            var serviceBusTriggerAttribute =
-                compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.ServiceBusTriggerAttribute");
+            var triggerAttribute =
+                compilation.GetTypeByMetadataName(triggerDefinition.TriggerAttributeMetadataName);
             var functionContext = compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionContext");
             var cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
             var endpointConfiguration = compilation.GetTypeByMetadataName("NServiceBus.EndpointConfiguration");
             var iHandleMessages = compilation.GetTypeByMetadataName("NServiceBus.IHandleMessages`1");
             var iconfiguration = compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
             var iHostEnvironment = compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostEnvironment");
-            var messageActions = compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.ServiceBusMessageActions");
+
             if (functionAttribute is null
-                || serviceBusTriggerAttribute is null
+                || triggerAttribute is null
                 || functionContext is null
                 || cancellationToken is null
                 || endpointConfiguration is null
                 || iHandleMessages is null
                 || iconfiguration is null
-                || iHostEnvironment is null
-                || messageActions is null)
+                || iHostEnvironment is null)
             {
                 knownTypes = default;
                 return false;
             }
 
+            var additionalBuilder = ImmutableDictionary.CreateBuilder<ParameterRole, INamedTypeSymbol>();
+            foreach (var apt in triggerDefinition.AdditionalParameterTypes)
+            {
+                var symbol = compilation.GetTypeByMetadataName(apt.MetadataName);
+                if (symbol is null)
+                {
+                    knownTypes = default;
+                    return false;
+                }
+                additionalBuilder.Add(apt.Role, symbol);
+            }
+
             knownTypes = new FunctionEndpointGeneratorKnownTypes(
                 functionAttribute,
-                serviceBusTriggerAttribute,
+                triggerAttribute,
                 functionContext,
                 cancellationToken,
                 endpointConfiguration,
                 iHandleMessages,
                 iconfiguration,
                 iHostEnvironment,
-                messageActions);
+                additionalBuilder.ToImmutable());
 
             return true;
         }
     }
 }
+

@@ -1,16 +1,33 @@
 namespace NServiceBus.AzureFunctions.Tests;
 
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Particular.Approvals;
 using PublicApiGenerator;
 
 [TestFixture]
-public class ApiApprovals
+public partial class ApiApprovals
 {
     [Test]
-    public void ApprovaAzureServiceBusComponentApi()
+    public void ApproveAzureServiceBusComponentApi()
     {
         var publicApi = typeof(AzureServiceBusServerlessTransport).Assembly.GeneratePublicApi(new ApiGeneratorOptions()
+        {
+            ExcludeAttributes = ["System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute"]
+        });
+
+        Approver.Verify(publicApi, scrubber: ScrubGeneratedClassName);
+    }
+
+    [GeneratedRegex(@"(?<Prefix>GeneratedFunctionRegistrations_NServiceBus_AzureFunctions_AzureServiceBus_)(?<Hash>[0-9a-f]{16})", RegexOptions.Compiled)]
+    private static partial Regex GeneratedClassScrubberRegex();
+
+    static string ScrubGeneratedClassName(string className) => GeneratedClassScrubberRegex().Replace(className, "${Prefix}{GENERATED_HASH}");
+
+    [Test]
+    public void ApproveFunctionsComponentApi()
+    {
+        var publicApi = typeof(NServiceBusFunctionAttribute).Assembly.GeneratePublicApi(new ApiGeneratorOptions()
         {
             ExcludeAttributes = ["System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute"]
         });

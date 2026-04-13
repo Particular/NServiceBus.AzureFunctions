@@ -4,21 +4,28 @@
     <TargetFramework>net10.0</TargetFramework>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <Description>Azure Functions hosting for NServiceBus endpoints with Azure Serivce Bus triggers</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
-    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.13.1" />
-    <PackageReference Include="NServiceBus" Version="10.2.0-alpha.3" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" Version="6.2.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.AzureFunctions\NServiceBus.AzureFunctions.csproj" />
+    <PackageReference Include="Particular.Packaging" Version="4.5.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.Common\NServiceBus.AzureFunctions.Common.csproj" />
     <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\NServiceBus.AzureFunctions.Analyzer\bin\$(Configuration)\$(AnalyzerTargetFramework)\NServiceBus.AzureFunctions.Analyzer.dll" Pack="true" PackagePath="analyzers/dotnet/roslyn$(RoslynPackagePathVersion)/cs/NServiceBus.AzureFunctions.Analyzer.dll" Visible="false" />
+    <None Include="..\NServiceBus.AzureFunctions.CodeFixes\bin\$(Configuration)\$(AnalyzerTargetFramework)\NServiceBus.AzureFunctions.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/roslyn$(RoslynPackagePathVersion)/cs/NServiceBus.AzureFunctions.CodeFixes.dll" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

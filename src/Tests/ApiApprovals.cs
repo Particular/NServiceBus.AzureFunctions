@@ -16,10 +16,10 @@ public partial class ApiApprovals
             ExcludeAttributes = ["System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute"]
         });
 
-        Approver.Verify(publicApi, scrubber: ScrubGeneratedClassName);
+        Approver.Verify(publicApi);
     }
 
-    [GeneratedRegex(@"(?<Prefix>GeneratedFunctionRegistrations_NServiceBus_AzureFunctions_AzureServiceBus_)(?<Hash>[0-9a-f]{16})", RegexOptions.Compiled)]
+    [GeneratedRegex(@"(?<Prefix>GeneratedFunctionRegistrations_\w+)(?<Hash>[0-9a-f]{16})", RegexOptions.Compiled)]
     private static partial Regex GeneratedClassScrubberRegex();
 
     static string ScrubGeneratedClassName(string className) => GeneratedClassScrubberRegex().Replace(className, "${Prefix}{GENERATED_HASH}");
@@ -32,6 +32,6 @@ public partial class ApiApprovals
             ExcludeAttributes = ["System.Runtime.Versioning.TargetFrameworkAttribute", "System.Reflection.AssemblyMetadataAttribute"]
         });
 
-        Approver.Verify(publicApi);
+        Approver.Verify(publicApi, scrubber: ScrubGeneratedClassName);
     }
 }

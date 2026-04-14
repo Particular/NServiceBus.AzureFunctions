@@ -18,10 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\NServiceBus.AzureFunctions.Analyzer\bin\$(Configuration)\$(AnalyzerTargetFramework)\NServiceBus.AzureFunctions.Analyzer.dll" Pack="true" PackagePath="analyzers/dotnet/roslyn$(RoslynPackagePathVersion)/cs/NServiceBus.AzureFunctions.Analyzer.dll" Visible="false" />
     <None Include="..\NServiceBus.AzureFunctions.CodeFixes\bin\$(Configuration)\$(AnalyzerTargetFramework)\NServiceBus.AzureFunctions.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/roslyn$(RoslynPackagePathVersion)/cs/NServiceBus.AzureFunctions.CodeFixes.dll" Visible="false" />
   </ItemGroup>

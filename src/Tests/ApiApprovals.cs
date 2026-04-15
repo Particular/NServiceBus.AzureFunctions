@@ -6,7 +6,7 @@ using Particular.Approvals;
 using PublicApiGenerator;
 
 [TestFixture]
-public partial class ApiApprovals
+public class ApiApprovals
 {
     [Test]
     public void ApproveAzureServiceBusComponentApi()

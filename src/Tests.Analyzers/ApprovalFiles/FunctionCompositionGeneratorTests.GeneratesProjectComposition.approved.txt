@@ -47,10 +47,6 @@ namespace My.FunctionApp
                 {
                     manifest.Register(builder, manifest);
                 }
-                foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_NServiceBus_AzureFunctions_AzureServiceBus_e560d8ca34e34763.GetFunctionManifests())
-                {
-                    manifest.Register(builder, manifest);
-                }
             }
         }
     }

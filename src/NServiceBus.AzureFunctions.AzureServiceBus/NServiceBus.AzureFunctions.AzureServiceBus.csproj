@@ -4,21 +4,22 @@
     <TargetFramework>net10.0</TargetFramework>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <Description>Azure Functions hosting for NServiceBus endpoints with Azure Serivce Bus triggers</Description>
+    <!-- TEMPORARY: Silence XML documentation warnings on CI but leave active in local development -->
+    <NoWarn Condition="'$(CI)' == 'true'">$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
-    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.13.1" />
-    <PackageReference Include="NServiceBus" Version="10.2.0-alpha.3" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" Version="6.2.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NServiceBus.AzureFunctions\NServiceBus.AzureFunctions.csproj" />
-    <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+    <PackageReference Include="Particular.Packaging" Version="4.5.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.Common\NServiceBus.AzureFunctions.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

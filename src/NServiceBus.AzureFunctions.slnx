@@ -21,5 +21,5 @@
     <Project Path="Tests.Analyzers/NServiceBus.AzureFunctions.Analyzers.Tests.csproj" />
   </Folder>
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />
-  <Project Path="NServiceBus.AzureFunctions/NServiceBus.AzureFunctions.csproj" />
+  <Project Path="NServiceBus.AzureFunctions.Common/NServiceBus.AzureFunctions.Common.csproj" />
 </Solution>

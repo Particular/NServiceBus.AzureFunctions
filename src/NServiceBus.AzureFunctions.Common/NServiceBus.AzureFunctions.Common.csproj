@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <!-- TEMPORARY: Silence XML documentation warnings on CI but leave active in local development -->
+    <NoWarn Condition="'$(CI)' == 'true'">$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.51.0" />
+    <PackageReference Include="NServiceBus" Version="10.2.0-alpha.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Particular.Packaging" Version="4.5.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\NServiceBus.AzureFunctions.Analyzer\bin\$(Configuration)\$(AnalyzerTargetFramework)\NServiceBus.AzureFunctions.Analyzer.dll" Pack="true" PackagePath="analyzers/dotnet/roslyn$(RoslynPackagePathVersion)/cs/NServiceBus.AzureFunctions.Analyzer.dll" Visible="false" />
+    <None Include="..\NServiceBus.AzureFunctions.CodeFixes\bin\$(Configuration)\$(AnalyzerTargetFramework)\NServiceBus.AzureFunctions.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/roslyn$(RoslynPackagePathVersion)/cs/NServiceBus.AzureFunctions.CodeFixes.dll" Visible="false" />
+  </ItemGroup>
+
+</Project>

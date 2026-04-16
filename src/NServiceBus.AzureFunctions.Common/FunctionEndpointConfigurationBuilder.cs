@@ -17,9 +17,10 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
 
-        functionManifest.Configuration(endpointConfiguration, builder.Configuration, builder.Environment);
-
         var settings = endpointConfiguration.GetSettings();
+        var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
+        functionManifest.Configuration(endpointConfiguration, endpointServices, builder.Configuration, builder.Environment);
+
         if (settings.GetOrDefault<bool>(SendOnlyConfigKey))
         {
             throw new InvalidOperationException($"Functions can't be send only endpoints, use {sendOnlyEndpointApiName}");

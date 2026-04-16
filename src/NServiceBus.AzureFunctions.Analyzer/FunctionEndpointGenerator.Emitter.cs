@@ -111,7 +111,7 @@ public sealed partial class FunctionEndpointGenerator
         static string GenerateConfigureMethodCall(ConfigureMethodSpec configureMethod)
         {
             var argumentList = string.Join(", ", configureMethod.ParameterTypeNames);
-            return $"(endpointconfiguration, iconfiguration, ihostenvironment) => {configureMethod.ContainingTypeFullyQualified}.{configureMethod.MethodName}({argumentList})";
+            return $"(endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => {configureMethod.ContainingTypeFullyQualified}.{configureMethod.MethodName}({argumentList})";
         }
     }
 }

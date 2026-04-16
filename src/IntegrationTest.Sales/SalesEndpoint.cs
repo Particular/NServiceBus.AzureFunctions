@@ -22,7 +22,9 @@ public partial class SalesEndpoint
     {
         CommonEndpointConfig.Apply(configuration);
 
+#pragma warning disable CS0618 // Type or member is obsolete - TEMPORARY
         configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
+#pragma warning restore CS0618 // Type or member is obsolete
         configuration.AddHandler<Handlers.SubmitOrderHandler>();
         configuration.AuditProcessedMessagesTo("audit");
 

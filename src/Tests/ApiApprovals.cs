@@ -1,6 +1,5 @@
 namespace NServiceBus.AzureFunctions.Tests;
 
-using System.Text.RegularExpressions;
 using NUnit.Framework;
 using Particular.Approvals;
 using PublicApiGenerator;

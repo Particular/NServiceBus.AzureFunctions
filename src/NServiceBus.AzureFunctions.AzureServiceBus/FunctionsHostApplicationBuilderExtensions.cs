@@ -1,28 +1,22 @@
 namespace NServiceBus;
 
 using System;
-using AzureFunctions.AzureServiceBus;
 using Configuration.AdvancedExtensibility;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.DependencyInjection;
 using Settings;
 using Transport;
 
+/// <summary>
+/// Extensions methods to configure the FunctionsApplicationBuilder with NServiceBus endpoints.
+/// </summary>
 public static class FunctionsHostApplicationBuilderExtensions
 {
-    public static void AddNServiceBusFunction(this FunctionsApplicationBuilder builder, FunctionManifest functionManifest)
-    {
-        builder.Services.AddAzureClientsCore();
-
-        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest, nameof(AddSendOnlyNServiceBusEndpoint));
-        var transport = GetAzureServiceBusTransport(endpointConfiguration.GetSettings());
-
-        transport.ConnectionName = functionManifest.ConnectionSettingName;
-        builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
-        builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
-    }
-
+    /// <summary>
+    /// Adds an NServiceBus endpoint to the Azure Functions host. The endpoint will be configured as send-only.
+    /// </summary>
+    /// <param name="builder">The functions application builder.</param>
+    /// <param name="endpointName">The endpoint name.</param>
+    /// <param name="configure">The configuration action to configure the endpoint configuration.</param>
     public static void AddSendOnlyNServiceBusEndpoint(this FunctionsApplicationBuilder builder, string endpointName,
         Action<EndpointConfiguration> configure)
     {
@@ -32,7 +26,7 @@ public static class FunctionsHostApplicationBuilderExtensions
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointName);
     }
 
-    static AzureServiceBusServerlessTransport GetAzureServiceBusTransport(SettingsHolder settings)
+    internal static AzureServiceBusServerlessTransport GetAzureServiceBusTransport(SettingsHolder settings)
     {
         var transport = settings.TryGet(out TransportDefinition configuredTransport)
             ? configuredTransport as AzureServiceBusServerlessTransport

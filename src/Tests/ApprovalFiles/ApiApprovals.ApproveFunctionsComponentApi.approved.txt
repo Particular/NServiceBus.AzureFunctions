@@ -13,14 +13,13 @@ namespace NServiceBus
     }
     public sealed class FunctionManifest : System.IEquatable<NServiceBus.FunctionManifest>
     {
-        public FunctionManifest(string Name, string Address, string ConnectionSettingName, NServiceBus.FunctionEndpointConfiguration Configuration, NServiceBus.FunctionManifestRegistration Register) { }
+        public FunctionManifest(string Name, string Address, string ConnectionSettingName, NServiceBus.FunctionEndpointConfiguration Configuration, System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.FunctionManifest> Register) { }
         public string Address { get; init; }
         public NServiceBus.FunctionEndpointConfiguration Configuration { get; init; }
         public string ConnectionSettingName { get; init; }
         public string Name { get; init; }
-        public NServiceBus.FunctionManifestRegistration Register { get; init; }
+        public System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.FunctionManifest> Register { get; init; }
     }
-    public delegate void FunctionManifestRegistration(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.FunctionManifest functionManifest);
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, Inherited=false)]
     public sealed class NServiceBusFunctionAttribute : System.Attribute
     {

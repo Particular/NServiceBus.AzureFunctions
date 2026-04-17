@@ -16,7 +16,7 @@ public sealed partial class FunctionEndpointGenerator
         AddressExtraction: AddressExtractionPolicy.FromNamedConstructorParameter("queueName"),
         ConnectionSetting: ConnectionSettingPolicy.FromNamedProperty("Connection"),
         AutoComplete: AutoCompletePolicy.MustBeFalseFor("AutoCompleteMessages"),
-        RegistrationMethodFullyQualified: "global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusFunctionManifestRegistration.Register",
+        RegistrationMethodFullyQualified: "global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction",
         ProcessMethodName: "Process",
         Shape: TriggerShape.Required(
             ParameterRole.TriggerMessage,

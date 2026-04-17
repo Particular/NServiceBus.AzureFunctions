@@ -19,7 +19,7 @@ public static class FunctionsHostApplicationBuilderExtensions
         var transport = GetAzureServiceBusTransport(endpointConfiguration.GetSettings());
 
         transport.ConnectionName = functionManifest.ConnectionSettingName;
-        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
         builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
     }
 
@@ -29,7 +29,7 @@ public static class FunctionsHostApplicationBuilderExtensions
         var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildSendOnlyEndpointConfiguration(builder, endpointName, configure);
         _ = GetAzureServiceBusTransport(endpointConfiguration.GetSettings());
 
-        builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointName);
     }
 
     static AzureServiceBusServerlessTransport GetAzureServiceBusTransport(SettingsHolder settings)

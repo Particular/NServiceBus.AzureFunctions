@@ -6,7 +6,7 @@ using global::IntegrationTest.Contracts;
 using NUnit.Framework;
 using Particular.Approvals;
 
-[TestFixture, Explicit]
+[TestFixture]
 [Parallelizable(ParallelScope.Fixtures)]
 public class IntegrationTest
 {

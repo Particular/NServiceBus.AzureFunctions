@@ -29,7 +29,6 @@ public sealed partial class FunctionCompositionGenerator
             writer.WriteLine("{");
             writer.Indentation++;
             writer.WriteLine("global::System.ArgumentNullException.ThrowIfNull(builder);");
-            writer.WriteLine("global::NServiceBus.NServiceBusFunctionsInfrastructure.Initialize(builder);");
             writer.WriteLine();
 
             foreach (var registrationClass in composition.RegistrationClasses)

@@ -41,7 +41,6 @@ namespace My.FunctionApp
             public void AddNServiceBusFunctions()
             {
                 global::System.ArgumentNullException.ThrowIfNull(builder);
-                global::NServiceBus.NServiceBusFunctionsInfrastructure.Initialize(builder);
 
                 foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_GeneratesProjectComposition_4d91953014478208.GetFunctionManifests())
                 {

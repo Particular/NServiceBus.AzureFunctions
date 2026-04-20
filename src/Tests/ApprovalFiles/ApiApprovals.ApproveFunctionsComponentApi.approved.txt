@@ -25,10 +25,6 @@ namespace NServiceBus
     {
         public NServiceBusFunctionAttribute() { }
     }
-    public static class NServiceBusFunctionsInfrastructure
-    {
-        public static void Initialize(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder) { }
-    }
     public sealed class ServerlessTransportInfrastructure : NServiceBus.Transport.TransportInfrastructure
     {
         public ServerlessTransportInfrastructure(NServiceBus.Transport.TransportInfrastructure baseTransportInfrastructure, System.Func<NServiceBus.Transport.IMessageReceiver, NServiceBus.Transport.IMessageReceiver> messageReceiverFactory) { }

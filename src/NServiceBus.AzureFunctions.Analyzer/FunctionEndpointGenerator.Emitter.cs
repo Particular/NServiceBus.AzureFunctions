@@ -4,7 +4,7 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
-using NServiceBus.AzureFunctions.Analyzer.Utility;
+using Utility;
 
 public sealed partial class FunctionEndpointGenerator
 {
@@ -12,11 +12,12 @@ public sealed partial class FunctionEndpointGenerator
     {
         public static void Emit(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
         {
-            if (functions.Length > 0)
+            if (functions.Length <= 0)
             {
-                EmitMethodBodies(spc, functions);
+                return;
             }
 
+            EmitMethodBodies(spc, functions);
             EmitRegistration(spc, functions, assemblyClassName);
         }
 

@@ -10,7 +10,6 @@ public class FunctionEndpointGeneratorLenientShapeTests
     public void GeneratesEndpointWithExtraUnrecognizedParametersWhenShapeAllowsAdditionalParameters() =>
         SourceGeneratorTest.ForIncrementalGenerator<LenientNoMessageActionsGenerator>()
             .WithSource(SourceWithAdditionalParameter)
-            .SuppressCompilationErrors()
             .Approve();
 
     const string SourceWithAdditionalParameter = """
@@ -20,8 +19,13 @@ public class FunctionEndpointGeneratorLenientShapeTests
         public class TestTriggerAttribute : System.Attribute
         {
             public TestTriggerAttribute(string queueName) { }
-            public string? ConnSetting { get; set; }
+            public string ConnSetting { get; set; }
             public bool AutoCompleteMessages { get; set; }
+        }
+        
+        public class TestProcessor
+        {
+           public Task Process(string message, FunctionContext context, CancellationToken cancellationToken) => Task.CompletedTask;
         }
 
         public static class TestFunctionManifestRegistration

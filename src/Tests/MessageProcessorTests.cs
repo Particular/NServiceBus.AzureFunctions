@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Testing;
 using NUnit.Framework;
 using Transport;
 using NServiceBus;
+using Transport.AzureServiceBus;
 
 [TestFixture]
 public class MessageProcessorTests

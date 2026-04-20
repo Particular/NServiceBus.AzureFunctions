@@ -9,13 +9,12 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using NServiceBus.AzureFunctions.Analyzer;
+using Analyzer;
 
 [ExportCodeFixProvider(LanguageNames.CSharp), Shared]
 public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
 {
-    public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(DiagnosticIds.InvalidFunctionMethod);
+    public override ImmutableArray<string> FixableDiagnosticIds => [DiagnosticIds.InvalidFunctionMethod];
 
     public override FixAllProvider? GetFixAllProvider() =>
         WellKnownFixAllProviders.BatchFixer;
@@ -92,6 +91,8 @@ public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
                 continue;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             var propertySuffix = property.Key.Substring("Missing".Length);
             var parameterName = char.ToLowerInvariant(propertySuffix[0]) + propertySuffix.Substring(1);
             paramsToAdd.Add(SyntaxFactory.Parameter(SyntaxFactory.Identifier(parameterName))
@@ -126,6 +127,8 @@ public sealed class InvalidFunctionMethodCodeFixProvider : CodeFixProvider
             && properties.TryGetValue("ConfigureMethodName", out var configureMethodName)
             && configureMethodName is not null)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var configureMethod = SyntaxFactory.MethodDeclaration(
                     SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
                     SyntaxFactory.Identifier(configureMethodName))

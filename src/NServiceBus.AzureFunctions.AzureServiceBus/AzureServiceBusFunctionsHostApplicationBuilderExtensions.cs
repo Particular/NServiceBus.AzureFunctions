@@ -5,7 +5,7 @@ using AzureFunctions.AzureServiceBus;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
-using static FunctionsHostApplicationBuilderExtensions;
+using Transport;
 
 /// <summary>
 /// Infrastructure extensions that should only ever be called by the source generator.
@@ -22,10 +22,17 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         builder.Services.AddAzureClientsCore();
 
         var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest, nameof(FunctionsHostApplicationBuilderExtensions.AddSendOnlyNServiceBusEndpoint));
-        var transport = GetAzureServiceBusTransport(endpointConfiguration.GetSettings());
+        var transport = GetAzureServiceBusTransport(endpointConfiguration);
 
         transport.ConnectionName = functionManifest.ConnectionSettingName;
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
         builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
+    }
+
+    static AzureServiceBusServerlessTransport GetAzureServiceBusTransport(EndpointConfiguration endpointConfiguration)
+    {
+        var transport = endpointConfiguration.GetSettings().GetOrDefault<TransportDefinition>() as AzureServiceBusServerlessTransport;
+
+        return transport ?? throw new InvalidOperationException($"Endpoint '{endpointConfiguration.EndpointName}' must be configured with an '{nameof(AzureServiceBusServerlessTransport)}'.");
     }
 }

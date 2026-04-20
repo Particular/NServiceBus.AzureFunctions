@@ -4,6 +4,10 @@ using Microsoft.CodeAnalysis;
 using NServiceBus.AzureFunctions.Analyzer;
 using NServiceBus.Core.Analyzer;
 
+/// <summary>
+/// Test generator that exercises a transport with additional parameters.
+/// Uses a custom trigger attribute with transport-specific parameters.
+/// </summary>
 class LenientNoMessageActionsGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)

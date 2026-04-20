@@ -8,6 +8,7 @@ using BitFaster.Caching;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Extensibility;
+using Faults;
 using Transport;
 using NServiceBus.Transport.AzureServiceBus;
 using static PipelineInvokingMessageProcessorLog;
@@ -160,6 +161,21 @@ class PipelineInvokingMessageProcessor(
             headers[Headers.ContentType] = message.ContentType;
         }
 
+        if (!headers.ContainsKey(FaultsHeaderKeys.FailedQ) && !string.IsNullOrWhiteSpace(message.DeadLetterSource))
+        {
+            headers[FaultsHeaderKeys.FailedQ] = message.DeadLetterSource;
+        }
+
+        if (!headers.ContainsKey(FaultsHeaderKeys.Message) && !string.IsNullOrWhiteSpace(message.DeadLetterReason))
+        {
+            headers[FaultsHeaderKeys.Message] = message.DeadLetterReason;
+        }
+
+        if (!headers.ContainsKey(FaultsHeaderKeys.StackTrace) && !string.IsNullOrWhiteSpace(message.DeadLetterErrorDescription))
+        {
+            headers[FaultsHeaderKeys.StackTrace] = message.DeadLetterErrorDescription;
+        }
+
         return headers;
     }
 
@@ -167,8 +183,15 @@ class PipelineInvokingMessageProcessor(
     {
         try
         {
+            Dictionary<string, object>? propertiesToModify = null;
+
+            if (request.PropertiesToModify != null)
+            {
+                propertiesToModify = new Dictionary<string, object>(request.PropertiesToModify);
+            }
+
             await messageActions.DeadLetterMessageAsync(message,
-                request.PropertiesToModify,
+                propertiesToModify,
                 request.DeadLetterReason,
                 request.DeadLetterErrorDescription,
                 cancellationToken).ConfigureAwait(false);

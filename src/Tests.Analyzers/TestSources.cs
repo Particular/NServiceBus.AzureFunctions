@@ -2,6 +2,20 @@ namespace NServiceBus.AzureFunctions.Analyzers.Tests;
 
 static class TestSources
 {
+    public const string OrdinaryFunctionOnly = """
+        namespace Demo;
+
+        public class Functions
+        {
+            [Function("ProcessOrder")]
+            public Task Run(
+                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
+                FunctionContext context,
+                CancellationToken cancellationToken) => Task.CompletedTask;
+        }
+       """;
+
     public const string ValidFunction = """
         namespace Demo;
 

@@ -16,6 +16,12 @@ public class FunctionEndpointGeneratorTests
             .Approve();
 
     [Test]
+    public void GeneratesNoRegistrationsForOrdinaryFunctionsOnly() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.OrdinaryFunctionOnly)
+            .Approve();
+
+    [Test]
     public void GeneratesEndpointWithoutMessageActions() =>
         SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(TestSources.NoMessageActionsFunction)

@@ -66,11 +66,7 @@ namespace Demo
             global::System.Threading.CancellationToken cancellationToken)
         {
             var processor = context.InstanceServices
-                .GetKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor>("ProcessOrder");
-            if (processor is null)
-            {
-                throw new global::System.InvalidOperationException("ProcessOrder has not been registered.");
-            }
+                .GetRequiredKeyedService<global::NServiceBus.AzureFunctions.AzureServiceBus.AzureServiceBusMessageProcessor>("ProcessOrder");
             return processor.Process(message, messageActions, context, cancellationToken);
         }
     }

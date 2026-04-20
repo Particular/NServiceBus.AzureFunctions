@@ -18,13 +18,11 @@ public partial class SalesEndpoint
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureSales(EndpointConfiguration configuration)
+    public static void ConfigureSales(EndpointConfiguration configuration, IServiceCollection services)
     {
         CommonEndpointConfig.Apply(configuration);
 
-#pragma warning disable CS0618 // Type or member is obsolete - TEMPORARY
-        configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("Sales")));
-#pragma warning restore CS0618 // Type or member is obsolete
+        services.AddSingleton(new MyComponent("Sales"));
         configuration.AddHandler<Handlers.SubmitOrderHandler>();
         configuration.AuditProcessedMessagesTo("audit");
 

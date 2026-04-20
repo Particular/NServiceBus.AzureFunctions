@@ -43,7 +43,7 @@ namespace NServiceBus.Generated
         {
             yield return new global::NServiceBus.FunctionManifest(
                 "ProcessOrder", "sales-queue", "StorageConn",
-                (endpointconfiguration, iconfiguration, ihostenvironment) => global::Demo.Testing.Functions.ConfigureProcessOrder(endpointconfiguration));
+                (endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => global::Demo.Testing.Functions.ConfigureProcessOrder(endpointconfiguration));
             yield break;
         }
     }

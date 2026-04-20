@@ -33,6 +33,7 @@ namespace NServiceBus
     public static class FunctionsHostApplicationBuilderExtensions
     {
         public static void AddSendOnlyNServiceBusEndpoint(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, System.Action<NServiceBus.EndpointConfiguration> configure) { }
+        public static void AddSendOnlyNServiceBusEndpoint(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, System.Action<NServiceBus.EndpointConfiguration, Microsoft.Extensions.DependencyInjection.IServiceCollection> configure) { }
     }
 }
 namespace NServiceBus.Configuration.AdvancedExtensibility

@@ -90,7 +90,7 @@ namespace NServiceBus.Generated
         {
             yield return new global::NServiceBus.FunctionManifest(
                 "ProcessOrder", "sales-queue", "AzureServiceBus",
-                (endpointconfiguration, iconfiguration, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfiguration, ihostenvironment),
+                (endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfiguration, ihostenvironment),
                 global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction);
             yield break;
         }

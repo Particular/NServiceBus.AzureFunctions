@@ -521,7 +521,10 @@ public sealed partial class FunctionEndpointGenerator
             for (var i = 1; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
-                var isAllowedOptionalParameter = SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration) || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
+                var isAllowedOptionalParameter =
+                    SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IServiceCollection)
+                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration)
+                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
                 if (!isAllowedOptionalParameter)
                 {
                     return null;
@@ -626,6 +629,7 @@ public sealed partial class FunctionEndpointGenerator
         INamedTypeSymbol cancellationToken,
         INamedTypeSymbol endpointConfiguration,
         INamedTypeSymbol iHandleMessages,
+        INamedTypeSymbol iServiceCollection,
         INamedTypeSymbol iConfiguration,
         INamedTypeSymbol iHostEnvironment,
         ImmutableDictionary<ParameterRole, INamedTypeSymbol> additionalParameterSymbols)
@@ -636,6 +640,7 @@ public sealed partial class FunctionEndpointGenerator
         public INamedTypeSymbol CancellationToken { get; } = cancellationToken;
         public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
         public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
+        public INamedTypeSymbol IServiceCollection { get; } = iServiceCollection;
         public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
         public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
         public ImmutableDictionary<ParameterRole, INamedTypeSymbol> AdditionalParameterSymbols { get; } = additionalParameterSymbols;
@@ -650,6 +655,7 @@ public sealed partial class FunctionEndpointGenerator
             var cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
             var endpointConfiguration = compilation.GetTypeByMetadataName("NServiceBus.EndpointConfiguration");
             var iHandleMessages = compilation.GetTypeByMetadataName("NServiceBus.IHandleMessages`1");
+            var iServiceCollection = compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.IServiceCollection");
             var iconfiguration = compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
             var iHostEnvironment = compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostEnvironment");
 
@@ -659,6 +665,7 @@ public sealed partial class FunctionEndpointGenerator
                 || cancellationToken is null
                 || endpointConfiguration is null
                 || iHandleMessages is null
+                || iServiceCollection is null
                 || iconfiguration is null
                 || iHostEnvironment is null)
             {
@@ -685,6 +692,7 @@ public sealed partial class FunctionEndpointGenerator
                 cancellationToken,
                 endpointConfiguration,
                 iHandleMessages,
+                iServiceCollection,
                 iconfiguration,
                 iHostEnvironment,
                 additionalBuilder.ToImmutable());

@@ -12,7 +12,6 @@ public class FunctionEndpointGeneratorTests
     public void GeneratesFunctionEndpoint() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
-            .SuppressCompilationErrors()
             .Approve();
 
     [Test]
@@ -25,7 +24,6 @@ public class FunctionEndpointGeneratorTests
     public void GeneratesEndpointWithoutMessageActions() =>
         SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(TestSources.NoMessageActionsFunction)
-            .SuppressCompilationErrors()
             .Approve();
 
     [Test]

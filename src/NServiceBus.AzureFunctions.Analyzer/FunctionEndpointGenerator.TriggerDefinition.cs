@@ -117,7 +117,7 @@ public sealed partial class FunctionEndpointGenerator
             => new(orderedParameters.ToImmutableEquatableArray(), AllowAdditionalParameters: true);
     }
 
-    internal readonly record struct ParameterRole(string Name) : IEquatable<ParameterRole>
+    internal readonly record struct ParameterRole(string Name)
     {
         public static readonly ParameterRole TriggerMessage = new("TriggerMessage");
         public static readonly ParameterRole FunctionContext = new("FunctionContext");

@@ -8,6 +8,8 @@ public class SubmitOrderHandler(ILogger<SubmitOrderHandler> logger, MyComponent 
 {
     public async Task Handle(SubmitOrder message, IMessageHandlerContext context)
     {
-        throw new NotImplementedException("dsxc");
+        logger.LogWarning($"Handling {nameof(SubmitOrder)} in {nameof(SubmitOrderHandler)} with component for {component.EndpointName}");
+
+        await context.Publish(new OrderSubmitted()).ConfigureAwait(false);
     }
 }

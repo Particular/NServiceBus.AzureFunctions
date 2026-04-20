@@ -18,11 +18,7 @@ namespace Demo.Testing
             global::System.Threading.CancellationToken cancellationToken)
         {
             var processor = context.InstanceServices
-                .GetKeyedService<global::Demo.Testing.TestProcessor>("ProcessOrder");
-            if (processor is null)
-            {
-                throw new global::System.InvalidOperationException("ProcessOrder has not been registered.");
-            }
+                .GetRequiredKeyedService<global::Demo.Testing.TestProcessor>("ProcessOrder");
             return processor.Process(message, context, cancellationToken);
         }
     }

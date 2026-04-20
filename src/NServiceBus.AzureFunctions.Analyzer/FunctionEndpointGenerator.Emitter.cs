@@ -57,13 +57,7 @@ public sealed partial class FunctionEndpointGenerator
                     writer.WriteLine("{");
                     writer.Indentation++;
                     writer.WriteLine($"var processor = {func.FunctionContextParamName}.InstanceServices");
-                    writer.WriteLine($"    .GetKeyedService<{func.ProcessorTypeFullyQualified}>(\"{func.FunctionName}\");");
-                    writer.WriteLine("if (processor is null)");
-                    writer.WriteLine("{");
-                    writer.Indentation++;
-                    writer.WriteLine($"throw new global::System.InvalidOperationException(\"{func.FunctionName} has not been registered.\");");
-                    writer.Indentation--;
-                    writer.WriteLine("}");
+                    writer.WriteLine($"    .GetRequiredKeyedService<{func.ProcessorTypeFullyQualified}>(\"{func.FunctionName}\");");
                     writer.WriteLine($"return {func.ProcessCallExpression};");
                     writer.Indentation--;
                     writer.WriteLine("}");

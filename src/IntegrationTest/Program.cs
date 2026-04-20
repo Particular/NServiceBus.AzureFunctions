@@ -17,11 +17,9 @@ builder.Services.AddSingleton(new MyComponent("global"));
 
 builder.AddNServiceBusFunctions();
 
-builder.AddSendOnlyNServiceBusEndpoint("client", configuration =>
+builder.AddSendOnlyNServiceBusEndpoint("client", (configuration, services) =>
 {
-#pragma warning disable CS0618 // Type or member is obsolete - TEMPORARY
-    configuration.RegisterComponents(services => services.AddSingleton(new MyComponent("client")));
-#pragma warning restore CS0618 // Type or member is obsolete
+    services.AddSingleton(new MyComponent("client"));
 
     var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
 

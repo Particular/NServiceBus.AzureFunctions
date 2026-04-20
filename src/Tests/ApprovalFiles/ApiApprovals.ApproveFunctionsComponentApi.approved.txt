@@ -9,7 +9,7 @@ namespace NServiceBus
     public static class FunctionEndpointConfigurationBuilder
     {
         public static NServiceBus.EndpointConfiguration BuildReceiveEndpointConfiguration(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.FunctionManifest functionManifest, string sendOnlyEndpointApiName) { }
-        public static NServiceBus.EndpointConfiguration BuildSendOnlyEndpointConfiguration(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, System.Action<NServiceBus.EndpointConfiguration> configure) { }
+        public static NServiceBus.EndpointConfiguration BuildSendOnlyEndpointConfiguration(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, string endpointName, System.Action<NServiceBus.EndpointConfiguration, Microsoft.Extensions.DependencyInjection.IServiceCollection> configure) { }
     }
     public sealed class FunctionManifest : System.IEquatable<NServiceBus.FunctionManifest>
     {

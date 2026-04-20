@@ -2,6 +2,7 @@ namespace NServiceBus;
 
 using Configuration.AdvancedExtensibility;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 public static class FunctionEndpointConfigurationBuilder
 {
@@ -21,7 +22,7 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
         functionManifest.Configuration(endpointConfiguration, endpointServices, builder.Configuration, builder.Environment);
 
-        if (settings.GetOrDefault<bool>(SendOnlyConfigKey))
+        if (endpointConfiguration.IsSendOnly)
         {
             throw new InvalidOperationException($"Functions can't be send only endpoints, use {sendOnlyEndpointApiName}");
         }
@@ -37,7 +38,7 @@ public static class FunctionEndpointConfigurationBuilder
     public static EndpointConfiguration BuildSendOnlyEndpointConfiguration(
         FunctionsApplicationBuilder builder,
         string endpointName,
-        Action<EndpointConfiguration> configure)
+        Action<EndpointConfiguration, IServiceCollection> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(endpointName);
@@ -45,10 +46,12 @@ public static class FunctionEndpointConfigurationBuilder
 
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
-        configure(endpointConfiguration);
+
+        var settings = endpointConfiguration.GetSettings();
+        var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
+
+        configure(endpointConfiguration, endpointServices);
         endpointConfiguration.SendOnly();
         return endpointConfiguration;
     }
-
-    const string SendOnlyConfigKey = "Endpoint.SendOnly";
 }

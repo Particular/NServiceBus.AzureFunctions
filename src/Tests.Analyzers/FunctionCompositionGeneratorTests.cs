@@ -18,5 +18,6 @@ public class FunctionCompositionGeneratorTests
             .WithProperty("build_property.FunctionsExecutionModel", "isolated")
             .WithProperty("build_property.RootNamespace", "My.FunctionApp")
             .SuppressCompilationErrors()
+            .Run()
             .Approve();
 }

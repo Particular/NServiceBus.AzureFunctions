@@ -10,6 +10,7 @@ public class FunctionEndpointGeneratorLenientShapeTests
     public void GeneratesEndpointWithExtraUnrecognizedParametersWhenShapeAllowsAdditionalParameters() =>
         SourceGeneratorTest.ForIncrementalGenerator<LenientNoMessageActionsGenerator>()
             .WithSource(SourceWithAdditionalParameter)
+            .Run()
             .Approve();
 
     const string SourceWithAdditionalParameter = """

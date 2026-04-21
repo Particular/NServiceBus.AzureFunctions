@@ -20,6 +20,14 @@ namespace NServiceBus
         public string Name { get; init; }
         public System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.FunctionManifest> Register { get; init; }
     }
+    public static class FunctionsHostApplicationBuilderExtensions
+    {
+        extension(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder)
+        {
+            public void AddSendOnlyNServiceBusEndpoint(string endpointName, System.Action<NServiceBus.EndpointConfiguration> configure) { }
+            public void AddSendOnlyNServiceBusEndpoint(string endpointName, System.Action<NServiceBus.EndpointConfiguration, Microsoft.Extensions.DependencyInjection.IServiceCollection> configure) { }
+        }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, Inherited=false)]
     public sealed class NServiceBusFunctionAttribute : System.Attribute
     {

@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- The project is not named the same as the root namespace in order to place this test project's filename
+    alphabetically last so other suites can run while Functions app is finishing deployment during CI -->
+    <RootNamespace>IntegrationTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

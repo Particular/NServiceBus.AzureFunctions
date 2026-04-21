@@ -16,8 +16,8 @@
     <File Path="Custom.Build.props" />
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="AcceptanceTests/NServiceBus.AzureFunctions.AcceptanceTests.csproj" />
-    <Project Path="Tests/NServiceBus.AzureFunctions.Tests.csproj" />
+    <Project Path="NServiceBus.AzureFunctions.Tests/NServiceBus.AzureFunctions.Tests.csproj" />
+    <Project Path="RunIntegrationTests\RunIntegrationTests.csproj" />
     <Project Path="Tests.Analyzers/NServiceBus.AzureFunctions.Analyzers.Tests.csproj" />
   </Folder>
   <Project Path="NServiceBus.AzureFunctions.AzureServiceBus/NServiceBus.AzureFunctions.AzureServiceBus.csproj" />

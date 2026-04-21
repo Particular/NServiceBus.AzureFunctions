@@ -1,4 +1,4 @@
-namespace NServiceBus.AzureFunctions.AcceptanceTests;
+namespace IntegrationTests;
 
 using System.Diagnostics;
 using System.Net.Http.Json;

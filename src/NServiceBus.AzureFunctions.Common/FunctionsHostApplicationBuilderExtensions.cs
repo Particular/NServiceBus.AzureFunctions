@@ -15,7 +15,7 @@ public static class FunctionsHostApplicationBuilderExtensions
         /// <summary>
         /// Adds an NServiceBus endpoint to the Azure Functions host. The endpoint will be configured as send-only.
         /// </summary>
-        /// <remarks>It is possible to use any transport as send-only with this method but only the Serverless variants like <see cref="AzureServiceBusServerlessTransport"/> will provide first class
+        /// <remarks>It is possible to use any transport as send-only with this method but only the Serverless variants like AzureServiceBusServerlessTransport will provide first class
         /// functions host integration support.</remarks>
         /// <param name="endpointName">The endpoint name.</param>
         /// <param name="configure">The configuration action to configure the endpoint configuration.</param>
@@ -25,7 +25,7 @@ public static class FunctionsHostApplicationBuilderExtensions
         /// <summary>
         /// Adds an NServiceBus endpoint to the Azure Functions host. The endpoint will be configured as send-only.
         /// </summary>
-        /// <remarks>It is possible to use any transport as send-only with this method but only the Serverless variants like <see cref="AzureServiceBusServerlessTransport"/> will provide first class
+        /// <remarks>It is possible to use any transport as send-only with this method but only the Serverless variants like AzureServiceBusServerlessTransport will provide first class
         /// functions host integration support.</remarks>
         /// <param name="endpointName">The endpoint name.</param>
         /// <param name="configure">The configuration action to configure the endpoint configuration and the endpoint-specific services, if any.</param>

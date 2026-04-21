@@ -19,11 +19,20 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
     supportsPublishSubscribe: true,
     supportsTTBR: true)
 {
-    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
+    /// <summary>
+    /// Enables auto-forwarding of dead-lettered messages to the configured error queue.
+    /// </summary>
+    /// <remarks>
+    /// This option only affects queues created by the transport during infrastructure setup. It applies to transport-created endpoint queues,
+    /// including instance-specific queues, and excludes the error queue itself to avoid self-forwarding loops.
+    /// </remarks>
+    public bool AutoForwardDeadLetteredMessagesToErrorQueue
+    {
+        get => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue;
+        set => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue = value;
+    }
 
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
-
-    internal PipelineInvokingMessageProcessor? MessageProcessor { get; private set; }
 
     public override async Task<TransportInfrastructure> Initialize(
         HostSettings hostSettings,
@@ -67,7 +76,12 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
         return serverlessTransportInfrastructure;
     }
 
+
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => [TransportTransactionMode.ReceiveOnly];
+
+    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
+
+    internal PipelineInvokingMessageProcessor? MessageProcessor { get; private set; }
 
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,

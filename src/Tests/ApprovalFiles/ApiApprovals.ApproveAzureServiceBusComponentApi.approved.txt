@@ -12,6 +12,7 @@ namespace NServiceBus
     public class AzureServiceBusServerlessTransport : NServiceBus.Transport.TransportDefinition
     {
         public AzureServiceBusServerlessTransport(NServiceBus.TopicTopology topology) { }
+        public bool AutoForwardDeadLetteredMessagesToErrorQueue { get; set; }
         public string ConnectionName { get; set; }
         protected override void ConfigureServicesCore(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override System.Collections.Generic.IReadOnlyCollection<NServiceBus.TransportTransactionMode> GetSupportedTransactionModes() { }

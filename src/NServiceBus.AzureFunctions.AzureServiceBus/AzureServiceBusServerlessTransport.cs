@@ -14,16 +14,31 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus.Transport;
 
-public class AzureServiceBusServerlessTransport(TopicTopology topology) : TransportDefinition(TransportTransactionMode.ReceiveOnly,
-    supportsDelayedDelivery: true,
-    supportsPublishSubscribe: true,
-    supportsTTBR: true)
+public class AzureServiceBusServerlessTransport : TransportDefinition
 {
-    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
+    public AzureServiceBusServerlessTransport(TopicTopology topology) : base(TransportTransactionMode.ReceiveOnly,
+        supportsDelayedDelivery: true,
+        supportsPublishSubscribe: true,
+        supportsTTBR: true)
+    {
+        innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
+        AutoForwardDeadLetteredMessagesToErrorQueue = true;
+    }
+
+    /// <summary>
+    /// Enables auto-forwarding of dead-lettered messages to the configured error queue. (Enabled by default)
+    /// </summary>
+    /// <remarks>
+    /// This option only affects queues created by the transport during infrastructure setup. It applies to transport-created endpoint queues,
+    /// including instance-specific queues, and excludes the error queue itself to avoid self-forwarding loops.
+    /// </remarks>
+    public bool AutoForwardDeadLetteredMessagesToErrorQueue
+    {
+        get => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue;
+        set => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue = value;
+    }
 
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
-
-    internal PipelineInvokingMessageProcessor? MessageProcessor { get; private set; }
 
     public override async Task<TransportInfrastructure> Initialize(
         HostSettings hostSettings,
@@ -67,7 +82,12 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
         return serverlessTransportInfrastructure;
     }
 
+
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => [TransportTransactionMode.ReceiveOnly];
+
+    protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
+
+    internal PipelineInvokingMessageProcessor? MessageProcessor { get; private set; }
 
     static AzureServiceBusTransport ConfigureTransportConnection(
         string connectionName,
@@ -115,7 +135,7 @@ public class AzureServiceBusServerlessTransport(TopicTopology topology) : Transp
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TokenCredential>k__BackingField")]
     static extern ref TokenCredential GetTokenCredentialRef(AzureServiceBusTransport transport);
 
-    readonly AzureServiceBusTransport innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
+    readonly AzureServiceBusTransport innerTransport;
 
     const string MainReceiverId = "Main";
     const string SendOnlyConfigKey = "Endpoint.SendOnly";

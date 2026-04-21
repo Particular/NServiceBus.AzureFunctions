@@ -4,24 +4,20 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using global::IntegrationTest.Contracts;
 using NUnit.Framework;
-using Particular.Approvals;
 
-[TestFixture]
-[Parallelizable(ParallelScope.Fixtures)]
-public class IntegrationTest
+class IntegrationTestUtil
 {
     static readonly string AppBaseUrl;
+    static readonly HttpClient http = new();
 
-    static IntegrationTest()
+    static IntegrationTestUtil()
     {
         var appHostName = Environment.GetEnvironmentVariable("INTEGRATION_APP_HOSTNAME");
         AppBaseUrl = appHostName is not null ? $"https://{appHostName}" : "http://localhost:7071";
     }
 
-    [SetUp]
-    public async Task Setup()
+    public static async Task WaitForAppToBeReady()
     {
-        using var http = new HttpClient();
         http.Timeout = TimeSpan.FromSeconds(5);
 
         var versionUrl = $"{AppBaseUrl}/api/testing";
@@ -66,24 +62,21 @@ public class IntegrationTest
         throw new Exception($"/api/testing failed to respond within {timeout}");
     }
 
-    [Test]
-    public async Task RunIntegrationTest()
+    public static async Task InvokeApi(string apiPath)
     {
-        using var http = new HttpClient();
+        if (!apiPath.StartsWith('/'))
+        {
+            throw new Exception("API path must start with /");
+        }
 
-        var invokeUrl = $"{AppBaseUrl}/api/SalesApi";
+        var invokeUrl = $"{AppBaseUrl}{apiPath}";
 
         _ = await http.GetStringAsync(invokeUrl);
-
-        var result = await GetResults("SubmitOrder", 3);
-
-        Approver.Verify(result);
     }
 
-    static async Task<Payload> GetResults(string testName, int expectedMessages)
+    public static async Task<Payload> GetResults(string testName, int expectedMessages)
     {
         var dataUrl = $"{AppBaseUrl}/api/testing/data/{testName}";
-        var http = new HttpClient();
         const int timeout = 30;
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
@@ -118,10 +111,8 @@ public class IntegrationTest
         }
     }
 
-    [TearDown]
-    public async Task GetErrors()
+    public static async Task TryWriteErrors()
     {
-        using var http = new HttpClient();
         var errorsUrl = $"{AppBaseUrl}/api/testing/errors";
         await TestContext.Error.WriteLineAsync("Fetching exception traces from site");
         var errors = await http.GetStringAsync(errorsUrl);

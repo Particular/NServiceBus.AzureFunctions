@@ -15,7 +15,7 @@ public class MissingCompositionCallAnalyzerTests
             .WithSource(TestSources.ValidFunction)
             .Run();
 
-        var diagnostics = result.GetAnalyzerDiagnostics();
+        var diagnostics = result.AnalyzerDiagnostics;
         Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.MissingAddNServiceBusFunctionsCall));
     }
 
@@ -47,7 +47,7 @@ public class MissingCompositionCallAnalyzerTests
             .WithSource(fakeCall, "Program.cs")
             .Run();
 
-        var diagnostics = result.GetAnalyzerDiagnostics();
+        var diagnostics = result.AnalyzerDiagnostics;
         Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.MissingAddNServiceBusFunctionsCall));
     }
 
@@ -74,7 +74,7 @@ public class MissingCompositionCallAnalyzerTests
             .WithSource(validCall, "Startup.cs")
             .Run();
 
-        var diagnostics = result.GetAnalyzerDiagnostics();
+        var diagnostics = result.AnalyzerDiagnostics;
         Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.MissingAddNServiceBusFunctionsCall));
     }
 

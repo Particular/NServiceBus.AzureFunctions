@@ -12,18 +12,21 @@ public class FunctionEndpointGeneratorTests
     public void GeneratesFunctionEndpoint() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
+            .Run()
             .Approve();
 
     [Test]
     public void GeneratesNoRegistrationsForOrdinaryFunctionsOnly() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.OrdinaryFunctionOnly)
+            .Run()
             .Approve();
 
     [Test]
     public void GeneratesEndpointWithoutMessageActions() =>
         SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(TestSources.NoMessageActionsFunction)
+            .Run()
             .Approve();
 
     [Test]
@@ -69,7 +72,7 @@ public class FunctionEndpointGeneratorTests
             .SuppressDiagnosticErrors()
             .Run();
 
-        var diagnostics = result.GetGeneratorDiagnostics();
+        var diagnostics = result.GeneratorDiagnostics;
         Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == diagnosticId));
     }
 
@@ -427,7 +430,7 @@ public class FunctionEndpointGeneratorTests
             .SuppressDiagnosticErrors()
             .Run();
 
-        var diagnostics = result.GetGeneratorDiagnostics();
+        var diagnostics = result.GeneratorDiagnostics;
         using (Assert.EnterMultipleScope())
         {
             Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidFunctionMethod));
@@ -463,7 +466,7 @@ public class FunctionEndpointGeneratorTests
             .SuppressCompilationErrors()
             .Run();
 
-        var diagnostics = result.GetGeneratorDiagnostics();
+        var diagnostics = result.GeneratorDiagnostics;
         Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == "NSBFUNC007"));
     }
 
@@ -479,7 +482,7 @@ public class FunctionEndpointGeneratorTests
             .SuppressDiagnosticErrors()
             .Run();
 
-        var diagnostics = result.GetGeneratorDiagnostics();
+        var diagnostics = result.GeneratorDiagnostics;
         Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == "NSBFUNC007"),
             "Expected NSBFUNC007 diagnostic to be reported");
 

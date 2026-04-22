@@ -8,12 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 /// Produces a configured <see cref="EndpointConfiguration"/> for an Azure Functions-hosted endpoint.
 /// Used by endpoint-registration extensions and by code emitted by the source generator.
 /// </summary>
-/// <remarks>The API surface might change between versions according to the needs of the source generator.</remarks>
+/// <remarks>The API surface might be changed between versions according to the needs of the source generator.</remarks>
 public static class FunctionEndpointConfigurationBuilder
 {
     /// <summary>
     /// Builds an <see cref="EndpointConfiguration"/> for a receiving endpoint described by
-    /// <paramref name="functionManifest"/>.
+    /// <paramref name="functionManifest"/>. Should only be called by the source generator.
     /// </summary>
     /// <param name="builder">The Functions application builder the endpoint is attached to.</param>
     /// <param name="functionManifest">The manifest describing the endpoint to configure.</param>

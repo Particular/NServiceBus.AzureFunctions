@@ -67,8 +67,7 @@ jobs:
         with:
           app-name: ${{ steps.setup-functions.outputs.app-name }}
           publish-profile: ${{ steps.setup-functions.outputs.publish-profile }}
-          # TODO: Build to a non-tfm-dependent path
-          package: src/IntegrationTest/bin/Release/net10.0
+          package: src/IntegrationTestApp/bin/Release
       - name: Run tests
         uses: Particular/run-tests-action@v1.7.0
         env:

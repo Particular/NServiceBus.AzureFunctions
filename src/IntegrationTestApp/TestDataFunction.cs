@@ -2,7 +2,6 @@ namespace IntegrationTest;
 
 using System.Reflection;
 using Contracts;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Shared.Infrastructure;
@@ -30,10 +29,10 @@ class TestDataFunction(GlobalTestStorage storage)
     }
 
     [Function(nameof(ClearTestData))]
-    public IActionResult ClearTestData([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "testing/data/{testName}")] HttpRequestData _, string testName)
+    public string ClearTestData([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "testing/data/{testName}")] HttpRequestData _, string testName)
     {
         storage.Clear(testName);
-        return new OkResult();
+        return "OK";
     }
 
     [Function(nameof(GetInfo))]

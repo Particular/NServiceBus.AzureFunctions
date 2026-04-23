@@ -50,7 +50,7 @@ class PipelineInvokingMessageProcessor(
         try
         {
             headers = extractHeaders(message);
-            body = message.Body ?? BinaryData.Empty;
+            body = message.GetBody();
 
             contextBag.Set(message);
         }

@@ -78,6 +78,15 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     /// <summary>
+    /// Specifies whether to throw an exception when publishing to a non-existent topic
+    /// </summary>
+    public bool ThrowOnMissingTopicWhenPublishing
+    {
+        get => innerTransport.ThrowOnMissingTopicWhenPublishing;
+        set => innerTransport.ThrowOnMissingTopicWhenPublishing = value;
+    }
+
+    /// <summary>
     /// Enables entity partitioning when creating queues and topics.
     /// </summary>
     /// <remarks>

@@ -4,6 +4,7 @@ Mapped properties:
   - EntityMaximumSize
   - HierarchyNamespaceOptions
   - MaxDeliveryCount
+  - ThrowOnMissingTopicWhenPublishing
 
 Unmapped properties:
   - AutoDeleteOnIdle
@@ -12,7 +13,6 @@ Unmapped properties:
   - PrefetchCount
   - PrefetchMultiplier
   - RetryPolicyOptions
-  - ThrowOnMissingTopicWhenPublishing
   - TimeToWaitBeforeTriggeringCircuitBreaker
   - UseWebSockets
   - WebProxy

@@ -14,8 +14,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus.Transport;
 
+/// <summary>
+/// Azure Service Bus transport tailored for endpoints hosted in Azure Functions. Receiving is
+/// driven by the Service Bus trigger; dispatch and topology management remain with the transport.
+/// </summary>
 public class AzureServiceBusServerlessTransport : TransportDefinition
 {
+    /// <summary>
+    /// Creates a new transport using the supplied <paramref name="topology"/>. The connection is
+    /// resolved from configuration during <see cref="Initialize"/> via <see cref="ConnectionName"/>.
+    /// </summary>
+    /// <param name="topology">The topic topology describing how events are published and subscribed to.</param>
     public AzureServiceBusServerlessTransport(TopicTopology topology) : base(TransportTransactionMode.ReceiveOnly,
         supportsDelayedDelivery: true,
         supportsPublishSubscribe: true,
@@ -38,8 +47,14 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
         set => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue = value;
     }
 
+    /// <summary>
+    /// The configuration key used to resolve the Azure Service Bus connection. Defaults to
+    /// <c>AzureWebJobsServiceBus</c>, matching the setting used by Service Bus triggers.
+    /// </summary>
+    /// <remarks>The resolved value may be a connection string, or a configuration section containing a <c>fullyQualifiedNamespace</c> entry for token-credential authentication.</remarks>
     public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
+    /// <inheritdoc />
     public override async Task<TransportInfrastructure> Initialize(
         HostSettings hostSettings,
         ReceiveSettings[] receivers,
@@ -83,8 +98,10 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
 
+    /// <inheritdoc />
     public override IReadOnlyCollection<TransportTransactionMode> GetSupportedTransactionModes() => [TransportTransactionMode.ReceiveOnly];
 
+    /// <inheritdoc />
     protected override void ConfigureServicesCore(IServiceCollection services) => innerTransport.ConfigureServices(services);
 
     internal PipelineInvokingMessageProcessor? MessageProcessor { get; private set; }

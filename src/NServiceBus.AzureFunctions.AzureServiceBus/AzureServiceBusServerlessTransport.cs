@@ -192,7 +192,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TokenCredential>k__BackingField")]
     static extern ref TokenCredential GetTokenCredentialRef(AzureServiceBusTransport transport);
 
-    internal readonly AzureServiceBusTransport innerTransport;
+    readonly AzureServiceBusTransport innerTransport;
 
     const string MainReceiverId = "Main";
     const string SendOnlyConfigKey = "Endpoint.SendOnly";

@@ -8,9 +8,9 @@ using BitFaster.Caching;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Extensibility;
-using Faults;
 using Transport;
 using NServiceBus.Transport.AzureServiceBus;
+using Transport.AzureServiceBus.AdvancedExtensibility;
 using static PipelineInvokingMessageProcessorLog;
 
 class PipelineInvokingMessageProcessor(
@@ -34,15 +34,10 @@ class PipelineInvokingMessageProcessor(
 
     public async Task Process(ServiceBusReceivedMessage message, ServiceBusMessageActions messageActions, CancellationToken cancellationToken = default)
     {
-        string nativeMessageId = message.MessageId;
+        var nativeMessageId = message.GetMessageId();
         Dictionary<string, string?> headers;
         BinaryData body;
         var contextBag = new ContextBag();
-
-        if (string.IsNullOrWhiteSpace(nativeMessageId))
-        {
-            nativeMessageId = message.ApplicationProperties.TryGetValue(Headers.MessageId, out var nsbMessageId) ? nsbMessageId.ToString()! : GuidHelper.CreateVersion8(message.EnqueuedTime, message.SequenceNumber).ToString();
-        }
 
         if (messagesToBeCompleted.TryRemove(nativeMessageId))
         {
@@ -137,47 +132,7 @@ class PipelineInvokingMessageProcessor(
         }
     }
 
-    static Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message)
-    {
-        var headers = new Dictionary<string, string?>(message.ApplicationProperties.Count);
-
-        foreach (var kvp in message.ApplicationProperties)
-        {
-            headers[kvp.Key] = kvp.Value?.ToString();
-        }
-
-        if (!string.IsNullOrWhiteSpace(message.ReplyTo))
-        {
-            headers[Headers.ReplyToAddress] = message.ReplyTo;
-        }
-
-        if (!string.IsNullOrWhiteSpace(message.CorrelationId))
-        {
-            headers[Headers.CorrelationId] = message.CorrelationId;
-        }
-
-        if (!string.IsNullOrWhiteSpace(message.ContentType))
-        {
-            headers[Headers.ContentType] = message.ContentType;
-        }
-
-        if (!headers.ContainsKey(FaultsHeaderKeys.FailedQ) && !string.IsNullOrWhiteSpace(message.DeadLetterSource))
-        {
-            headers[FaultsHeaderKeys.FailedQ] = message.DeadLetterSource;
-        }
-
-        if (!headers.ContainsKey(FaultsHeaderKeys.Message) && !string.IsNullOrWhiteSpace(message.DeadLetterReason))
-        {
-            headers[FaultsHeaderKeys.Message] = message.DeadLetterReason;
-        }
-
-        if (!headers.ContainsKey(FaultsHeaderKeys.StackTrace) && !string.IsNullOrWhiteSpace(message.DeadLetterErrorDescription))
-        {
-            headers[FaultsHeaderKeys.StackTrace] = message.DeadLetterErrorDescription;
-        }
-
-        return headers;
-    }
+    static Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message) => message.GetNServiceBusHeaders();
 
     async Task SafeDeadLetterMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, DeadLetterRequest request, CancellationToken cancellationToken)
     {

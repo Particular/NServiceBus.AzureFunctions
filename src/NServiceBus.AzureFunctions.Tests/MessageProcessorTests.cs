@@ -61,20 +61,23 @@ public class MessageProcessorTests
     {
         var sequenceNumber = 42L;
         var enqueuedTime = DateTimeOffset.UtcNow;
-        var expectedMessageId = GuidHelper.CreateVersion8(enqueuedTime, sequenceNumber).ToString();
 
         string? firstMessageId = null;
         string? secondMessageId = null;
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(sequenceNumber: sequenceNumber, enqueuedTime: enqueuedTime);
 
-        await ProcessMessage(message: message, onMessage: (context, _) => { firstMessageId = context.NativeMessageId; return Task.CompletedTask; });
-        await ProcessMessage(message: message, onMessage: (context, _) => { secondMessageId = context.NativeMessageId; return Task.CompletedTask; });
-
-        using (Assert.EnterMultipleScope())
+        await ProcessMessage(message: message, onMessage: (context, _) =>
         {
-            Assert.That(firstMessageId, Is.EqualTo(expectedMessageId), "MessageId should be derived from enqueued time and sequence number");
-            Assert.That(secondMessageId, Is.EqualTo(firstMessageId), "MessageId should be stable across processing attempts");
-        }
+            firstMessageId = context.NativeMessageId;
+            return Task.CompletedTask;
+        });
+        await ProcessMessage(message: message, onMessage: (context, _) =>
+        {
+            secondMessageId = context.NativeMessageId;
+            return Task.CompletedTask;
+        });
+
+        Assert.That(secondMessageId, Is.EqualTo(firstMessageId), "MessageId should be stable across processing attempts");
     }
 
     [Test]

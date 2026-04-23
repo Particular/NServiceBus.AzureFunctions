@@ -1,11 +1,11 @@
 Mapped properties:
   - AutoForwardDeadLetteredMessagesToErrorQueue
-
-Unmapped properties:
-  - AutoDeleteOnIdle
   - EnablePartitioning
   - EntityMaximumSize
   - HierarchyNamespaceOptions
+
+Unmapped properties:
+  - AutoDeleteOnIdle
   - MaxAutoLockRenewalDuration
   - OutgoingNativeMessageCustomization
   - PrefetchCount

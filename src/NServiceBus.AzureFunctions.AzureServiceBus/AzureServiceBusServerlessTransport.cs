@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NServiceBus.Transport;
+using NServiceBus.Transport.AzureServiceBus;
 
 /// <summary>
 /// Azure Service Bus transport tailored for endpoints hosted in Azure Functions. Receiving is
@@ -45,6 +46,45 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     {
         get => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue;
         set => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue = value;
+    }
+
+    /// <summary>
+    /// Enables entity partitioning when creating queues and topics.
+    /// </summary>
+    /// <remarks>
+    /// This option only affects entities created by the transport during infrastructure setup.
+    /// It does not modify entities that already exist in the namespace.
+    /// </remarks>
+    public bool EnablePartitioning
+    {
+        get => innerTransport.EnablePartitioning;
+        set => innerTransport.EnablePartitioning = value;
+    }
+
+    /// <summary>
+    /// The maximum size used when creating queues and topics in GB.
+    /// </summary>
+    /// <remarks>
+    /// This option only affects entities created by the transport during infrastructure setup.
+    /// It does not modify entities that already exist in the namespace.
+    /// </remarks>
+    public int EntityMaximumSize
+    {
+        get => innerTransport.EntityMaximumSize;
+        set => innerTransport.EntityMaximumSize = value;
+    }
+
+    /// <summary>
+    /// Configures hierarchy namespace support.
+    /// </summary>
+    /// <remarks>
+    /// This setting affects both infrastructure setup and runtime behavior by shaping queue names,
+    /// topic names, and destination resolution for the endpoint.
+    /// </remarks>
+    public HierarchyNamespaceOptions HierarchyNamespaceOptions
+    {
+        get => innerTransport.HierarchyNamespaceOptions;
+        set => innerTransport.HierarchyNamespaceOptions = value;
     }
 
     /// <summary>
@@ -152,7 +192,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<TokenCredential>k__BackingField")]
     static extern ref TokenCredential GetTokenCredentialRef(AzureServiceBusTransport transport);
 
-    readonly AzureServiceBusTransport innerTransport;
+    internal readonly AzureServiceBusTransport innerTransport;
 
     const string MainReceiverId = "Main";
     const string SendOnlyConfigKey = "Endpoint.SendOnly";

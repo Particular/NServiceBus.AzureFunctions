@@ -50,12 +50,10 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     }
 
     /// <summary>
-    /// Set the maximum delivery count that is applied to queues that are created when the infrastructure is setup.
+    /// Set the maximum delivery count that is applied to queues that are created when the infrastructure is set up. Default is 100.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// This MaxDeliveryCount is set to <value>int.MaxValue</value> by default, to stay backward compatible. the
-    /// This value will change to a lower default value in the next major version. 
     /// When the emulator is used the value defaults to <value>10</value>
     /// unless explicitly set to another value.
     /// </para>

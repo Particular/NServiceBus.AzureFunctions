@@ -3,6 +3,8 @@ Mapped properties:
   - EnablePartitioning
   - EntityMaximumSize
   - HierarchyNamespaceOptions
+  - MaxDeliveryCount
+  - ThrowOnMissingTopicWhenPublishing
 
 Unmapped properties:
   - AutoDeleteOnIdle

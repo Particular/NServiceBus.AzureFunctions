@@ -33,6 +33,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     {
         innerTransport = new("TransportWillBeInitializedCorrectlyLater", topology) { TransportTransactionMode = TransportTransactionMode.ReceiveOnly };
         AutoForwardDeadLetteredMessagesToErrorQueue = true;
+        MaxDeliveryCount = 100;
     }
 
     /// <summary>
@@ -44,8 +45,43 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     /// </remarks>
     public bool AutoForwardDeadLetteredMessagesToErrorQueue
     {
-        get => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue;
+        get => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue ?? true;
         set => innerTransport.AutoForwardDeadLetteredMessagesToErrorQueue = value;
+    }
+
+    /// <summary>
+    /// Set the maximum delivery count that is applied to queues that are created when the infrastructure is set up. Default is 100.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When the emulator is used the value defaults to <value>10</value>
+    /// unless explicitly set to another value.
+    /// </para>
+    /// <para>
+    /// NServiceBus recoverability controls retry decisions via the recoverability policy. This value should be high enough
+    /// to allow all configured retries to complete, so that the recoverability policy can eventually move the message to the error queue.
+    /// It should not be set so high that it effectively becomes infinite retries.
+    /// </para>
+    /// <para>
+    /// When lowering this value below the total number of recoverability retries allowed, the broker will dead-letter
+    /// the message before the recoverability policy can move it to the error queue.
+    /// <see cref="AutoForwardDeadLetteredMessagesToErrorQueue"/> being enabled by default ensures those messages are forwarded to the error queue,
+    /// making failures visible in ServiceControl.
+    /// </para>
+    /// </remarks>
+    public int MaxDeliveryCount
+    {
+        get => innerTransport.MaxDeliveryCount;
+        set => innerTransport.MaxDeliveryCount = value;
+    }
+
+    /// <summary>
+    /// Specifies whether to throw an exception when publishing to a non-existent topic
+    /// </summary>
+    public bool ThrowOnMissingTopicWhenPublishing
+    {
+        get => innerTransport.ThrowOnMissingTopicWhenPublishing;
+        set => innerTransport.ThrowOnMissingTopicWhenPublishing = value;
     }
 
     /// <summary>

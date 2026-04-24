@@ -17,6 +17,8 @@ namespace NServiceBus
         public bool EnablePartitioning { get; set; }
         public int EntityMaximumSize { get; set; }
         public NServiceBus.Transport.AzureServiceBus.HierarchyNamespaceOptions HierarchyNamespaceOptions { get; set; }
+        public int MaxDeliveryCount { get; set; }
+        public bool ThrowOnMissingTopicWhenPublishing { get; set; }
         protected override void ConfigureServicesCore(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override System.Collections.Generic.IReadOnlyCollection<NServiceBus.TransportTransactionMode> GetSupportedTransactionModes() { }
         public override System.Threading.Tasks.Task<NServiceBus.Transport.TransportInfrastructure> Initialize(NServiceBus.Transport.HostSettings hostSettings, NServiceBus.Transport.ReceiveSettings[] receivers, string[] sendingAddresses, System.Threading.CancellationToken cancellationToken = default) { }

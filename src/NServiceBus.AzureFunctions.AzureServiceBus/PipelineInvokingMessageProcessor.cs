@@ -132,8 +132,6 @@ class PipelineInvokingMessageProcessor(
         }
     }
 
-    static Dictionary<string, string?> GetNServiceBusHeaders(ServiceBusReceivedMessage message) => message.GetNServiceBusHeaders();
-
     async Task SafeDeadLetterMessage(ServiceBusMessageActions messageActions, ServiceBusReceivedMessage message, DeadLetterRequest request, CancellationToken cancellationToken)
     {
         try
@@ -203,7 +201,7 @@ class PipelineInvokingMessageProcessor(
     OnError onError = static (_, _) => Task.FromResult(ErrorHandleResult.Handled);
 
     // we do this to enable tests to simulate exceptions when extracting headers
-    readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders = headerExtractor ?? GetNServiceBusHeaders;
+    readonly Func<ServiceBusReceivedMessage, Dictionary<string, string?>> extractHeaders = headerExtractor ?? (message => message.GetNServiceBusHeaders());
 }
 
 static partial class PipelineInvokingMessageProcessorLog

@@ -61,7 +61,9 @@ jobs:
         with:
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: NSB.AzureFunctions
-          env-vars-to-promote: AzureWebJobsServiceBus
+          env-vars-to-promote: AzureWebJobsServiceBus,BillingPrefix
+        env:
+          BillingPrefix: billing
       - name: Deploy IntegrationTest app
         uses: azure/webapps-deploy@v3.0.8
         with:

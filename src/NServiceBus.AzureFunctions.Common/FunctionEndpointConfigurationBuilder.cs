@@ -40,9 +40,10 @@ public static class FunctionEndpointConfigurationBuilder
             throw new InvalidOperationException($"Functions can't be send only endpoints, use {sendOnlyEndpointApiName}");
         }
 
-        if (functionManifest.Name != functionManifest.Address)
+        var resolvedAddress = FunctionBindingExpression.Resolve(functionManifest.Address, builder.Configuration);
+        if (functionManifest.Name != resolvedAddress)
         {
-            endpointConfiguration.OverrideLocalAddress(functionManifest.Address);
+            endpointConfiguration.OverrideLocalAddress(resolvedAddress);
         }
 
         return endpointConfiguration;

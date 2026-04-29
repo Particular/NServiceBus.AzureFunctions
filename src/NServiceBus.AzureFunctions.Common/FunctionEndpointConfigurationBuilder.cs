@@ -1,6 +1,7 @@
 namespace NServiceBus;
 
 using Configuration.AdvancedExtensibility;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,6 +31,8 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointName = functionManifest.Name;
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
+
+        ConfigureDefaultHostIdentifier(endpointConfiguration, builder.Configuration);
 
         var settings = endpointConfiguration.GetSettings();
         var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
@@ -68,6 +71,8 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
 
+        ConfigureDefaultHostIdentifier(endpointConfiguration, builder.Configuration);
+
         var settings = endpointConfiguration.GetSettings();
         var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
 
@@ -75,4 +80,44 @@ public static class FunctionEndpointConfigurationBuilder
         endpointConfiguration.SendOnly();
         return endpointConfiguration;
     }
+
+    static void ConfigureDefaultHostIdentifier(EndpointConfiguration endpointConfiguration, IConfiguration configuration)
+    {
+        var hostIdentifier = ResolveDefaultHostIdentifier(configuration);
+
+        endpointConfiguration.UniquelyIdentifyRunningInstance()
+            .UsingCustomDisplayName(hostIdentifier)
+            .UsingCustomIdentifier(DeterministicGuid.Create(hostIdentifier));
+    }
+
+    static string ResolveDefaultHostIdentifier(IConfiguration configuration)
+    {
+        // this would be set if a user has explicitly set the Host ID
+        var functionsHostId = configuration[AzureFunctionsHostIdKey];
+        if (!string.IsNullOrWhiteSpace(functionsHostId))
+        {
+            return functionsHostId;
+        }
+
+        // this would be set if running inside a function app
+        var websiteInstanceId = configuration[WebsiteInstanceIdKey];
+        if (!string.IsNullOrWhiteSpace(websiteInstanceId))
+        {
+            return websiteInstanceId;
+        }
+
+        // this would be set if running inside a container app
+        var containerName = configuration[ContainerNameKey];
+        if (!string.IsNullOrWhiteSpace(containerName))
+        {
+            return containerName;
+        }
+
+        // fallback to machine name for local development
+        return Environment.MachineName;
+    }
+
+    const string AzureFunctionsHostIdKey = "AzureFunctionsWebHost:hostid";
+    const string WebsiteInstanceIdKey = "WEBSITE_INSTANCE_ID";
+    const string ContainerNameKey = "CONTAINER_NAME";
 }

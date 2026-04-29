@@ -12,9 +12,9 @@ The NServiceBus integration in this package is very thin and limited mostly to w
   - The Analyzer and CodeFixes projects as analyzers so that analyzers and code fixes can be run locally in the solution. A real-life application would gain these references automatically from the bundled NServiceBus.AzureFunctions.Common package.
   - The [Shared](../IntegrationTest.Shared) project
 - There is some duplication in references to Functions SDK packages which is necessary to ensure that the Functions SDK source generators operate on the triggers in each endpoint project.
-- The CI workflow creates an Azure Service Bus namespace and a Functions App, and deploys the IntegrationTestApp to the FunctionsApp.
-- The [RunIntegrationTests](../RunIntegrationTests) project contains utilities for waiting until the Function App is ready (which can take a minute or two) and then triggering tests to run and collecting the results.
-- This [IntegrationTest.Shared](../IntegrationTest.Shared) project contains infrastructure for keeping an in-memory log of messages sent and received by various enpdoints in a way that can be verified using an approval test.
+- The CI workflow creates an Azure Service Bus namespace and a Functions App, and deploys the IntegrationTestApp to the Functions App.
+- The [RunIntegrationTests](../RunIntegrationTests) project contains utilities for waiting until the Functions App is ready (which can take a minute or two) and then triggering tests to run and collecting the results.
+- This [IntegrationTest.Shared](../IntegrationTest.Shared) project contains infrastructure for keeping an in-memory log of messages sent and received by various enpdoints in a way that can be verified using approval tests.
 
 ## Guidelines
 

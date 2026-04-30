@@ -14,3 +14,5 @@ Create a local.settings.json file in the root of the project. The file should co
   }
 }
 ```
+
+More information about the app can be found in the [IntegrationTestApp README](/src/IntegrationTestApp/).

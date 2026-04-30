@@ -92,13 +92,6 @@ public static class FunctionEndpointConfigurationBuilder
 
     static string ResolveDefaultHostIdentifier(IConfiguration configuration)
     {
-        // this would be set if a user has explicitly set the Host ID
-        var functionsHostId = configuration[AzureFunctionsHostIdKey];
-        if (!string.IsNullOrWhiteSpace(functionsHostId))
-        {
-            return functionsHostId;
-        }
-
         // this would be set if running inside a function app
         var websiteInstanceId = configuration[WebsiteInstanceIdKey];
         if (!string.IsNullOrWhiteSpace(websiteInstanceId))
@@ -117,7 +110,6 @@ public static class FunctionEndpointConfigurationBuilder
         return Environment.MachineName;
     }
 
-    const string AzureFunctionsHostIdKey = "AzureFunctionsWebHost:hostid";
     const string WebsiteInstanceIdKey = "WEBSITE_INSTANCE_ID";
     const string ContainerNameKey = "CONTAINER_NAME";
 }

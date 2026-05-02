@@ -4,6 +4,7 @@ using Configuration.AdvancedExtensibility;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Utils;
 
 /// <summary>
 /// Produces a configured <see cref="EndpointConfiguration"/> for an Azure Functions-hosted endpoint.

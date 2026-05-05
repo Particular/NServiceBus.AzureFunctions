@@ -74,6 +74,11 @@ public static class FunctionEndpointConfigurationBuilder
 
     static EndpointConfiguration CreateDefaultEndpointConfiguration(string endpointName, FunctionsApplicationBuilder builder, Action<EndpointConfiguration, IServiceCollection> userEndpointConfiguration)
     {
+        if (!AppContext.TryGetSwitch(UseV2DeterministicGuidAppSwitchKey, out _))
+        {
+            AppContext.SetSwitch(UseV2DeterministicGuidAppSwitchKey, true);
+        }
+
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
 
@@ -113,4 +118,5 @@ public static class FunctionEndpointConfigurationBuilder
 
     const string WebsiteInstanceIdKey = "WEBSITE_INSTANCE_ID";
     const string ContainerNameKey = "CONTAINER_NAME";
+    const string UseV2DeterministicGuidAppSwitchKey = "NServiceBus.Core.Hosting.UseV2DeterministicGuid";
 }

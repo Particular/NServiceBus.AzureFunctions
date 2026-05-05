@@ -1,7 +1,0 @@
-<Project>
-
-  <ItemGroup>
-    <RuntimeHostConfigurationOption Include="NServiceBus.Core.Hosting.UseV2DeterministicGuid" Value="true" />
-  </ItemGroup>
-
-</Project>

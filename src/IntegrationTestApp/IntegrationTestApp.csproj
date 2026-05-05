@@ -25,10 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <RuntimeHostConfigurationOption Include="NServiceBus.Core.Hosting.UseV2DeterministicGuid" Value="true" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
   </ItemGroup>
 

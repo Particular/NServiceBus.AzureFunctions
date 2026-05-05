@@ -30,14 +30,10 @@ public static class FunctionEndpointConfigurationBuilder
         ArgumentNullException.ThrowIfNull(functionManifest);
 
         var endpointName = functionManifest.Name;
-        var endpointConfiguration = new EndpointConfiguration(endpointName);
-        endpointConfiguration.AssemblyScanner().Disable = true;
-
-        ConfigureDefaultHostIdentifier(endpointConfiguration, builder.Configuration);
-
-        var settings = endpointConfiguration.GetSettings();
-        var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
-        functionManifest.Configuration(endpointConfiguration, endpointServices, builder.Configuration, builder.Environment);
+        var endpointConfiguration = CreateDefaultEndpointConfiguration(
+            endpointName,
+            builder,
+            (configuration, endpointServices) => functionManifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
 
         if (endpointConfiguration.IsSendOnly)
         {
@@ -69,26 +65,30 @@ public static class FunctionEndpointConfigurationBuilder
         ArgumentNullException.ThrowIfNull(endpointName);
         ArgumentNullException.ThrowIfNull(configure);
 
-        var endpointConfiguration = new EndpointConfiguration(endpointName);
-        endpointConfiguration.AssemblyScanner().Disable = true;
+        var endpointConfiguration = CreateDefaultEndpointConfiguration(endpointName, builder, configure);
 
-        ConfigureDefaultHostIdentifier(endpointConfiguration, builder.Configuration);
-
-        var settings = endpointConfiguration.GetSettings();
-        var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
-
-        configure(endpointConfiguration, endpointServices);
         endpointConfiguration.SendOnly();
+
         return endpointConfiguration;
     }
 
-    static void ConfigureDefaultHostIdentifier(EndpointConfiguration endpointConfiguration, IConfiguration configuration)
+    static EndpointConfiguration CreateDefaultEndpointConfiguration(string endpointName, FunctionsApplicationBuilder builder, Action<EndpointConfiguration, IServiceCollection> userEndpointConfiguration)
     {
-        var hostIdentifier = ResolveDefaultHostIdentifier(configuration);
+        var endpointConfiguration = new EndpointConfiguration(endpointName);
+        endpointConfiguration.AssemblyScanner().Disable = true;
+
+        var hostIdentifier = ResolveDefaultHostIdentifier(builder.Configuration);
 
         endpointConfiguration.UniquelyIdentifyRunningInstance()
             .UsingCustomDisplayName(hostIdentifier)
             .UsingCustomIdentifier(DeterministicGuid.Create(hostIdentifier));
+
+        var settings = endpointConfiguration.GetSettings();
+        var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
+
+        userEndpointConfiguration(endpointConfiguration, endpointServices);
+
+        return endpointConfiguration;
     }
 
     static string ResolveDefaultHostIdentifier(IConfiguration configuration)

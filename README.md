@@ -8,6 +8,7 @@ Create a local.settings.json file in the root of the project. The file should co
 {
   "IsEncrypted": false,
   "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "AzureWebJobsServiceBus": "YourConnectionString",
     "BillingPrefix": "billing"

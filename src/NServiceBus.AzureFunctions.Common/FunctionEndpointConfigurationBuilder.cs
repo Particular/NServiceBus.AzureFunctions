@@ -1,8 +1,10 @@
 namespace NServiceBus;
 
 using Configuration.AdvancedExtensibility;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Utils;
 
 /// <summary>
 /// Produces a configured <see cref="EndpointConfiguration"/> for an Azure Functions-hosted endpoint.
@@ -28,12 +30,10 @@ public static class FunctionEndpointConfigurationBuilder
         ArgumentNullException.ThrowIfNull(functionManifest);
 
         var endpointName = functionManifest.Name;
-        var endpointConfiguration = new EndpointConfiguration(endpointName);
-        endpointConfiguration.AssemblyScanner().Disable = true;
-
-        var settings = endpointConfiguration.GetSettings();
-        var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
-        functionManifest.Configuration(endpointConfiguration, endpointServices, builder.Configuration, builder.Environment);
+        var endpointConfiguration = CreateDefaultEndpointConfiguration(
+            endpointName,
+            builder,
+            (configuration, endpointServices) => functionManifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
 
         if (endpointConfiguration.IsSendOnly)
         {
@@ -65,14 +65,58 @@ public static class FunctionEndpointConfigurationBuilder
         ArgumentNullException.ThrowIfNull(endpointName);
         ArgumentNullException.ThrowIfNull(configure);
 
+        var endpointConfiguration = CreateDefaultEndpointConfiguration(endpointName, builder, configure);
+
+        endpointConfiguration.SendOnly();
+
+        return endpointConfiguration;
+    }
+
+    static EndpointConfiguration CreateDefaultEndpointConfiguration(string endpointName, FunctionsApplicationBuilder builder, Action<EndpointConfiguration, IServiceCollection> userEndpointConfiguration)
+    {
+        if (!AppContext.TryGetSwitch(UseV2DeterministicGuidAppSwitchKey, out _))
+        {
+            AppContext.SetSwitch(UseV2DeterministicGuidAppSwitchKey, true);
+        }
+
         var endpointConfiguration = new EndpointConfiguration(endpointName);
         endpointConfiguration.AssemblyScanner().Disable = true;
+
+        var hostIdentifier = ResolveDefaultHostIdentifier(builder.Configuration);
+
+        endpointConfiguration.UniquelyIdentifyRunningInstance()
+            .UsingCustomDisplayName(hostIdentifier)
+            .UsingCustomIdentifier(DeterministicGuid.Create(hostIdentifier));
 
         var settings = endpointConfiguration.GetSettings();
         var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
 
-        configure(endpointConfiguration, endpointServices);
-        endpointConfiguration.SendOnly();
+        userEndpointConfiguration(endpointConfiguration, endpointServices);
+
         return endpointConfiguration;
     }
+
+    static string ResolveDefaultHostIdentifier(IConfiguration configuration)
+    {
+        // this would be set if running inside a function app
+        var websiteInstanceId = configuration[WebsiteInstanceIdKey];
+        if (!string.IsNullOrWhiteSpace(websiteInstanceId))
+        {
+            return websiteInstanceId;
+        }
+
+        // this would be set if running inside a container app
+        var containerName = configuration[ContainerNameKey];
+        if (!string.IsNullOrWhiteSpace(containerName))
+        {
+            return containerName;
+        }
+
+        // fallback to machine name for local development
+        return Environment.MachineName;
+    }
+
+    const string WebsiteInstanceIdKey = "WEBSITE_INSTANCE_ID";
+    const string ContainerNameKey = "CONTAINER_NAME";
+    const string UseV2DeterministicGuidAppSwitchKey = "NServiceBus.Core.Hosting.UseV2DeterministicGuid";
 }

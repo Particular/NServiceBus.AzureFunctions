@@ -358,7 +358,7 @@ public class MessageProcessorTests
             }
         );
 
-        var headers = result.ErrorContext!.Message.Headers;
+        var headers = result.ErrorContext!.Headers;
         using (Assert.EnterMultipleScope())
         {
             Assert.That(headers.ContainsKey(originalHeaderKey), Is.True, "Original header should still exist in onError");

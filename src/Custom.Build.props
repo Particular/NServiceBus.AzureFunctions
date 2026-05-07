@@ -9,10 +9,4 @@
     <RoslynPackagePathVersion>$(RoslynPackageVersion.Split(`.`)[0]).$(RoslynPackageVersion.Split(`.`)[1])</RoslynPackagePathVersion>
   </PropertyGroup>
 
-  <ItemGroup>
-    <CompilerVisibleProperty Include="OutputType" />
-    <CompilerVisibleProperty Include="AzureFunctionsVersion" />
-    <CompilerVisibleProperty Include="RootNamespace" />
-  </ItemGroup>
-
 </Project>

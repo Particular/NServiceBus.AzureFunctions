@@ -14,8 +14,8 @@ static class SourceWriterExtensions
                              #nullable enable annotations
                              #nullable disable warnings
                              
-                             // Suppress warnings about [Obsolete] member usage in generated code.
-                             #pragma warning disable CS0612, CS0618
+                             // Suppress warnings about [Obsolete] usage and missing XML docs in generated code.
+                             #pragma warning disable CS0612, CS0618, CS1591
                              
                              """);
             return writer;

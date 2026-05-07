@@ -24,7 +24,6 @@ public sealed partial class FunctionEndpointGenerator
         static void EmitMethodBodies(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions)
         {
             var writer = new SourceWriter();
-
             writer.PreAmble();
             writer.WriteLine("using Microsoft.Extensions.DependencyInjection;");
 
@@ -77,7 +76,6 @@ public sealed partial class FunctionEndpointGenerator
         static void EmitRegistration(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
         {
             var writer = new SourceWriter();
-
             writer.PreAmble();
             writer.WithOpenNamespace("NServiceBus.Generated");
             writer.WriteLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");

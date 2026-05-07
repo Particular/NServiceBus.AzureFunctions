@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <CompilerVisibleProperty Include="OutputType" />
+    <CompilerVisibleProperty Include="FunctionsExecutionModel" />
     <CompilerVisibleProperty Include="AzureFunctionsVersion" />
     <CompilerVisibleProperty Include="RootNamespace" />
   </ItemGroup>

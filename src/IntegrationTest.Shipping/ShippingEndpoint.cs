@@ -1,9 +1,8 @@
-namespace IntegrationTest.Shipping;
-
 using Azure.Messaging.ServiceBus;
 using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
+// Intentionally in the global namespace to make sure that the generator can handle it
 [NServiceBusFunction]
 public partial class ShippingEndpoint
 {
@@ -18,6 +17,6 @@ public partial class ShippingEndpoint
     public static void ConfigureShipping(EndpointConfiguration endpoint)
     {
         CommonEndpointConfig.Apply(endpoint);
-        endpoint.AddHandler<Handlers.ShipOrderHandler>();
+        endpoint.AddHandler<ShipOrderHandler>();
     }
 }

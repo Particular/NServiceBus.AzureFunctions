@@ -35,9 +35,8 @@ public sealed partial class FunctionEndpointGenerator
             foreach (var group in groups)
             {
                 writer.WriteLine();
-                writer.WriteLine($"namespace {group.Key.ContainingNamespace}");
-                writer.WriteLine("{");
-                writer.Indentation++;
+                var namespaceOpened = !string.IsNullOrWhiteSpace(group.Key.ContainingNamespace);
+                writer.WithOpenNamespace(group.Key.ContainingNamespace);
                 writer.WriteLine($"public partial class {group.Key.ContainingClassName}");
                 writer.WriteLine("{");
                 writer.Indentation++;
@@ -66,8 +65,11 @@ public sealed partial class FunctionEndpointGenerator
 
                 writer.Indentation--;
                 writer.WriteLine("}");
-                writer.Indentation--;
-                writer.WriteLine("}");
+                if (namespaceOpened)
+                {
+                    writer.Indentation--;
+                    writer.WriteLine("}");
+                }
             }
 
             spc.AddSource("FunctionMethodBodies.g.cs", writer.ToSourceText());

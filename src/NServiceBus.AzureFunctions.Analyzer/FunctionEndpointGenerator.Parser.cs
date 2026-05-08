@@ -259,7 +259,7 @@ public sealed partial class FunctionEndpointGenerator
 
             connectionSettingName ??= "";
 
-            var ns = containingType.ContainingNamespace.ToDisplayString();
+            var ns = containingType.ContainingNamespace.IsGlobalNamespace ? "" : containingType.ContainingNamespace.ToDisplayString();
             var className = containingType.Name;
             var returnType = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
@@ -701,4 +701,3 @@ public sealed partial class FunctionEndpointGenerator
         }
     }
 }
-

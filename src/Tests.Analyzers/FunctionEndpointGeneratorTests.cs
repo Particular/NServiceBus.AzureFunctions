@@ -16,6 +16,13 @@ public class FunctionEndpointGeneratorTests
             .Approve();
 
     [Test]
+    public void GeneratesFunctionEndpointInGlobalNamespace() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.ValidFunctionInGlobalNamespace)
+            .Run()
+            .Approve();
+
+    [Test]
     public void GeneratesNoRegistrationsForOrdinaryFunctionsOnly() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.OrdinaryFunctionOnly)

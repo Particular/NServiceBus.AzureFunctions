@@ -34,13 +34,13 @@ public partial class Functions
 #nullable enable annotations
 #nullable disable warnings
 
-// Suppress warnings about [Obsolete] usage and missing XML docs in generated code.
-#pragma warning disable CS0612, CS0618, CS1591
+// Suppress warnings about [Obsolete] usage in generated code.
+#pragma warning disable CS0612, CS0618
 
 namespace My.FunctionApp
 {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("NService.Core.Analyzer.Tests", "1.0.0")]
-    public static class NServiceBusFunctionsComposition
+    internal static class NServiceBusFunctionsComposition
     {
         extension(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder)
         {
@@ -63,8 +63,8 @@ namespace My.FunctionApp
 #nullable enable annotations
 #nullable disable warnings
 
-// Suppress warnings about [Obsolete] usage and missing XML docs in generated code.
-#pragma warning disable CS0612, CS0618, CS1591
+// Suppress warnings about [Obsolete] usage in generated code.
+#pragma warning disable CS0612, CS0618
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -92,8 +92,8 @@ namespace Demo
 #nullable enable annotations
 #nullable disable warnings
 
-// Suppress warnings about [Obsolete] usage and missing XML docs in generated code.
-#pragma warning disable CS0612, CS0618, CS1591
+// Suppress warnings about [Obsolete] usage in generated code.
+#pragma warning disable CS0612, CS0618
 
 namespace NServiceBus.Generated
 {

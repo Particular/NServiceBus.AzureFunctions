@@ -20,7 +20,7 @@ public sealed partial class FunctionCompositionGenerator
             writer.PreAmble();
             writer.WithOpenNamespace(composition.RootNamespace);
             writer.WithGeneratedCodeAttribute();
-            writer.WriteLine("public static class NServiceBusFunctionsComposition");
+            writer.WriteLine("internal static class NServiceBusFunctionsComposition");
             writer.WriteLine("{");
             writer.Indentation++;
             writer.WriteLine("extension(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder)");

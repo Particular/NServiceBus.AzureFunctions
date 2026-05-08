@@ -79,7 +79,7 @@ public sealed partial class FunctionEndpointGenerator
         {
             var writer = new SourceWriter();
             writer.PreAmble();
-            writer.WithOpenNamespace("NServiceBus.Generated");
+            writer.WithFileScopedNamespace("NServiceBus.Generated");
             writer.WriteLine("/// <summary>");
             writer.WriteLine("/// Registrations for NServiceBus functions in this assembly.");
             writer.WriteLine("/// </summary>");

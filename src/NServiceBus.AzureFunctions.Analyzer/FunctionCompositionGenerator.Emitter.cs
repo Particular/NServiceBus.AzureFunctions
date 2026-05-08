@@ -18,7 +18,7 @@ public sealed partial class FunctionCompositionGenerator
 
             var writer = new SourceWriter();
             writer.PreAmble();
-            writer.WithOpenNamespace(composition.RootNamespace);
+            writer.WithFileScopedNamespace(composition.RootNamespace);
             writer.WithGeneratedCodeAttribute();
             writer.WriteLine("internal static class NServiceBusFunctionsComposition");
             writer.WriteLine("{");

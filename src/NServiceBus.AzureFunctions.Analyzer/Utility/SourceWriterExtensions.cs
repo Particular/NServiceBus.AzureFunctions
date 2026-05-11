@@ -42,6 +42,18 @@ static class SourceWriterExtensions
             return writer;
         }
 
+        public SourceWriter WithFileScopedNamespace(string? namespaceName)
+        {
+            if (string.IsNullOrWhiteSpace(namespaceName))
+            {
+                return writer;
+            }
+
+            writer.WriteLine($"namespace {namespaceName};");
+            writer.WriteLine();
+            return writer;
+        }
+
         public void CloseCurlies()
         {
             while (writer.Indentation > 0)

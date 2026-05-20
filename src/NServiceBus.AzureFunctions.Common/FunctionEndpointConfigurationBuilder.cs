@@ -88,6 +88,8 @@ public static class FunctionEndpointConfigurationBuilder
             .UsingCustomDisplayName(hostIdentifier)
             .UsingCustomIdentifier(DeterministicGuid.Create(hostIdentifier));
 
+        endpointConfiguration.CustomDiagnosticsWriter(NoOpDiagnosticsWriter);
+
         var settings = endpointConfiguration.GetSettings();
         var endpointServices = settings.GetOrCreateKeyedServiceCollection(builder.Services, endpointName);
 
@@ -95,6 +97,8 @@ public static class FunctionEndpointConfigurationBuilder
 
         return endpointConfiguration;
     }
+
+    static Task NoOpDiagnosticsWriter(string diagnostics, CancellationToken cancellationToken) => Task.CompletedTask;
 
     static string ResolveDefaultHostIdentifier(IConfiguration configuration)
     {

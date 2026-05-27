@@ -18,10 +18,10 @@ public partial class BillingFunctions
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureBillingApi(EndpointConfiguration configuration)
+    public static void ConfigureBillingApi(EndpointConfiguration endpointConfiguration)
     {
-        CommonEndpointConfig.Apply(configuration);
-        configuration.AddHandler<Handlers.ProcessPaymentHandler>();
+        CommonEndpointConfig.Apply(endpointConfiguration);
+        endpointConfiguration.AddHandler<Handlers.ProcessPaymentHandler>();
     }
 
     [Function("BillingBackend")]

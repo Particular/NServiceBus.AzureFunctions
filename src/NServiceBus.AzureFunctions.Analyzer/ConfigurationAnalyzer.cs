@@ -208,8 +208,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     static readonly HashSet<string> AllowedConfigureMethodParameterTypes =
     [
         KnownTypeNames.EndpointConfigurationType,
-        "Microsoft.Extensions.DependencyInjection.IServiceCollection",
-        "Microsoft.Extensions.Configuration.IConfiguration",
-        "Microsoft.Extensions.Hosting.IHostEnvironment"
+        KnownTypeNames.IServiceCollection,
+        KnownTypeNames.IConfiguration,
+        KnownTypeNames.IHostEnvironment
     ];
 }

@@ -14,7 +14,7 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
 
         var hasLocalFunctions = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                "NServiceBus.NServiceBusFunctionAttribute",
+                KnownTypeNames.NServiceBusFunctionAttribute,
                 static (node, _) => node is MethodDeclarationSyntax,
                 static (_, _) => true)
             .Collect()

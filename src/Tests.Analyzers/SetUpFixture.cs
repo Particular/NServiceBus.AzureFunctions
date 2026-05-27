@@ -51,7 +51,7 @@ public class SetUpFixture
     {
         AnalyzerTest.ConfigureAllAnalyzerTests(test => test
             .AddReferences(ProjectReferences)
-            .WithCommonUsings(CommonUsings.Split(";", StringSplitOptions.RemoveEmptyEntries)));
+            .WithSource(CommonUsings, "GlobalUsings.cs"));
 
         SourceGeneratorTest.ConfigureAllSourceGeneratorTests(test => test
             .AddReferences(ProjectReferences)

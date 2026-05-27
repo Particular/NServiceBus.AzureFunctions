@@ -1,7 +1,6 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System.Collections.Generic;
-using System.Collections.Immutable;
+using Core.Analyzer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -30,13 +29,15 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .Collect()
             .SelectMany(static (results, _) =>
             {
-                var diagnostics = ImmutableHashSet.CreateBuilder(DiagnosticComparer.Instance);
+                // Diagnostics are deduplicated across all results to avoid reporting the same issue multiple times when it occurs in multiple functions.
+                // Diagnostics implements IEquatable so we can use HashSet to deduplicate. We are not using an immutable collection to build the intermediate
+                // result because we only care about the immutability of the final diagnostics collection.
+                var diagnostics = new HashSet<Diagnostic>();
                 foreach (var result in results)
                 {
                     diagnostics.UnionWith(result.Diagnostics);
                 }
-
-                return diagnostics.ToImmutable();
+                return diagnostics.ToImmutableEquatableArray();
             })
             .WithTrackingName(TrackingNames.Diagnostics);
 
@@ -61,43 +62,5 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             IncrementalGeneratorInitializationContext context,
             TriggerDefinition triggerDefinition) =>
             context.CompilationProvider.Select((_, _) => triggerDefinition);
-    }
-
-    sealed class DiagnosticComparer : IEqualityComparer<Diagnostic>
-    {
-        public static DiagnosticComparer Instance { get; } = new();
-
-        public bool Equals(Diagnostic? x, Diagnostic? y)
-        {
-            if (ReferenceEquals(x, y))
-            {
-                return true;
-            }
-
-            if (x is null || y is null)
-            {
-                return false;
-            }
-
-            return x.Id == y.Id
-                   && x.Severity == y.Severity
-                   && x.WarningLevel == y.WarningLevel
-                   && x.GetMessage() == y.GetMessage()
-                   && Equals(x.Location, y.Location);
-        }
-
-        public int GetHashCode(Diagnostic obj)
-        {
-            unchecked
-            {
-                var hashCode = 17;
-                hashCode = (hashCode * 31) + obj.Id.GetHashCode();
-                hashCode = (hashCode * 31) + obj.Severity.GetHashCode();
-                hashCode = (hashCode * 31) + obj.WarningLevel.GetHashCode();
-                hashCode = (hashCode * 31) + obj.GetMessage().GetHashCode();
-                hashCode = (hashCode * 31) + (obj.Location?.GetHashCode() ?? 0);
-                return hashCode;
-            }
-        }
     }
 }

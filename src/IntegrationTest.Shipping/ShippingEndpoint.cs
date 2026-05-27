@@ -3,9 +3,9 @@ using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
 // Intentionally in the global namespace to make sure that the generator can handle it
-[NServiceBusFunction]
 public partial class ShippingEndpoint
 {
+    [NServiceBusFunction]
     [Function(nameof(Shipping))]
     public partial Task Shipping(
         [ServiceBusTrigger("shipping", AutoCompleteMessages = false)]

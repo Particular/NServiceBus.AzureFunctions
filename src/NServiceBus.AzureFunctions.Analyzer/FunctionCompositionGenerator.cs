@@ -1,6 +1,7 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 [Generator]
 public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
@@ -14,7 +15,7 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
         var hasLocalFunctions = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "NServiceBus.NServiceBusFunctionAttribute",
-                static (_, _) => true,
+                static (node, _) => node is MethodDeclarationSyntax,
                 static (_, _) => true)
             .Collect()
             .Select(static (matches, _) => matches.Length > 0)

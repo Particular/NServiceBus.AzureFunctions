@@ -6,10 +6,9 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus.Transport.AzureServiceBus;
 
-// Cleanest pattern for single-function endpoints
-[NServiceBusFunction]
 public partial class SalesEndpoint
 {
+    [NServiceBusFunction]
     [Function("Sales")]
     public partial Task Sales(
         [ServiceBusTrigger("sales", Connection = "AzureWebJobsServiceBus", AutoCompleteMessages = false)]

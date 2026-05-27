@@ -29,41 +29,9 @@ public sealed partial class FunctionEndpointGenerator
 
             return context.TargetSymbol switch
             {
-                INamedTypeSymbol classSymbol => ExtractFromClass(classSymbol, knownTypes, triggerDefinition, cancellationToken),
                 IMethodSymbol methodSymbol => ExtractFromMethod(methodSymbol, knownTypes, triggerDefinition, cancellationToken),
                 _ => FunctionSpecs.Empty
             };
-        }
-
-        static FunctionSpecs ExtractFromClass(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, CancellationToken cancellationToken)
-        {
-            var functions = new List<FunctionSpec>();
-            var diagnostics = new List<Diagnostic>();
-
-            if (!IsPartial(classSymbol, cancellationToken))
-            {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
-            }
-
-            if (ImplementsIHandleMessages(classSymbol, knownTypes))
-            {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
-            }
-
-            foreach (var member in classSymbol.GetMembers())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (member is IMethodSymbol method)
-                {
-                    var spec = ExtractFunctionSpec(method, knownTypes, triggerDefinition, diagnostics);
-                    if (spec is not null)
-                    {
-                        functions.Add(spec);
-                    }
-                }
-            }
-
-            return new FunctionSpecs(functions.ToImmutableEquatableArray(), diagnostics.ToImmutableEquatableArray());
         }
 
         static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, CancellationToken cancellationToken)
@@ -75,9 +43,16 @@ public sealed partial class FunctionEndpointGenerator
                 diagnostics.Add(CreateDiagnostic(DiagnosticIds.MethodMustBePartialDescriptor, methodSymbol, methodSymbol.Name));
             }
 
-            if (!IsPartial(methodSymbol.ContainingType, cancellationToken))
+            var classSymbol = methodSymbol.ContainingType;
+
+            if (!IsPartial(classSymbol, cancellationToken))
             {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, methodSymbol.ContainingType, methodSymbol.ContainingType.Name));
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
+            }
+
+            if (ImplementsIHandleMessages(classSymbol, knownTypes))
+            {
+                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
             }
 
             var spec = ExtractFunctionSpec(methodSymbol, knownTypes, triggerDefinition, diagnostics);

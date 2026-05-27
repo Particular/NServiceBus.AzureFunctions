@@ -133,9 +133,9 @@ public class FunctionEndpointGeneratorTests
     const string FunctionClassShouldNotImplementIHandleMessages = """
          namespace Demo;
 
-         [NServiceBusFunction]
          public partial class Functions : IHandleMessages<ServiceBusReceivedMessage>
          {
+             [NServiceBusFunction]
              [Function("ProcessOrder")]
              public partial Task Run(
                  [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus")] ServiceBusReceivedMessage message,
@@ -156,6 +156,61 @@ public class FunctionEndpointGeneratorTests
              }
          }
          """;
+
+    [Test]
+    public void ReportsIHandleMessagesWarningOnlyOnceForMultipleAttributedMethods()
+    {
+        var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+           .WithSource("""
+               namespace Demo;
+
+               public partial class Functions : IHandleMessages<ServiceBusReceivedMessage>
+               {
+                   [NServiceBusFunction]
+                   [Function("ProcessOrder")]
+                   public partial Task Run(
+                       [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                       ServiceBusMessageActions messageActions,
+                       FunctionContext context,
+                       CancellationToken cancellationToken);
+
+                   [NServiceBusFunction]
+                   [Function("ProcessOrder2")]
+                   public partial Task Run2(
+                       [ServiceBusTrigger("sales-queue-2", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                       ServiceBusMessageActions messageActions,
+                       FunctionContext context,
+                       CancellationToken cancellationToken);
+
+                   public Task Handle(ServiceBusReceivedMessage message, IMessageHandlerContext context)
+                   {
+                       return Task.CompletedTask;
+                   }
+
+                   public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
+                   {
+                   }
+
+                   public static void ConfigureProcessOrder2(EndpointConfiguration endpointConfiguration)
+                   {
+                   }
+               }
+               """)
+           .SuppressCompilationErrors()
+           .SuppressDiagnosticErrors()
+           .Run();
+
+        var diagnosticCount = 0;
+        foreach (var diagnostic in result.GeneratorDiagnostics)
+        {
+            if (diagnostic.Id == DiagnosticIds.ShouldNotImplementIHandleMessages)
+            {
+                diagnosticCount++;
+            }
+        }
+
+        Assert.That(diagnosticCount, Is.EqualTo(1));
+    }
 
     const string MultipleConfigureMethods = """
        namespace Demo;

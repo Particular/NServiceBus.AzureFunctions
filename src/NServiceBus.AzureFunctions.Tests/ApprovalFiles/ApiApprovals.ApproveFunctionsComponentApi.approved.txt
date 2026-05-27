@@ -32,7 +32,7 @@ namespace NServiceBus
             public void AddSendOnlyNServiceBusEndpoint(string endpointName, System.Action<NServiceBus.EndpointConfiguration, Microsoft.Extensions.DependencyInjection.IServiceCollection> configure) { }
         }
     }
-    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, Inherited=false)]
+    [System.AttributeUsage(System.AttributeTargets.Method, Inherited=false)]
     public sealed class NServiceBusFunctionAttribute : System.Attribute
     {
         public NServiceBusFunctionAttribute() { }

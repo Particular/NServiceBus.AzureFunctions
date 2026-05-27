@@ -2,7 +2,7 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -46,28 +46,10 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     {
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterCompilationStartAction(OnCompilationStart);
+        context.RegisterSyntaxNodeAction(Analyze, SyntaxKind.InvocationExpression);
     }
 
-    static void OnCompilationStart(CompilationStartAnalysisContext context)
-    {
-        var functionAttribute = context.Compilation.GetTypeByMetadataName(KnownTypeNames.FunctionAttribute);
-        var nServiceBusFunctionAttribute = context.Compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusFunctionAttribute);
-
-        if (functionAttribute is null || nServiceBusFunctionAttribute is null)
-        {
-            return;
-        }
-
-        context.RegisterSyntaxNodeAction(
-            nodeContext => Analyze(nodeContext, functionAttribute, nServiceBusFunctionAttribute),
-            SyntaxKind.InvocationExpression);
-    }
-
-    static void Analyze(
-        SyntaxNodeAnalysisContext context,
-        INamedTypeSymbol functionAttribute,
-        INamedTypeSymbol nServiceBusFunctionAttribute)
+    static void Analyze(SyntaxNodeAnalysisContext context)
     {
         if (context.Node is not InvocationExpressionSyntax invocationExpression
             || invocationExpression.Expression is not MemberAccessExpressionSyntax memberAccessExpression)
@@ -75,16 +57,14 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        AnalyzeEndpointConfiguration(context, invocationExpression, memberAccessExpression, functionAttribute, nServiceBusFunctionAttribute);
+        AnalyzeEndpointConfiguration(context, invocationExpression, memberAccessExpression);
         AnalyzeSendAndReplyOptions(context, invocationExpression, memberAccessExpression);
     }
 
     static void AnalyzeEndpointConfiguration(
         SyntaxNodeAnalysisContext context,
         InvocationExpressionSyntax invocationExpression,
-        MemberAccessExpressionSyntax memberAccessExpression,
-        INamedTypeSymbol functionAttribute,
-        INamedTypeSymbol nServiceBusFunctionAttribute)
+        MemberAccessExpressionSyntax memberAccessExpression)
     {
         if (!NotAllowedEndpointConfigurationMethods.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var diagnosticDescriptor))
         {
@@ -101,7 +81,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (!IsFunctionEndpointConfigureMethod(context.ContainingSymbol as IMethodSymbol, functionAttribute, nServiceBusFunctionAttribute))
+        if (!IsEndpointConfigurationAnalysisScope(invocationExpression, context.SemanticModel, context.CancellationToken))
         {
             return;
         }
@@ -140,30 +120,35 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
                || receiverType?.EndsWith($".extension({KnownTypeNames.EndpointConfigurationType})", StringComparison.Ordinal) == true;
     }
 
-    static bool IsFunctionEndpointConfigureMethod(
-        IMethodSymbol? containingMethod,
-        INamedTypeSymbol functionAttribute,
-        INamedTypeSymbol nServiceBusFunctionAttribute)
+    static bool IsEndpointConfigurationAnalysisScope(
+        InvocationExpressionSyntax invocationExpression,
+        SemanticModel semanticModel,
+        CancellationToken cancellationToken)
     {
-        if (containingMethod is null
-            || containingMethod.MethodKind != MethodKind.Ordinary
-            || containingMethod.ContainingType is null
-            || !containingMethod.Name.StartsWith(ConfigureMethodPrefix, StringComparison.Ordinal)
-            || !HasSupportedConfigureMethodSignature(containingMethod))
+        for (SyntaxNode? current = invocationExpression; current is not null; current = current.Parent)
         {
-            return false;
+            if (current is MethodDeclarationSyntax methodDeclaration
+                && semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is { } methodSymbol
+                && HasSupportedConfigureMethodSignature(methodSymbol))
+            {
+                return true;
+            }
+
+            if (current is LocalFunctionStatementSyntax localFunction
+                && semanticModel.GetDeclaredSymbol(localFunction, cancellationToken) is { } localFunctionSymbol
+                && HasSupportedConfigureMethodSignature(localFunctionSymbol))
+            {
+                return true;
+            }
+
+            if (current is AnonymousFunctionExpressionSyntax anonymousFunction
+                && IsSendOnlyEndpointConfigurationCallback(anonymousFunction, semanticModel, cancellationToken))
+            {
+                return true;
+            }
         }
 
-        var functionName = containingMethod.Name[ConfigureMethodPrefix.Length..];
-        if (functionName.Length == 0)
-        {
-            return false;
-        }
-
-        return containingMethod.ContainingType
-            .GetMembers()
-            .OfType<IMethodSymbol>()
-            .Any(candidate => IsMatchingFunction(candidate, functionName, functionAttribute, nServiceBusFunctionAttribute));
+        return false;
     }
 
     static bool HasSupportedConfigureMethodSignature(IMethodSymbol method)
@@ -185,25 +170,43 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    static bool IsMatchingFunction(
-        IMethodSymbol candidate,
-        string functionName,
-        INamedTypeSymbol functionAttribute,
-        INamedTypeSymbol nServiceBusFunctionAttribute)
+    static bool IsSendOnlyEndpointConfigurationCallback(
+        AnonymousFunctionExpressionSyntax anonymousFunction,
+        SemanticModel semanticModel,
+        CancellationToken cancellationToken)
     {
-        if (!candidate.GetAttributes().Any(attribute => SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, nServiceBusFunctionAttribute)))
+        if (anonymousFunction.Parent is not ArgumentSyntax argument
+            || argument.Parent is not ArgumentListSyntax argumentList
+            || argumentList.Parent is not InvocationExpressionSyntax invocationExpression)
         {
             return false;
         }
 
-        var functionAttributeData = candidate.GetAttributes()
-            .FirstOrDefault(attribute => SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, functionAttribute));
+        if (argumentList.Arguments.Count == 0 || argumentList.Arguments[^1].Expression != anonymousFunction)
+        {
+            return false;
+        }
 
-        return functionAttributeData?.ConstructorArguments is [{ Value: string configuredFunctionName }]
-               && configuredFunctionName == functionName;
+        if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is not IMethodSymbol methodSymbol)
+        {
+            return false;
+        }
+
+        if (methodSymbol.Name != AddSendOnlyEndpointMethodName || methodSymbol.Parameters.Length != 2)
+        {
+            return false;
+        }
+
+        return methodSymbol.Parameters[1].Type is INamedTypeSymbol delegateType
+               && delegateType.Name == "Action"
+               && delegateType.ContainingNamespace.ToDisplayString() == "System"
+               && delegateType.TypeArguments.Length is 1 or 2
+               && delegateType.TypeArguments[0].ToDisplayString() == KnownTypeNames.EndpointConfigurationType
+               && (delegateType.TypeArguments.Length == 1
+                   || delegateType.TypeArguments[1].ToDisplayString() == KnownTypeNames.IServiceCollection);
     }
 
-    const string ConfigureMethodPrefix = "Configure";
+    const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
 
     static readonly HashSet<string> AllowedConfigureMethodParameterTypes =
     [

@@ -50,31 +50,38 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
-    public Task DoesNotReportEndpointConfigurationCallsOutsideFunctionConfigureMethod(string configuration, string diagnosticId)
+    public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethods(string configuration, string diagnosticId)
     {
         var source = $$"""
             namespace Demo;
 
-            public class Functions
+            public static class CommonEndpointConfig
             {
-                [NServiceBusFunction]
-                [Function("ProcessOrder")]
-                public Task Run(
-                    [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
-                    ServiceBusMessageActions messageActions,
-                    FunctionContext context,
-                    CancellationToken cancellationToken) => Task.CompletedTask;
-
-                public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
+                public static void Apply(EndpointConfiguration endpointConfiguration)
                 {
+                    [|endpointConfiguration.{{configuration}}|];
                 }
+            }
+            """;
 
-                public static void ConfigureOther(EndpointConfiguration endpointConfiguration)
-                {
-                    endpointConfiguration.{{configuration}};
-                }
+        return Assert(source, diagnosticId);
+    }
 
-                public static void AnotherMethod(EndpointConfiguration endpointConfiguration)
+    [TestCase("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed)]
+    [TestCase("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed)]
+    [TestCase("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed)]
+    [TestCase("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed)]
+    [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
+    [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
+    [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
+    public Task DoesNotReportEndpointConfigurationCallsInMethodsWithoutSupportedSignature(string configuration, string diagnosticId)
+    {
+        var source = $$"""
+            namespace Demo;
+
+            public static class CommonEndpointConfig
+            {
+                public static void Apply(string name, EndpointConfiguration endpointConfiguration)
                 {
                     endpointConfiguration.{{configuration}};
                 }
@@ -108,26 +115,50 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     public Task DoesNotReportExcludedEndpointConfigurationCalls(string configuration)
     {
         var source = $$"""
+            using Microsoft.Azure.Functions.Worker.Builder;
             namespace Demo;
 
-            public class Functions
+            public static class Program
             {
-                [NServiceBusFunction]
-                [Function("ProcessOrder")]
-                public Task Run(
-                    [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
-                    ServiceBusMessageActions messageActions,
-                    FunctionContext context,
-                    CancellationToken cancellationToken) => Task.CompletedTask;
-
-                public static void ConfigureProcessOrder(EndpointConfiguration endpointConfiguration)
+                public static void Configure(FunctionsApplicationBuilder builder)
                 {
-                    endpointConfiguration.{{configuration}};
+                    builder.AddSendOnlyNServiceBusEndpoint("client", (endpointConfiguration, services) =>
+                    {
+                        endpointConfiguration.{{configuration}};
+                    });
                 }
             }
             """;
 
         return Assert(source);
+    }
+
+    [TestCase("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed)]
+    [TestCase("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed)]
+    [TestCase("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed)]
+    [TestCase("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed)]
+    [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
+    [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
+    [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
+    public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyCallbacks(string configuration, string diagnosticId)
+    {
+        var source = $$"""
+            using Microsoft.Azure.Functions.Worker.Builder;
+            namespace Demo;
+
+            public static class Program
+            {
+                public static void Configure(FunctionsApplicationBuilder builder)
+                {
+                    builder.AddSendOnlyNServiceBusEndpoint("client", (endpointConfiguration, services) =>
+                    {
+                        [|endpointConfiguration.{{configuration}}|];
+                    });
+                }
+            }
+            """;
+
+        return Assert(source, diagnosticId);
     }
 
     [TestCase("RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed)]

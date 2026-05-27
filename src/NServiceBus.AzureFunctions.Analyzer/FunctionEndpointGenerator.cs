@@ -26,12 +26,14 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.Extraction);
 
         var diagnostics = extractionResults
-            .Collect()
+            .Collect() // Materialize all results for cross-method diagnostic deduplication.
             .SelectMany(static (results, _) =>
             {
-                // Diagnostics are deduplicated across all results to avoid reporting the same issue multiple times when it occurs in multiple functions.
-                // Diagnostics implements IEquatable so we can use HashSet to deduplicate. We are not using an immutable collection to build the intermediate
-                // result because we only care about the immutability of the final diagnostics collection.
+                // DiagnosticWithInfo implements structural equality (Location, Info, AdditionalLocations)
+                // so HashSet deduplicates correctly. ImmutableEquatableArray enables incremental caching:
+                // unchanged documents reuse the same SyntaxTree references, so diagnostics compare equal
+                // across steps. Within an edited file, new tree references cause re-reporting, which is
+                // correct and cheap.
                 var diagnostics = new HashSet<Diagnostic>();
                 foreach (var result in results)
                 {

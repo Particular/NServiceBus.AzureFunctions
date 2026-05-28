@@ -46,10 +46,23 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     {
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterSyntaxNodeAction(Analyze, SyntaxKind.InvocationExpression);
+        context.RegisterCompilationStartAction(OnCompilationStart);
     }
 
-    static void Analyze(SyntaxNodeAnalysisContext context)
+    static void OnCompilationStart(CompilationStartAnalysisContext context)
+    {
+        var knownSymbols = new KnownSymbols(
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
+            context.Compilation.GetTypeByMetadataName("NServiceBus.SendOptions"),
+            context.Compilation.GetTypeByMetadataName("NServiceBus.ReplyOptions"));
+
+        context.RegisterSyntaxNodeAction(nodeContext => Analyze(nodeContext, knownSymbols), SyntaxKind.InvocationExpression);
+    }
+
+    static void Analyze(SyntaxNodeAnalysisContext context, KnownSymbols knownSymbols)
     {
         if (context.Node is not InvocationExpressionSyntax invocationExpression
             || invocationExpression.Expression is not MemberAccessExpressionSyntax memberAccessExpression)
@@ -57,31 +70,32 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        AnalyzeEndpointConfiguration(context, invocationExpression, memberAccessExpression);
-        AnalyzeSendAndReplyOptions(context, invocationExpression, memberAccessExpression);
+        AnalyzeEndpointConfiguration(context, invocationExpression, memberAccessExpression, knownSymbols);
+        AnalyzeSendAndReplyOptions(context, invocationExpression, memberAccessExpression, knownSymbols);
     }
 
     static void AnalyzeEndpointConfiguration(
         SyntaxNodeAnalysisContext context,
         InvocationExpressionSyntax invocationExpression,
-        MemberAccessExpressionSyntax memberAccessExpression)
+        MemberAccessExpressionSyntax memberAccessExpression,
+        KnownSymbols knownSymbols)
     {
         if (!NotAllowedEndpointConfigurationMethods.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var diagnosticDescriptor))
         {
             return;
         }
 
-        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
+        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol)
         {
             return;
         }
 
-        if (!IsEndpointConfigurationReceiver(methodSymbol))
+        if (!IsEndpointConfigurationReceiver(memberAccessExpression, context.SemanticModel, knownSymbols.EndpointConfiguration, context.CancellationToken))
         {
             return;
         }
 
-        if (!IsEndpointConfigurationAnalysisScope(invocationExpression, context.SemanticModel, context.CancellationToken))
+        if (!IsEndpointConfigurationAnalysisScope(invocationExpression, context.SemanticModel, knownSymbols, context.CancellationToken))
         {
             return;
         }
@@ -92,20 +106,22 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     static void AnalyzeSendAndReplyOptions(
         SyntaxNodeAnalysisContext context,
         InvocationExpressionSyntax invocationExpression,
-        MemberAccessExpressionSyntax memberAccessExpression)
+        MemberAccessExpressionSyntax memberAccessExpression,
+        KnownSymbols knownSymbols)
     {
         if (!NotAllowedSendAndReplyOptions.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var diagnosticDescriptor))
         {
             return;
         }
 
-        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
+        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol)
         {
             return;
         }
 
-        var receiverType = methodSymbol.ReceiverType?.ToDisplayString();
-        if (receiverType is not ("NServiceBus.SendOptions" or "NServiceBus.ReplyOptions"))
+        var receiverType = context.SemanticModel.GetTypeInfo(memberAccessExpression.Expression, context.CancellationToken).Type;
+        if (!SymbolEqualityComparer.Default.Equals(receiverType, knownSymbols.SendOptions)
+            && !SymbolEqualityComparer.Default.Equals(receiverType, knownSymbols.ReplyOptions))
         {
             return;
         }
@@ -113,36 +129,40 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor, invocationExpression.GetLocation()));
     }
 
-    static bool IsEndpointConfigurationReceiver(IMethodSymbol methodSymbol)
+    static bool IsEndpointConfigurationReceiver(
+        MemberAccessExpressionSyntax memberAccessExpression,
+        SemanticModel semanticModel,
+        INamedTypeSymbol? endpointConfigurationSymbol,
+        CancellationToken cancellationToken)
     {
-        var receiverType = methodSymbol.ReceiverType?.ToDisplayString();
-        return receiverType == KnownTypeNames.EndpointConfigurationType
-               || receiverType?.EndsWith($".extension({KnownTypeNames.EndpointConfigurationType})", StringComparison.Ordinal) == true;
+        var receiverType = semanticModel.GetTypeInfo(memberAccessExpression.Expression, cancellationToken).Type;
+        return SymbolEqualityComparer.Default.Equals(receiverType, endpointConfigurationSymbol);
     }
 
     static bool IsEndpointConfigurationAnalysisScope(
         InvocationExpressionSyntax invocationExpression,
         SemanticModel semanticModel,
+        KnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
         for (SyntaxNode? current = invocationExpression; current is not null; current = current.Parent)
         {
             if (current is MethodDeclarationSyntax methodDeclaration
                 && semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is { } methodSymbol
-                && HasSupportedConfigureMethodSignature(methodSymbol))
+                && HasSupportedConfigureMethodSignature(methodSymbol, knownSymbols))
             {
                 return true;
             }
 
             if (current is LocalFunctionStatementSyntax localFunction
                 && semanticModel.GetDeclaredSymbol(localFunction, cancellationToken) is { } localFunctionSymbol
-                && HasSupportedConfigureMethodSignature(localFunctionSymbol))
+                && HasSupportedConfigureMethodSignature(localFunctionSymbol, knownSymbols))
             {
                 return true;
             }
 
             if (current is AnonymousFunctionExpressionSyntax anonymousFunction
-                && IsSendOnlyEndpointConfigurationCallback(anonymousFunction, semanticModel, cancellationToken))
+                && IsSendOnlyEndpointConfigurationCallback(anonymousFunction, semanticModel, knownSymbols, cancellationToken))
             {
                 return true;
             }
@@ -151,17 +171,17 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    static bool HasSupportedConfigureMethodSignature(IMethodSymbol method)
+    static bool HasSupportedConfigureMethodSignature(IMethodSymbol method, KnownSymbols knownSymbols)
     {
-        if (method.Parameters.Length == 0 || method.Parameters[0].Type.ToDisplayString() != KnownTypeNames.EndpointConfigurationType)
+        if (method.Parameters.Length == 0
+            || !SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, knownSymbols.EndpointConfiguration))
         {
             return false;
         }
 
         for (var i = 1; i < method.Parameters.Length; i++)
         {
-            var parameterType = method.Parameters[i].Type.ToDisplayString();
-            if (!AllowedConfigureMethodParameterTypes.Contains(parameterType))
+            if (!IsAllowedConfigureMethodParameterType(method.Parameters[i].Type, knownSymbols))
             {
                 return false;
             }
@@ -173,6 +193,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     static bool IsSendOnlyEndpointConfigurationCallback(
         AnonymousFunctionExpressionSyntax anonymousFunction,
         SemanticModel semanticModel,
+        KnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
         if (anonymousFunction.Parent is not ArgumentSyntax argument
@@ -201,18 +222,23 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
                && delegateType.Name == "Action"
                && delegateType.ContainingNamespace.ToDisplayString() == "System"
                && delegateType.TypeArguments.Length is 1 or 2
-               && delegateType.TypeArguments[0].ToDisplayString() == KnownTypeNames.EndpointConfigurationType
+               && SymbolEqualityComparer.Default.Equals(delegateType.TypeArguments[0], knownSymbols.EndpointConfiguration)
                && (delegateType.TypeArguments.Length == 1
-                   || delegateType.TypeArguments[1].ToDisplayString() == KnownTypeNames.IServiceCollection);
+                   || SymbolEqualityComparer.Default.Equals(delegateType.TypeArguments[1], knownSymbols.IServiceCollection));
     }
+
+    static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, KnownSymbols knownSymbols)
+        => SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IServiceCollection)
+           || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IConfiguration)
+           || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IHostEnvironment);
 
     const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
 
-    static readonly HashSet<string> AllowedConfigureMethodParameterTypes =
-    [
-        KnownTypeNames.EndpointConfigurationType,
-        KnownTypeNames.IServiceCollection,
-        KnownTypeNames.IConfiguration,
-        KnownTypeNames.IHostEnvironment
-    ];
+    readonly record struct KnownSymbols(
+        INamedTypeSymbol? EndpointConfiguration,
+        INamedTypeSymbol? IServiceCollection,
+        INamedTypeSymbol? IConfiguration,
+        INamedTypeSymbol? IHostEnvironment,
+        INamedTypeSymbol? SendOptions,
+        INamedTypeSymbol? ReplyOptions);
 }

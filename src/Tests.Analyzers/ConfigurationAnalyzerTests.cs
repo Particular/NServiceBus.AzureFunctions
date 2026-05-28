@@ -8,14 +8,32 @@ using Particular.AnalyzerTesting;
 [TestFixture]
 public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnalyzer>
 {
-    [TestCase("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed)]
-    [TestCase("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed)]
-    [TestCase("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed)]
-    [TestCase("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed)]
-    [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
-    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
+    static readonly TestCaseData[] UnsupportedEndpointConfigurationCallCases =
+    [
+        new("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed),
+        new("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed),
+        new("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed),
+        new("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed),
+        new("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed),
+        new("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed),
+        new("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed),
+        new("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)
+    ];
+
+    static readonly TestCaseData[] UnsupportedSendAndReplyOptionCases =
+    [
+        new("SendOptions", "RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed),
+        new("SendOptions", "RouteToThisInstance", DiagnosticIds.RouteToThisInstanceNotAllowed),
+        new("ReplyOptions", "RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed)
+    ];
+
+    static readonly TestCaseData[] UnsupportedUnrelatedOptionMethodCases =
+    [
+        new("RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed),
+        new("RouteToThisInstance", DiagnosticIds.RouteToThisInstanceNotAllowed)
+    ];
+
+    [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCalls(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -44,14 +62,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
-    [TestCase("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed)]
-    [TestCase("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed)]
-    [TestCase("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed)]
-    [TestCase("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed)]
-    [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
-    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
+    [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethods(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -69,14 +80,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
-    [TestCase("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed)]
-    [TestCase("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed)]
-    [TestCase("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed)]
-    [TestCase("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed)]
-    [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
-    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
+    [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task DoesNotReportEndpointConfigurationCallsInMethodsWithoutSupportedSignature(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -94,9 +98,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
-    [TestCase("SendOptions", "RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed)]
-    [TestCase("SendOptions", "RouteToThisInstance", DiagnosticIds.RouteToThisInstanceNotAllowed)]
-    [TestCase("ReplyOptions", "RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed)]
+    [TestCaseSource(nameof(UnsupportedSendAndReplyOptionCases))]
     public Task ReportsDiagnosticForUnsupportedSendAndReplyOptions(string optionsType, string method, string diagnosticId)
     {
         var source = $$"""
@@ -159,14 +161,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source);
     }
 
-    [TestCase("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed)]
-    [TestCase("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed)]
-    [TestCase("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed)]
-    [TestCase("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed)]
-    [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
-    [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
-    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
+    [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyCallbacks(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -188,8 +183,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
-    [TestCase("RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed)]
-    [TestCase("RouteToThisInstance", DiagnosticIds.RouteToThisInstanceNotAllowed)]
+    [TestCaseSource(nameof(UnsupportedUnrelatedOptionMethodCases))]
     public Task DoesNotReportUnrelatedOptionTypes(string method, string diagnosticId)
     {
         var source = $$"""

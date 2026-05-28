@@ -22,6 +22,7 @@ static class DiagnosticIds
     public const string OverrideLocalAddressNotAllowed = "NSBFUNC013";
     public const string RouteReplyToThisInstanceNotAllowed = "NSBFUNC014";
     public const string RouteToThisInstanceNotAllowed = "NSBFUNC015";
+    public const string UseTransportRequiresAzureServiceBusServerlessTransport = "NSBFUNC016";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -140,6 +141,14 @@ static class DiagnosticIds
         id: RouteToThisInstanceNotAllowed,
         title: "RouteToThisInstance is not supported in Azure Functions",
         messageFormat: "Azure Functions instances cannot be directly addressed because they have a volatile lifetime. Use endpoint routing instead.",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor UseTransportRequiresAzureServiceBusServerlessTransportDescriptor = new(
+        id: UseTransportRequiresAzureServiceBusServerlessTransport,
+        title: "UseTransport must use AzureServiceBusServerlessTransport in Azure Functions",
+        messageFormat: "Azure Functions endpoints must be configured with AzureServiceBusServerlessTransport when calling EndpointConfiguration.UseTransport(...)",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

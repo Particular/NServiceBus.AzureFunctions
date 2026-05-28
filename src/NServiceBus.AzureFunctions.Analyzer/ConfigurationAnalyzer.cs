@@ -20,7 +20,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowedDescriptor,
         DiagnosticIds.OverrideLocalAddressNotAllowedDescriptor,
         DiagnosticIds.RouteReplyToThisInstanceNotAllowedDescriptor,
-        DiagnosticIds.RouteToThisInstanceNotAllowedDescriptor
+        DiagnosticIds.RouteToThisInstanceNotAllowedDescriptor,
+        DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransportDescriptor
     ];
 
     static readonly Dictionary<string, DiagnosticDescriptor> NotAllowedEndpointConfigurationMethods =
@@ -57,7 +58,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions));
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport));
 
         context.RegisterSyntaxNodeAction(nodeContext => Analyze(nodeContext, knownSymbols), SyntaxKind.InvocationExpression);
     }
@@ -80,12 +82,16 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         MemberAccessExpressionSyntax memberAccessExpression,
         KnownSymbols knownSymbols)
     {
-        if (!NotAllowedEndpointConfigurationMethods.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var diagnosticDescriptor))
+        var methodName = memberAccessExpression.Name.Identifier.ValueText;
+        var isUseTransportCall = methodName == UseTransportMethodName;
+        DiagnosticDescriptor? diagnosticDescriptor = null;
+        if (!isUseTransportCall
+            && !NotAllowedEndpointConfigurationMethods.TryGetValue(methodName, out diagnosticDescriptor))
         {
             return;
         }
 
-        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol)
+        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
         {
             return;
         }
@@ -100,7 +106,19 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor, invocationExpression.GetLocation()));
+        if (isUseTransportCall)
+        {
+            if (!UsesAllowedTransport(invocationExpression, methodSymbol, context.SemanticModel, knownSymbols, context.CancellationToken))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransportDescriptor,
+                    invocationExpression.GetLocation()));
+            }
+
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor!, invocationExpression.GetLocation()));
     }
 
     static void AnalyzeSendAndReplyOptions(
@@ -232,7 +250,32 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IConfiguration)
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IHostEnvironment);
 
+    static bool UsesAllowedTransport(
+        InvocationExpressionSyntax invocationExpression,
+        IMethodSymbol methodSymbol,
+        SemanticModel semanticModel,
+        KnownSymbols knownSymbols,
+        CancellationToken cancellationToken)
+    {
+        if (methodSymbol.IsGenericMethod
+            && methodSymbol.TypeArguments.Length == 1
+            && SymbolEqualityComparer.Default.Equals(methodSymbol.TypeArguments[0], knownSymbols.AzureServiceBusServerlessTransport))
+        {
+            return true;
+        }
+
+        if (invocationExpression.ArgumentList.Arguments.Count != 1)
+        {
+            return false;
+        }
+
+        var typeInfo = semanticModel.GetTypeInfo(invocationExpression.ArgumentList.Arguments[0].Expression, cancellationToken);
+        return SymbolEqualityComparer.Default.Equals(typeInfo.Type, knownSymbols.AzureServiceBusServerlessTransport)
+               || SymbolEqualityComparer.Default.Equals(typeInfo.ConvertedType, knownSymbols.AzureServiceBusServerlessTransport);
+    }
+
     const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
+    const string UseTransportMethodName = "UseTransport";
 
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,
@@ -240,5 +283,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? IConfiguration,
         INamedTypeSymbol? IHostEnvironment,
         INamedTypeSymbol? SendOptions,
-        INamedTypeSymbol? ReplyOptions);
+        INamedTypeSymbol? ReplyOptions,
+        INamedTypeSymbol? AzureServiceBusServerlessTransport);
 }

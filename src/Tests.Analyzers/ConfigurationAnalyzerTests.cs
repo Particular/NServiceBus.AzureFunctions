@@ -15,6 +15,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
+    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCalls(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -50,6 +51,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
+    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethods(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -74,6 +76,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
+    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
     public Task DoesNotReportEndpointConfigurationCallsInMethodsWithoutSupportedSignature(string configuration, string diagnosticId)
     {
         var source = $$"""
@@ -111,11 +114,13 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
-    [TestCase("UseTransport(new LearningTransport())")]
-    public Task DoesNotReportExcludedEndpointConfigurationCalls(string configuration)
+    [Test]
+    public Task DoesNotReportUseTransportWithAzureServiceBusServerlessTransport()
     {
-        var source = $$"""
+        var source = """
             using Microsoft.Azure.Functions.Worker.Builder;
+            using NServiceBus.AzureFunctions.AzureServiceBus;
+            using NServiceBus.Transport.AzureServiceBus;
             namespace Demo;
 
             public static class Program
@@ -124,8 +129,29 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
                 {
                     builder.AddSendOnlyNServiceBusEndpoint("client", (endpointConfiguration, services) =>
                     {
-                        endpointConfiguration.{{configuration}};
+                        endpointConfiguration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
                     });
+                }
+            }
+            """;
+
+        return Assert(source);
+    }
+
+    [Test]
+    public Task DoesNotReportUseTransportWithAzureServiceBusServerlessTransportVariable()
+    {
+        var source = """
+            using NServiceBus.AzureFunctions.AzureServiceBus;
+            using NServiceBus.Transport.AzureServiceBus;
+            namespace Demo;
+
+            public static class CommonEndpointConfig
+            {
+                public static void Apply(EndpointConfiguration endpointConfiguration)
+                {
+                    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default);
+                    endpointConfiguration.UseTransport(transport);
                 }
             }
             """;
@@ -140,6 +166,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCase("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed)]
     [TestCase("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed)]
+    [TestCase("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyCallbacks(string configuration, string diagnosticId)
     {
         var source = $$"""

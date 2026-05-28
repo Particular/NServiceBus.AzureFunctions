@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NServiceBus.AzureFunctions.AzureServiceBus;
+using NServiceBus.Transport.AzureServiceBus;
 using NUnit.Framework;
 using Particular.AnalyzerTesting;
 
@@ -43,7 +44,8 @@ public class SetUpFixture
         MetadataReference.CreateFromFile(typeof(ServiceCollectionServiceExtensions).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(typeof(EndpointConfiguration).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(typeof(NServiceBusFunctionAttribute).GetTypeInfo().Assembly.Location),
-        MetadataReference.CreateFromFile(typeof(AzureServiceBusMessageProcessor).GetTypeInfo().Assembly.Location)
+        MetadataReference.CreateFromFile(typeof(AzureServiceBusMessageProcessor).GetTypeInfo().Assembly.Location),
+        MetadataReference.CreateFromFile(typeof(TopicTopology).GetTypeInfo().Assembly.Location)
     ];
 
     [OneTimeSetUp]

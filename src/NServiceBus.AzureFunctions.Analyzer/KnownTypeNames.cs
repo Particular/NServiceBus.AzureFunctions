@@ -10,6 +10,7 @@ static class KnownTypeNames
     public const string IHandleMessages = "NServiceBus.IHandleMessages`1";
     public const string SendOptions = "NServiceBus.SendOptions";
     public const string ReplyOptions = "NServiceBus.ReplyOptions";
+    public const string AzureServiceBusServerlessTransport = "NServiceBus.AzureServiceBusServerlessTransport";
     public const string IServiceCollection = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
     public const string IConfiguration = "Microsoft.Extensions.Configuration.IConfiguration";
     public const string IHostEnvironment = "Microsoft.Extensions.Hosting.IHostEnvironment";

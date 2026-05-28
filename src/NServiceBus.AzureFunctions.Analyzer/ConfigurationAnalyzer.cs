@@ -59,7 +59,9 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport));
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT1T2));
 
         context.RegisterSyntaxNodeAction(nodeContext => Analyze(nodeContext, knownSymbols), SyntaxKind.InvocationExpression);
     }
@@ -91,11 +93,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
-        {
-            return;
-        }
-
         if (!IsEndpointConfigurationReceiver(memberAccessExpression, context.SemanticModel, knownSymbols.EndpointConfiguration, context.CancellationToken))
         {
             return;
@@ -108,6 +105,11 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
         if (isUseTransportCall)
         {
+            if (context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
+            {
+                return;
+            }
+
             if (!UsesAllowedTransport(invocationExpression, methodSymbol, context.SemanticModel, knownSymbols, context.CancellationToken))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
@@ -128,11 +130,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         KnownSymbols knownSymbols)
     {
         if (!NotAllowedSendAndReplyOptions.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var diagnosticDescriptor))
-        {
-            return;
-        }
-
-        if (context.SemanticModel.GetSymbolInfo(memberAccessExpression, context.CancellationToken).Symbol is not IMethodSymbol)
         {
             return;
         }
@@ -237,13 +234,20 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         }
 
         return methodSymbol.Parameters[1].Type is INamedTypeSymbol delegateType
-               && delegateType.Name == "Action"
-               && delegateType.ContainingNamespace.ToDisplayString() == "System"
                && delegateType.TypeArguments.Length is 1 or 2
+               && IsSupportedSendOnlyCallbackDelegate(delegateType, knownSymbols)
                && SymbolEqualityComparer.Default.Equals(delegateType.TypeArguments[0], knownSymbols.EndpointConfiguration)
                && (delegateType.TypeArguments.Length == 1
                    || SymbolEqualityComparer.Default.Equals(delegateType.TypeArguments[1], knownSymbols.IServiceCollection));
     }
+
+    static bool IsSupportedSendOnlyCallbackDelegate(INamedTypeSymbol delegateType, KnownSymbols knownSymbols)
+        => delegateType.TypeArguments.Length switch
+        {
+            1 => SymbolEqualityComparer.Default.Equals(delegateType.OriginalDefinition, knownSymbols.ActionOfT),
+            2 => SymbolEqualityComparer.Default.Equals(delegateType.OriginalDefinition, knownSymbols.ActionOfT1T2),
+            _ => false
+        };
 
     static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, KnownSymbols knownSymbols)
         => SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IServiceCollection)
@@ -284,5 +288,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? IHostEnvironment,
         INamedTypeSymbol? SendOptions,
         INamedTypeSymbol? ReplyOptions,
-        INamedTypeSymbol? AzureServiceBusServerlessTransport);
+        INamedTypeSymbol? AzureServiceBusServerlessTransport,
+        INamedTypeSymbol? ActionOfT,
+        INamedTypeSymbol? ActionOfT1T2);
 }

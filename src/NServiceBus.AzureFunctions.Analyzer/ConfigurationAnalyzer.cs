@@ -56,8 +56,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
-            context.Compilation.GetTypeByMetadataName("NServiceBus.SendOptions"),
-            context.Compilation.GetTypeByMetadataName("NServiceBus.ReplyOptions"));
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions));
 
         context.RegisterSyntaxNodeAction(nodeContext => Analyze(nodeContext, knownSymbols), SyntaxKind.InvocationExpression);
     }

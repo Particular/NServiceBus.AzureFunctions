@@ -10,27 +10,27 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
 {
     static readonly TestCaseData[] UnsupportedEndpointConfigurationCallCases =
     [
-        new("PurgeOnStartup(true)", DiagnosticIds.PurgeOnStartupNotAllowed),
-        new("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.LimitMessageProcessingToNotAllowed),
-        new("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.DefineCriticalErrorActionNotAllowed),
-        new("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.SetDiagnosticsPathNotAllowed),
-        new("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed),
-        new("UniquelyIdentifyRunningInstance()", DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowed),
-        new("OverrideLocalAddress(\"sales\")", DiagnosticIds.OverrideLocalAddressNotAllowed),
-        new("UseTransport(new LearningTransport())", DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransport)
+        new("PurgeOnStartup(true)", DiagnosticIds.InvalidEndpointConfiguration),
+        new("LimitMessageProcessingConcurrencyTo(5)", DiagnosticIds.InvalidEndpointConfiguration),
+        new("DefineCriticalErrorAction((errorContext, cancellationToken) => Task.CompletedTask)", DiagnosticIds.InvalidEndpointConfiguration),
+        new("SetDiagnosticsPath(\"diagnostics\")", DiagnosticIds.InvalidEndpointConfiguration),
+        new("MakeInstanceUniquelyAddressable(\"instance\")", DiagnosticIds.InvalidEndpointConfiguration),
+        new("UniquelyIdentifyRunningInstance()", DiagnosticIds.InvalidEndpointConfiguration),
+        new("OverrideLocalAddress(\"sales\")", DiagnosticIds.InvalidEndpointConfiguration),
+        new("UseTransport(new LearningTransport())", DiagnosticIds.InvalidEndpointTransportConfiguration)
     ];
 
     static readonly TestCaseData[] UnsupportedSendAndReplyOptionCases =
     [
-        new("SendOptions", "RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed),
-        new("SendOptions", "RouteToThisInstance", DiagnosticIds.RouteToThisInstanceNotAllowed),
-        new("ReplyOptions", "RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed)
+        new("SendOptions", "RouteReplyToThisInstance", DiagnosticIds.InvalidSendOptions),
+        new("SendOptions", "RouteToThisInstance", DiagnosticIds.InvalidSendOptions),
+        new("ReplyOptions", "RouteReplyToThisInstance", DiagnosticIds.InvalidSendOptions)
     ];
 
     static readonly TestCaseData[] UnsupportedUnrelatedOptionMethodCases =
     [
-        new("RouteReplyToThisInstance", DiagnosticIds.RouteReplyToThisInstanceNotAllowed),
-        new("RouteToThisInstance", DiagnosticIds.RouteToThisInstanceNotAllowed)
+        new("RouteReplyToThisInstance", DiagnosticIds.InvalidSendOptions),
+        new("RouteToThisInstance", DiagnosticIds.InvalidSendOptions)
     ];
 
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]

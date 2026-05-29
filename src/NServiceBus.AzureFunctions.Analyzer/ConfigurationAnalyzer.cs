@@ -11,36 +11,40 @@ using Microsoft.CodeAnalysis.Diagnostics;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 {
+    enum EndpointConfigurationContext
+    {
+        None,
+        AzureFunctionsEndpoint,
+        SendOnlyEndpoint
+    }
+
+    readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason);
+    readonly record struct InvalidSendOptionsRule(string Reason);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
     [
-        DiagnosticIds.PurgeOnStartupNotAllowedDescriptor,
-        DiagnosticIds.LimitMessageProcessingToNotAllowedDescriptor,
-        DiagnosticIds.DefineCriticalErrorActionNotAllowedDescriptor,
-        DiagnosticIds.SetDiagnosticsPathNotAllowedDescriptor,
-        DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowedDescriptor,
-        DiagnosticIds.OverrideLocalAddressNotAllowedDescriptor,
-        DiagnosticIds.RouteReplyToThisInstanceNotAllowedDescriptor,
-        DiagnosticIds.RouteToThisInstanceNotAllowedDescriptor,
-        DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransportDescriptor
+        DiagnosticIds.InvalidEndpointConfigurationDescriptor,
+        DiagnosticIds.InvalidSendOptionsDescriptor,
+        DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor
     ];
 
-    static readonly Dictionary<string, DiagnosticDescriptor> NotAllowedEndpointConfigurationMethods =
+    static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
         new()
         {
-            ["PurgeOnStartup"] = DiagnosticIds.PurgeOnStartupNotAllowedDescriptor,
-            ["LimitMessageProcessingConcurrencyTo"] = DiagnosticIds.LimitMessageProcessingToNotAllowedDescriptor,
-            ["DefineCriticalErrorAction"] = DiagnosticIds.DefineCriticalErrorActionNotAllowedDescriptor,
-            ["SetDiagnosticsPath"] = DiagnosticIds.SetDiagnosticsPathNotAllowedDescriptor,
-            ["MakeInstanceUniquelyAddressable"] = DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowedDescriptor,
-            ["UniquelyIdentifyRunningInstance"] = DiagnosticIds.MakeInstanceUniquelyAddressableNotAllowedDescriptor,
-            ["OverrideLocalAddress"] = DiagnosticIds.OverrideLocalAddressNotAllowedDescriptor
+            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "Purging messages on startup is not supported."),
+            ["LimitMessageProcessingConcurrencyTo"] = new("EndpointConfiguration.LimitMessageProcessingConcurrencyTo", "Concurrency is controlled by the host configuration."),
+            ["DefineCriticalErrorAction"] = new("EndpointConfiguration.DefineCriticalErrorAction", "These endpoints do not control the application lifecycle and should not define critical error behavior."),
+            ["SetDiagnosticsPath"] = new("EndpointConfiguration.SetDiagnosticsPath", "Local file-system diagnostics are not supported. Use CustomDiagnosticsWriter instead."),
+            ["MakeInstanceUniquelyAddressable"] = new("EndpointConfiguration.MakeInstanceUniquelyAddressable", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
+            ["UniquelyIdentifyRunningInstance"] = new("EndpointConfiguration.UniquelyIdentifyRunningInstance", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
+            ["OverrideLocalAddress"] = new("EndpointConfiguration.OverrideLocalAddress", "The endpoint address is determined by the trigger configuration.")
         };
 
-    static readonly Dictionary<string, DiagnosticDescriptor> NotAllowedSendAndReplyOptions =
+    static readonly Dictionary<string, InvalidSendOptionsRule> InvalidSendAndReplyOptions =
         new()
         {
-            ["RouteReplyToThisInstance"] = DiagnosticIds.RouteReplyToThisInstanceNotAllowedDescriptor,
-            ["RouteToThisInstance"] = DiagnosticIds.RouteToThisInstanceNotAllowedDescriptor
+            ["RouteReplyToThisInstance"] = new("Instances are ephemeral and cannot be directly addressed. Use endpoint routing instead."),
+            ["RouteToThisInstance"] = new("Instances are ephemeral and cannot be directly addressed. Use endpoint routing instead.")
         };
 
     public override void Initialize(AnalysisContext context)
@@ -86,9 +90,9 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     {
         var methodName = memberAccessExpression.Name.Identifier.ValueText;
         var isUseTransportCall = methodName == UseTransportMethodName;
-        DiagnosticDescriptor? diagnosticDescriptor = null;
+        InvalidEndpointConfigurationRule rule = default;
         if (!isUseTransportCall
-            && !NotAllowedEndpointConfigurationMethods.TryGetValue(methodName, out diagnosticDescriptor))
+            && !InvalidEndpointConfigurationMethods.TryGetValue(methodName, out rule))
         {
             return;
         }
@@ -98,7 +102,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (!IsEndpointConfigurationAnalysisScope(invocationExpression, context.SemanticModel, knownSymbols, context.CancellationToken))
+        var endpointContext = GetEndpointConfigurationContext(invocationExpression, context.SemanticModel, knownSymbols, context.CancellationToken);
+        if (endpointContext == EndpointConfigurationContext.None)
         {
             return;
         }
@@ -113,14 +118,22 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             if (!UsesAllowedTransport(invocationExpression, methodSymbol, context.SemanticModel, knownSymbols, context.CancellationToken))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticIds.UseTransportRequiresAzureServiceBusServerlessTransportDescriptor,
-                    invocationExpression.GetLocation()));
+                    DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor,
+                    invocationExpression.GetLocation(),
+                    "EndpointConfiguration.UseTransport",
+                    GetEndpointContextLabel(endpointContext),
+                    "Use AzureServiceBusServerlessTransport when calling EndpointConfiguration.UseTransport(...)."));
             }
 
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor!, invocationExpression.GetLocation()));
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticIds.InvalidEndpointConfigurationDescriptor,
+            invocationExpression.GetLocation(),
+            rule.ApiName,
+            GetEndpointContextLabel(endpointContext),
+            rule.Reason));
     }
 
     static void AnalyzeSendAndReplyOptions(
@@ -129,7 +142,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         MemberAccessExpressionSyntax memberAccessExpression,
         KnownSymbols knownSymbols)
     {
-        if (!NotAllowedSendAndReplyOptions.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var diagnosticDescriptor))
+        if (!InvalidSendAndReplyOptions.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var rule))
         {
             return;
         }
@@ -141,7 +154,12 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor, invocationExpression.GetLocation()));
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticIds.InvalidSendOptionsDescriptor,
+            invocationExpression.GetLocation(),
+            $"{receiverType!.Name}.{memberAccessExpression.Name.Identifier.ValueText}",
+            AzureFunctionsEndpoints,
+            rule.Reason));
     }
 
     static bool IsEndpointConfigurationReceiver(
@@ -154,36 +172,40 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         return SymbolEqualityComparer.Default.Equals(receiverType, endpointConfigurationSymbol);
     }
 
-    static bool IsEndpointConfigurationAnalysisScope(
+    static EndpointConfigurationContext GetEndpointConfigurationContext(
         InvocationExpressionSyntax invocationExpression,
         SemanticModel semanticModel,
         KnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
+        var discoveredContext = EndpointConfigurationContext.None;
+
         for (SyntaxNode? current = invocationExpression; current is not null; current = current.Parent)
         {
-            if (current is MethodDeclarationSyntax methodDeclaration
-                && semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is { } methodSymbol
-                && HasSupportedConfigureMethodSignature(methodSymbol, knownSymbols))
-            {
-                return true;
-            }
-
-            if (current is LocalFunctionStatementSyntax localFunction
-                && semanticModel.GetDeclaredSymbol(localFunction, cancellationToken) is { } localFunctionSymbol
-                && HasSupportedConfigureMethodSignature(localFunctionSymbol, knownSymbols))
-            {
-                return true;
-            }
-
             if (current is AnonymousFunctionExpressionSyntax anonymousFunction
                 && IsSendOnlyEndpointConfigurationCallback(anonymousFunction, semanticModel, knownSymbols, cancellationToken))
             {
-                return true;
+                return EndpointConfigurationContext.SendOnlyEndpoint;
+            }
+
+            if (discoveredContext == EndpointConfigurationContext.None
+                && current is MethodDeclarationSyntax methodDeclaration
+                && semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is { } methodSymbol
+                && HasSupportedConfigureMethodSignature(methodSymbol, knownSymbols))
+            {
+                discoveredContext = EndpointConfigurationContext.AzureFunctionsEndpoint;
+            }
+
+            if (discoveredContext == EndpointConfigurationContext.None
+                && current is LocalFunctionStatementSyntax localFunction
+                && semanticModel.GetDeclaredSymbol(localFunction, cancellationToken) is { } localFunctionSymbol
+                && HasSupportedConfigureMethodSignature(localFunctionSymbol, knownSymbols))
+            {
+                discoveredContext = EndpointConfigurationContext.AzureFunctionsEndpoint;
             }
         }
 
-        return false;
+        return discoveredContext;
     }
 
     static bool HasSupportedConfigureMethodSignature(IMethodSymbol method, KnownSymbols knownSymbols)
@@ -254,6 +276,15 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IConfiguration)
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IHostEnvironment);
 
+    static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext)
+        => endpointContext switch
+        {
+            EndpointConfigurationContext.AzureFunctionsEndpoint => AzureFunctionsEndpoints,
+            EndpointConfigurationContext.SendOnlyEndpoint => SendOnlyEndpoints,
+            EndpointConfigurationContext.None => AzureFunctionsEndpoints,
+            _ => AzureFunctionsEndpoints
+        };
+
     static bool UsesAllowedTransport(
         InvocationExpressionSyntax invocationExpression,
         IMethodSymbol methodSymbol,
@@ -280,6 +311,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
     const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
     const string UseTransportMethodName = "UseTransport";
+    const string AzureFunctionsEndpoints = "Azure Functions endpoints";
+    const string SendOnlyEndpoints = "Send-Only endpoints";
 
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,

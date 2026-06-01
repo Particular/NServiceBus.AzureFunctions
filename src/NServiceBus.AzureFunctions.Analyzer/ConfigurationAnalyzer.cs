@@ -31,7 +31,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
         new()
         {
-            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "Purging messages on startup is not supported."),
+            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "ServiceBusTrigger bindings do not support purging messages."),
             ["LimitMessageProcessingConcurrencyTo"] = new("EndpointConfiguration.LimitMessageProcessingConcurrencyTo", "Concurrency is controlled by the host configuration."),
             ["DefineCriticalErrorAction"] = new("EndpointConfiguration.DefineCriticalErrorAction", "These endpoints do not control the application lifecycle and should not define critical error behavior."),
             ["SetDiagnosticsPath"] = new("EndpointConfiguration.SetDiagnosticsPath", "Local file-system diagnostics are not supported. Use CustomDiagnosticsWriter instead."),
@@ -133,7 +133,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             invocationExpression.GetLocation(),
             rule.ApiName,
             GetEndpointContextLabel(endpointContext),
-            rule.Reason));
+            GetEndpointConfigurationReason(rule, endpointContext)));
     }
 
     static void AnalyzeSendAndReplyOptions(
@@ -285,6 +285,22 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             _ => AzureFunctionsEndpoints
         };
 
+    static string GetEndpointConfigurationReason(
+        InvalidEndpointConfigurationRule rule,
+        EndpointConfigurationContext endpointContext)
+        => endpointContext switch
+        {
+            EndpointConfigurationContext.SendOnlyEndpoint when UsesSendOnlyEndpointReason(rule) => SendOnlyEndpointReason,
+            EndpointConfigurationContext.SendOnlyEndpoint => rule.Reason,
+            EndpointConfigurationContext.AzureFunctionsEndpoint => rule.Reason,
+            EndpointConfigurationContext.None => rule.Reason,
+            _ => rule.Reason
+        };
+
+    static bool UsesSendOnlyEndpointReason(InvalidEndpointConfigurationRule rule)
+        => rule.ApiName is not "EndpointConfiguration.DefineCriticalErrorAction"
+           and not "EndpointConfiguration.SetDiagnosticsPath";
+
     static bool UsesAllowedTransport(
         InvocationExpressionSyntax invocationExpression,
         IMethodSymbol methodSymbol,
@@ -312,7 +328,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
     const string UseTransportMethodName = "UseTransport";
     const string AzureFunctionsEndpoints = "Azure Functions endpoints";
-    const string SendOnlyEndpoints = "Send-Only endpoints";
+    const string SendOnlyEndpoints = "send-only endpoints";
+    const string SendOnlyEndpointReason = "Send-only endpoints do not receive messages.";
 
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,

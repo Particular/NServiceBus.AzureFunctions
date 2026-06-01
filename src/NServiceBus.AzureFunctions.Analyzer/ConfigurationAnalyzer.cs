@@ -323,8 +323,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         KnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
-        if (methodSymbol.IsGenericMethod
-            && methodSymbol.TypeArguments.Length == 1
+        if (methodSymbol is { IsGenericMethod: true, TypeArguments.Length: 1 }
             && SymbolEqualityComparer.Default.Equals(methodSymbol.TypeArguments[0], knownSymbols.AzureServiceBusServerlessTransport))
         {
             return true;
@@ -343,7 +342,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
     const string UseTransportMethodName = "UseTransport";
     const string AzureFunctionsEndpoints = "Azure Functions endpoints";
-    const string SendOnlyEndpoints = "send-only endpoints";
+    const string SendOnlyEndpoints = "Send-only endpoints";
     const string SendOnlyEndpointReason = "Send-only endpoints do not receive messages.";
 
     readonly record struct KnownSymbols(

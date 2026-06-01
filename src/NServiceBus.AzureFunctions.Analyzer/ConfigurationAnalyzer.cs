@@ -323,7 +323,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason);
 
     readonly record struct InvalidSendOptionsRule(string Reason);
-    
+
     static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
         new()
         {

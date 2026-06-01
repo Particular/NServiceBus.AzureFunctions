@@ -59,21 +59,18 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         MemberAccessExpressionSyntax memberAccessExpression,
         KnownSymbols knownSymbols)
     {
-        var methodName = memberAccessExpression.Name.Identifier.ValueText;
-        var isUseTransportCall = methodName == UseTransportMethodName;
-        InvalidEndpointConfigurationRule rule = default;
-        if (!isUseTransportCall
-            && !InvalidEndpointConfigurationMethods.TryGetValue(methodName, out rule))
+        if (TryAnalyzeInvalidTransportConfiguration(context, invocationExpression, memberAccessExpression, knownSymbols))
         {
             return;
         }
 
-        if (!IsEndpointConfigurationReceiver(memberAccessExpression, context.SemanticModel, knownSymbols.EndpointConfiguration, context.CancellationToken))
+        if (!InvalidEndpointConfigurationMethods.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var rule))
         {
             return;
         }
 
-        if (!TryGetEndpointConfigurationContext(
+        if (!TryGetEndpointConfigurationInvocationContext(
+                memberAccessExpression,
                 invocationExpression,
                 context.SemanticModel,
                 knownSymbols,
@@ -83,32 +80,52 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (isUseTransportCall)
-        {
-            if (context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
-            {
-                return;
-            }
-
-            if (!UsesAllowedTransport(invocationExpression, methodSymbol, context.SemanticModel, knownSymbols, context.CancellationToken))
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor,
-                    invocationExpression.GetLocation(),
-                    "EndpointConfiguration.UseTransport",
-                    GetEndpointContextLabel(endpointContext),
-                    "Use AzureServiceBusServerlessTransport when calling EndpointConfiguration.UseTransport(...)."));
-            }
-
-            return;
-        }
-
         context.ReportDiagnostic(Diagnostic.Create(
             DiagnosticIds.InvalidEndpointConfigurationDescriptor,
             invocationExpression.GetLocation(),
             rule.ApiName,
             GetEndpointContextLabel(endpointContext),
             GetEndpointConfigurationReason(rule, endpointContext)));
+    }
+
+    static bool TryAnalyzeInvalidTransportConfiguration(
+        SyntaxNodeAnalysisContext context,
+        InvocationExpressionSyntax invocationExpression,
+        MemberAccessExpressionSyntax memberAccessExpression,
+        KnownSymbols knownSymbols)
+    {
+        if (memberAccessExpression.Name.Identifier.ValueText != UseTransportMethodName)
+        {
+            return false;
+        }
+
+        if (!TryGetEndpointConfigurationInvocationContext(
+                memberAccessExpression,
+                invocationExpression,
+                context.SemanticModel,
+                knownSymbols,
+                context.CancellationToken,
+                out var endpointContext))
+        {
+            return true;
+        }
+
+        if (context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
+        {
+            return true;
+        }
+
+        if (!UsesAllowedTransport(invocationExpression, methodSymbol, context.SemanticModel, knownSymbols, context.CancellationToken))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor,
+                invocationExpression.GetLocation(),
+                "EndpointConfiguration.UseTransport",
+                GetEndpointContextLabel(endpointContext),
+                "Use AzureServiceBusServerlessTransport when calling EndpointConfiguration.UseTransport(...)."));
+        }
+
+        return true;
     }
 
     static void AnalyzeSendAndReplyOptions(
@@ -145,6 +162,28 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     {
         var receiverType = semanticModel.GetTypeInfo(memberAccessExpression.Expression, cancellationToken).Type;
         return SymbolEqualityComparer.Default.Equals(receiverType, endpointConfigurationSymbol);
+    }
+
+    static bool TryGetEndpointConfigurationInvocationContext(
+        MemberAccessExpressionSyntax memberAccessExpression,
+        InvocationExpressionSyntax invocationExpression,
+        SemanticModel semanticModel,
+        KnownSymbols knownSymbols,
+        CancellationToken cancellationToken,
+        out EndpointConfigurationContext endpointContext)
+    {
+        if (!IsEndpointConfigurationReceiver(memberAccessExpression, semanticModel, knownSymbols.EndpointConfiguration, cancellationToken))
+        {
+            endpointContext = default;
+            return false;
+        }
+
+        return TryGetEndpointConfigurationContext(
+            invocationExpression,
+            semanticModel,
+            knownSymbols,
+            cancellationToken,
+            out endpointContext);
     }
 
     static bool TryGetEndpointConfigurationContext(

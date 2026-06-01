@@ -39,31 +39,44 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT1T2),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.FunctionsHostApplicationBuilderExtensions));
 
+        // EndpointConfiguration analysis in named methods: code-block-scoped so callbacks
+        // are limited to qualifying methods only.
+        context.RegisterCodeBlockStartAction<SyntaxKind>(blockStartContext =>
+        {
+            if (blockStartContext.OwningSymbol is IMethodSymbol method && HasSupportedConfigureMethodSignature(method, knownSymbols))
+            {
+                blockStartContext.RegisterSyntaxNodeAction(
+                    nodeContext => AnalyzeEndpointConfiguration(nodeContext, EndpointConfigurationContext.AzureFunctionsEndpoint, knownSymbols),
+                    SyntaxKind.InvocationExpression);
+            }
+        });
+
+        // Send-only endpoint configuration: syntax-node-scoped because RegisterCodeBlockStartAction
+        // does not expose the AnonymousFunctionExpressionSyntax parent chain needed to detect
+        // the AddSendOnlyNServiceBusEndpoint callback.
         context.RegisterSyntaxNodeAction(
-            nodeContext => AnalyzeEndpointConfiguration(nodeContext, knownSymbols),
+            nodeContext => AnalyzeSendOnlyEndpointConfiguration(nodeContext, knownSymbols),
             SyntaxKind.InvocationExpression);
 
+        // SendOptions/ReplyOptions: syntax-node-scoped, purely receiver-type checked.
         context.RegisterSyntaxNodeAction(
             nodeContext => AnalyzeSendAndReplyOptions(nodeContext, knownSymbols),
             SyntaxKind.InvocationExpression);
     }
 
-    static void AnalyzeEndpointConfiguration(SyntaxNodeAnalysisContext context, KnownSymbols knownSymbols)
+    static void AnalyzeEndpointConfiguration(
+        SyntaxNodeAnalysisContext context,
+        EndpointConfigurationContext endpointContext,
+        KnownSymbols knownSymbols)
     {
         if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression } invocationExpression)
         {
             return;
         }
 
-        var endpointContext = GetEndpointConfigurationContext(memberAccessExpression, invocationExpression, context.SemanticModel, knownSymbols, context.CancellationToken);
-
         if (memberAccessExpression.Name.Identifier.ValueText == UseTransportMethodName)
         {
-            if (endpointContext is not null)
-            {
-                AnalyzeInvalidTransportConfiguration(context, invocationExpression, endpointContext.Value, knownSymbols);
-            }
-
+            AnalyzeInvalidTransportConfiguration(context, invocationExpression, endpointContext, knownSymbols);
             return;
         }
 
@@ -72,7 +85,39 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (endpointContext is not { } contextValue)
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticIds.InvalidEndpointConfigurationDescriptor,
+            invocationExpression.GetLocation(),
+            rule.ApiName,
+            GetEndpointContextLabel(endpointContext),
+            GetEndpointConfigurationReason(rule, endpointContext)));
+    }
+
+    static void AnalyzeSendOnlyEndpointConfiguration(SyntaxNodeAnalysisContext context, KnownSymbols knownSymbols)
+    {
+        if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression } invocationExpression)
+        {
+            return;
+        }
+
+        if (!IsEndpointConfigurationReceiver(memberAccessExpression, context.SemanticModel, knownSymbols.EndpointConfiguration, context.CancellationToken))
+        {
+            return;
+        }
+
+        var endpointContext = GetSendOnlyEndpointContext(invocationExpression, context.SemanticModel, knownSymbols, context.CancellationToken);
+        if (endpointContext is null)
+        {
+            return;
+        }
+
+        if (memberAccessExpression.Name.Identifier.ValueText == UseTransportMethodName)
+        {
+            AnalyzeInvalidTransportConfiguration(context, invocationExpression, endpointContext.Value, knownSymbols);
+            return;
+        }
+
+        if (!InvalidEndpointConfigurationMethods.TryGetValue(memberAccessExpression.Name.Identifier.ValueText, out var rule))
         {
             return;
         }
@@ -81,8 +126,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             DiagnosticIds.InvalidEndpointConfigurationDescriptor,
             invocationExpression.GetLocation(),
             rule.ApiName,
-            GetEndpointContextLabel(contextValue),
-            GetEndpointConfigurationReason(rule, contextValue)));
+            GetEndpointContextLabel(endpointContext.Value),
+            GetEndpointConfigurationReason(rule, endpointContext.Value)));
     }
 
     static void AnalyzeInvalidTransportConfiguration(
@@ -109,38 +154,18 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             "Use AzureServiceBusServerlessTransport when calling EndpointConfiguration.UseTransport(...)."));
     }
 
-    static EndpointConfigurationContext? GetEndpointConfigurationContext(
-        MemberAccessExpressionSyntax memberAccessExpression,
+    static EndpointConfigurationContext? GetSendOnlyEndpointContext(
         InvocationExpressionSyntax invocationExpression,
         SemanticModel semanticModel,
         KnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
-        if (!IsEndpointConfigurationReceiver(memberAccessExpression, semanticModel, knownSymbols.EndpointConfiguration, cancellationToken))
-        {
-            return null;
-        }
-
         for (SyntaxNode? current = invocationExpression; current is not null; current = current.Parent)
         {
             if (current is AnonymousFunctionExpressionSyntax anonymousFunction
                 && IsSendOnlyEndpointConfigurationCallback(anonymousFunction, semanticModel, knownSymbols, cancellationToken))
             {
                 return EndpointConfigurationContext.SendOnlyEndpoint;
-            }
-
-            if (current is MethodDeclarationSyntax methodDeclaration
-                && semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is { } methodSymbol
-                && HasSupportedConfigureMethodSignature(methodSymbol, knownSymbols))
-            {
-                return EndpointConfigurationContext.AzureFunctionsEndpoint;
-            }
-
-            if (current is LocalFunctionStatementSyntax localFunction
-                && semanticModel.GetDeclaredSymbol(localFunction, cancellationToken) is { } localFunctionSymbol
-                && HasSupportedConfigureMethodSignature(localFunctionSymbol, knownSymbols))
-            {
-                return EndpointConfigurationContext.AzureFunctionsEndpoint;
             }
         }
 

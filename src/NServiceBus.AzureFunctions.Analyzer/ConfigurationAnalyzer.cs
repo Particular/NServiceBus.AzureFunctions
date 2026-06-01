@@ -73,8 +73,12 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var endpointContext = GetEndpointConfigurationContext(invocationExpression, context.SemanticModel, knownSymbols, context.CancellationToken);
-        if (endpointContext == EndpointConfigurationContext.None)
+        if (!TryGetEndpointConfigurationContext(
+                invocationExpression,
+                context.SemanticModel,
+                knownSymbols,
+                context.CancellationToken,
+                out var endpointContext))
         {
             return;
         }
@@ -143,40 +147,42 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         return SymbolEqualityComparer.Default.Equals(receiverType, endpointConfigurationSymbol);
     }
 
-    static EndpointConfigurationContext GetEndpointConfigurationContext(
+    static bool TryGetEndpointConfigurationContext(
         InvocationExpressionSyntax invocationExpression,
         SemanticModel semanticModel,
         KnownSymbols knownSymbols,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        out EndpointConfigurationContext endpointContext)
     {
-        var discoveredContext = EndpointConfigurationContext.None;
+        endpointContext = default;
 
         for (SyntaxNode? current = invocationExpression; current is not null; current = current.Parent)
         {
             if (current is AnonymousFunctionExpressionSyntax anonymousFunction
                 && IsSendOnlyEndpointConfigurationCallback(anonymousFunction, semanticModel, knownSymbols, cancellationToken))
             {
-                return EndpointConfigurationContext.SendOnlyEndpoint;
+                endpointContext = EndpointConfigurationContext.SendOnlyEndpoint;
+                return true;
             }
 
-            if (discoveredContext == EndpointConfigurationContext.None
-                && current is MethodDeclarationSyntax methodDeclaration
+            if (current is MethodDeclarationSyntax methodDeclaration
                 && semanticModel.GetDeclaredSymbol(methodDeclaration, cancellationToken) is { } methodSymbol
                 && HasSupportedConfigureMethodSignature(methodSymbol, knownSymbols))
             {
-                discoveredContext = EndpointConfigurationContext.AzureFunctionsEndpoint;
+                endpointContext = EndpointConfigurationContext.AzureFunctionsEndpoint;
+                return true;
             }
 
-            if (discoveredContext == EndpointConfigurationContext.None
-                && current is LocalFunctionStatementSyntax localFunction
+            if (current is LocalFunctionStatementSyntax localFunction
                 && semanticModel.GetDeclaredSymbol(localFunction, cancellationToken) is { } localFunctionSymbol
                 && HasSupportedConfigureMethodSignature(localFunctionSymbol, knownSymbols))
             {
-                discoveredContext = EndpointConfigurationContext.AzureFunctionsEndpoint;
+                endpointContext = EndpointConfigurationContext.AzureFunctionsEndpoint;
+                return true;
             }
         }
 
-        return discoveredContext;
+        return false;
     }
 
     static bool HasSupportedConfigureMethodSignature(IMethodSymbol method, KnownSymbols knownSymbols)
@@ -248,25 +254,27 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IHostEnvironment);
 
     static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext)
-        => endpointContext switch
+    {
+        if (endpointContext == EndpointConfigurationContext.SendOnlyEndpoint)
         {
-            EndpointConfigurationContext.AzureFunctionsEndpoint => AzureFunctionsEndpoints,
-            EndpointConfigurationContext.SendOnlyEndpoint => SendOnlyEndpoints,
-            EndpointConfigurationContext.None => AzureFunctionsEndpoints,
-            _ => AzureFunctionsEndpoints
-        };
+            return SendOnlyEndpoints;
+        }
+
+        return AzureFunctionsEndpoints;
+    }
 
     static string GetEndpointConfigurationReason(
         InvalidEndpointConfigurationRule rule,
         EndpointConfigurationContext endpointContext)
-        => endpointContext switch
+    {
+        if (endpointContext == EndpointConfigurationContext.SendOnlyEndpoint
+            && UsesSendOnlyEndpointReason(rule))
         {
-            EndpointConfigurationContext.SendOnlyEndpoint when UsesSendOnlyEndpointReason(rule) => SendOnlyEndpointReason,
-            EndpointConfigurationContext.SendOnlyEndpoint => rule.Reason,
-            EndpointConfigurationContext.AzureFunctionsEndpoint => rule.Reason,
-            EndpointConfigurationContext.None => rule.Reason,
-            _ => rule.Reason
-        };
+            return SendOnlyEndpointReason;
+        }
+
+        return rule.Reason;
+    }
 
     static bool UsesSendOnlyEndpointReason(InvalidEndpointConfigurationRule rule)
         => rule.ApiName is not "EndpointConfiguration.DefineCriticalErrorAction"
@@ -315,7 +323,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
     enum EndpointConfigurationContext
     {
-        None,
         AzureFunctionsEndpoint,
         SendOnlyEndpoint
     }

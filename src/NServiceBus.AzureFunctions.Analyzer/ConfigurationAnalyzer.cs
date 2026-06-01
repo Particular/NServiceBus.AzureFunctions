@@ -210,9 +210,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         KnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
-        if (anonymousFunction.Parent is not ArgumentSyntax argument
-            || argument.Parent is not ArgumentListSyntax argumentList
-            || argumentList.Parent is not InvocationExpressionSyntax invocationExpression)
+        if (anonymousFunction.Parent is not ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax invocationExpression } argumentList })
         {
             return false;
         }
@@ -232,8 +230,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        return methodSymbol.Parameters[1].Type is INamedTypeSymbol delegateType
-               && delegateType.TypeArguments.Length is 1 or 2
+        return methodSymbol.Parameters[1].Type is INamedTypeSymbol { TypeArguments.Length: 1 or 2 } delegateType
                && IsSupportedSendOnlyCallbackDelegate(delegateType, knownSymbols)
                && SymbolEqualityComparer.Default.Equals(delegateType.TypeArguments[0], knownSymbols.EndpointConfiguration)
                && (delegateType.TypeArguments.Length == 1

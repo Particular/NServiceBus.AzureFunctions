@@ -11,41 +11,12 @@ using Microsoft.CodeAnalysis.Diagnostics;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 {
-    enum EndpointConfigurationContext
-    {
-        None,
-        AzureFunctionsEndpoint,
-        SendOnlyEndpoint
-    }
-
-    readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason);
-    readonly record struct InvalidSendOptionsRule(string Reason);
-
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
     [
         DiagnosticIds.InvalidEndpointConfigurationDescriptor,
         DiagnosticIds.InvalidSendOptionsDescriptor,
         DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor
     ];
-
-    static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
-        new()
-        {
-            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "ServiceBusTrigger bindings do not support purging messages."),
-            ["LimitMessageProcessingConcurrencyTo"] = new("EndpointConfiguration.LimitMessageProcessingConcurrencyTo", "Concurrency is controlled by the host configuration."),
-            ["DefineCriticalErrorAction"] = new("EndpointConfiguration.DefineCriticalErrorAction", "These endpoints do not control the application lifecycle and should not define critical error behavior."),
-            ["SetDiagnosticsPath"] = new("EndpointConfiguration.SetDiagnosticsPath", "Local file-system diagnostics are not supported. Use CustomDiagnosticsWriter instead."),
-            ["MakeInstanceUniquelyAddressable"] = new("EndpointConfiguration.MakeInstanceUniquelyAddressable", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
-            ["UniquelyIdentifyRunningInstance"] = new("EndpointConfiguration.UniquelyIdentifyRunningInstance", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
-            ["OverrideLocalAddress"] = new("EndpointConfiguration.OverrideLocalAddress", "The endpoint address is determined by the trigger configuration.")
-        };
-
-    static readonly Dictionary<string, InvalidSendOptionsRule> InvalidSendAndReplyOptions =
-        new()
-        {
-            ["RouteReplyToThisInstance"] = new("Instances are ephemeral and cannot be directly addressed. Use endpoint routing instead."),
-            ["RouteToThisInstance"] = new("Instances are ephemeral and cannot be directly addressed. Use endpoint routing instead.")
-        };
 
     public override void Initialize(AnalysisContext context)
     {
@@ -299,7 +270,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
     static bool UsesSendOnlyEndpointReason(InvalidEndpointConfigurationRule rule)
         => rule.ApiName is not "EndpointConfiguration.DefineCriticalErrorAction"
-           and not "EndpointConfiguration.SetDiagnosticsPath";
+            and not "EndpointConfiguration.SetDiagnosticsPath";
 
     static bool UsesAllowedTransport(
         InvocationExpressionSyntax invocationExpression,
@@ -341,4 +312,34 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? AzureServiceBusServerlessTransport,
         INamedTypeSymbol? ActionOfT,
         INamedTypeSymbol? ActionOfT1T2);
+
+    enum EndpointConfigurationContext
+    {
+        None,
+        AzureFunctionsEndpoint,
+        SendOnlyEndpoint
+    }
+
+    readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason);
+
+    readonly record struct InvalidSendOptionsRule(string Reason);
+    
+    static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
+        new()
+        {
+            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "ServiceBusTrigger bindings do not support purging messages."),
+            ["LimitMessageProcessingConcurrencyTo"] = new("EndpointConfiguration.LimitMessageProcessingConcurrencyTo", "Concurrency is controlled by the host configuration."),
+            ["DefineCriticalErrorAction"] = new("EndpointConfiguration.DefineCriticalErrorAction", "These endpoints do not control the application lifecycle and should not define critical error behavior."),
+            ["SetDiagnosticsPath"] = new("EndpointConfiguration.SetDiagnosticsPath", "Local file-system diagnostics are not supported. Use CustomDiagnosticsWriter instead."),
+            ["MakeInstanceUniquelyAddressable"] = new("EndpointConfiguration.MakeInstanceUniquelyAddressable", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
+            ["UniquelyIdentifyRunningInstance"] = new("EndpointConfiguration.UniquelyIdentifyRunningInstance", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
+            ["OverrideLocalAddress"] = new("EndpointConfiguration.OverrideLocalAddress", "The endpoint address is determined by the trigger configuration.")
+        };
+
+    static readonly Dictionary<string, InvalidSendOptionsRule> InvalidSendAndReplyOptions =
+        new()
+        {
+            ["RouteReplyToThisInstance"] = new("Instances are ephemeral and cannot be directly addressed. Use endpoint routing instead."),
+            ["RouteToThisInstance"] = new("Instances are ephemeral and cannot be directly addressed. Use endpoint routing instead.")
+        };
 }

@@ -51,9 +51,9 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             }
         });
 
-        // Send-only endpoint configuration: syntax-node-scoped because RegisterCodeBlockStartAction
-        // does not expose the AnonymousFunctionExpressionSyntax parent chain needed to detect
-        // the AddSendOnlyNServiceBusEndpoint callback.
+        // Send-only endpoint configuration via anonymous callbacks: syntax-node-scoped because
+        // RegisterCodeBlockStartAction does not expose the AnonymousFunctionExpressionSyntax
+        // parent chain needed to detect the AddSendOnlyNServiceBusEndpoint callback.
         context.RegisterSyntaxNodeAction(
             nodeContext => AnalyzeSendOnlyEndpointConfiguration(nodeContext, knownSymbols),
             SyntaxKind.InvocationExpression);

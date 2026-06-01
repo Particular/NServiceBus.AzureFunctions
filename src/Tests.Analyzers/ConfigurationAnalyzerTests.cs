@@ -183,6 +183,35 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
+    [Test]
+    public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyMethodGroupCallback()
+    {
+        // Method group callbacks to AddSendOnlyNServiceBusEndpoint are detected by
+        // HasSupportedConfigureMethodSignature, which classifies them as AzureFunctionsEndpoint
+        // rather than SendOnlyEndpoint. This is a known limitation — the diagnostic still fires
+        // but reports "Azure Functions endpoints" instead of "Send-only endpoints".
+        var source = """
+            using Microsoft.Azure.Functions.Worker.Builder;
+            using Microsoft.Extensions.DependencyInjection;
+            namespace Demo;
+
+            public static class Program
+            {
+                public static void Configure(FunctionsApplicationBuilder builder)
+                {
+                    builder.AddSendOnlyNServiceBusEndpoint("client", Program.ConfigureSendOnly);
+                }
+
+                static void ConfigureSendOnly(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+                {
+                    [|endpointConfiguration.MakeInstanceUniquelyAddressable("instance")|];
+                }
+            }
+            """;
+
+        return Assert(source, DiagnosticIds.InvalidEndpointConfiguration);
+    }
+
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethodsWithAllowedParameters(string configuration, string diagnosticId)
     {

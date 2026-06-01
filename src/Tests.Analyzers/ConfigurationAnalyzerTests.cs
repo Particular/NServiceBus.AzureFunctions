@@ -183,6 +183,27 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
         return Assert(source, diagnosticId);
     }
 
+    [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
+    public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethodsWithAllowedParameters(string configuration, string diagnosticId)
+    {
+        var source = $$"""
+            using Microsoft.Extensions.DependencyInjection;
+            using Microsoft.Extensions.Configuration;
+            using Microsoft.Extensions.Hosting;
+            namespace Demo;
+
+            public static class CommonEndpointConfig
+            {
+                public static void Apply(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+                {
+                    [|endpointConfiguration.{{configuration}}|];
+                }
+            }
+            """;
+
+        return Assert(source, diagnosticId);
+    }
+
     [TestCaseSource(nameof(UnsupportedUnrelatedOptionMethodCases))]
     public Task DoesNotReportUnrelatedOptionTypes(string method, string diagnosticId)
     {

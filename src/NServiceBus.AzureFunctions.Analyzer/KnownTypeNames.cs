@@ -16,4 +16,9 @@ static class KnownTypeNames
     public const string IServiceCollection = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
     public const string IConfiguration = "Microsoft.Extensions.Configuration.IConfiguration";
     public const string IHostEnvironment = "Microsoft.Extensions.Hosting.IHostEnvironment";
+    public const string FunctionsHostApplicationBuilderExtensions = "NServiceBus.FunctionsHostApplicationBuilderExtensions";
+    public const string AzureServiceBusFunctionsHostApplicationBuilderExtensions = "NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions";
+    public const string AddSendOnlyNServiceBusEndpoint = "AddSendOnlyNServiceBusEndpoint";
+    public const string AddNServiceBusFunctions = "AddNServiceBusFunctions";
+    public const string AddNServiceBusAzureServiceBusFunction = "AddNServiceBusAzureServiceBusFunction";
 }

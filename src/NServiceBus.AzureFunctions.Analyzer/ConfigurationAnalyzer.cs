@@ -36,15 +36,15 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT1T2));
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT1T2),
+            context.Compilation.GetTypeByMetadataName(KnownTypeNames.FunctionsHostApplicationBuilderExtensions));
 
         context.RegisterSyntaxNodeAction(nodeContext => Analyze(nodeContext, knownSymbols), SyntaxKind.InvocationExpression);
     }
 
     static void Analyze(SyntaxNodeAnalysisContext context, KnownSymbols knownSymbols)
     {
-        if (context.Node is not InvocationExpressionSyntax invocationExpression
-            || invocationExpression.Expression is not MemberAccessExpressionSyntax memberAccessExpression)
+        if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression } invocationExpression)
         {
             return;
         }
@@ -264,7 +264,15 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        if (methodSymbol.Name != AddSendOnlyEndpointMethodName || methodSymbol.Parameters.Length != 2)
+        // Restrict recognition to the NServiceBus-generated extension method on
+        // NServiceBus.FunctionsHostApplicationBuilderExtensions. A name match alone would
+        // catch any user-defined method that happens to share the name and arity.
+        // C# 14 extension members nest inside a synthetic extension block type whose
+        // ContainingType is the block (not the enclosing static class), so walk the
+        // ContainingType chain to find the host class.
+        if (methodSymbol.Name != KnownTypeNames.AddSendOnlyNServiceBusEndpoint
+            || methodSymbol.Parameters.Length != 2
+            || !ContainsType(methodSymbol, knownSymbols.FunctionsHostApplicationBuilderExtensions))
         {
             return false;
         }
@@ -284,37 +292,43 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             _ => false
         };
 
+    static bool ContainsType(IMethodSymbol method, INamedTypeSymbol? target)
+    {
+        if (target is null)
+        {
+            return false;
+        }
+
+        for (INamedTypeSymbol? type = method.ContainingType; type is not null; type = type.ContainingType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(type, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, KnownSymbols knownSymbols)
         => SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IServiceCollection)
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IConfiguration)
            || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IHostEnvironment);
 
-    static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext)
-    {
-        if (endpointContext == EndpointConfigurationContext.SendOnlyEndpoint)
-        {
-            return SendOnlyEndpoints;
-        }
-
-        return AzureFunctionsEndpoints;
-    }
+    static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext) => endpointContext == EndpointConfigurationContext.SendOnlyEndpoint ? SendOnlyEndpoints : AzureFunctionsEndpoints;
 
     static string GetEndpointConfigurationReason(
         InvalidEndpointConfigurationRule rule,
         EndpointConfigurationContext endpointContext)
     {
         if (endpointContext == EndpointConfigurationContext.SendOnlyEndpoint
-            && UsesSendOnlyEndpointReason(rule))
+            && rule.SendOnlyReason is { } sendOnlyReason)
         {
-            return SendOnlyEndpointReason;
+            return sendOnlyReason;
         }
 
         return rule.Reason;
     }
-
-    static bool UsesSendOnlyEndpointReason(InvalidEndpointConfigurationRule rule)
-        => rule.ApiName is not "EndpointConfiguration.DefineCriticalErrorAction"
-            and not "EndpointConfiguration.SetDiagnosticsPath";
 
     static bool UsesAllowedTransport(
         InvocationExpressionSyntax invocationExpression,
@@ -339,7 +353,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
                || SymbolEqualityComparer.Default.Equals(typeInfo.ConvertedType, knownSymbols.AzureServiceBusServerlessTransport);
     }
 
-    const string AddSendOnlyEndpointMethodName = "AddSendOnlyNServiceBusEndpoint";
     const string UseTransportMethodName = "UseTransport";
     const string AzureFunctionsEndpoints = "Azure Functions endpoints";
     const string SendOnlyEndpoints = "Send-only endpoints";
@@ -354,7 +367,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? ReplyOptions,
         INamedTypeSymbol? AzureServiceBusServerlessTransport,
         INamedTypeSymbol? ActionOfT,
-        INamedTypeSymbol? ActionOfT1T2);
+        INamedTypeSymbol? ActionOfT1T2,
+        INamedTypeSymbol? FunctionsHostApplicationBuilderExtensions);
 
     enum EndpointConfigurationContext
     {
@@ -362,20 +376,20 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         SendOnlyEndpoint
     }
 
-    readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason);
+    readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason, string? SendOnlyReason);
 
     readonly record struct InvalidSendOptionsRule(string Reason);
 
     static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
         new()
         {
-            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "ServiceBusTrigger bindings do not support purging messages."),
-            ["LimitMessageProcessingConcurrencyTo"] = new("EndpointConfiguration.LimitMessageProcessingConcurrencyTo", "Concurrency is controlled by the host configuration."),
-            ["DefineCriticalErrorAction"] = new("EndpointConfiguration.DefineCriticalErrorAction", "These endpoints do not control the application lifecycle and should not define critical error behavior."),
-            ["SetDiagnosticsPath"] = new("EndpointConfiguration.SetDiagnosticsPath", "Local file-system diagnostics are not supported. Use CustomDiagnosticsWriter instead."),
-            ["MakeInstanceUniquelyAddressable"] = new("EndpointConfiguration.MakeInstanceUniquelyAddressable", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
-            ["UniquelyIdentifyRunningInstance"] = new("EndpointConfiguration.UniquelyIdentifyRunningInstance", "Instances have unpredictable lifecycles and should not be uniquely addressable."),
-            ["OverrideLocalAddress"] = new("EndpointConfiguration.OverrideLocalAddress", "The endpoint address is determined by the trigger configuration.")
+            ["PurgeOnStartup"] = new("EndpointConfiguration.PurgeOnStartup", "ServiceBusTrigger bindings do not support purging messages.", SendOnlyEndpointReason),
+            ["LimitMessageProcessingConcurrencyTo"] = new("EndpointConfiguration.LimitMessageProcessingConcurrencyTo", "Concurrency is controlled by the host configuration.", SendOnlyEndpointReason),
+            ["DefineCriticalErrorAction"] = new("EndpointConfiguration.DefineCriticalErrorAction", "These endpoints do not control the application lifecycle and should not define critical error behavior.", null),
+            ["SetDiagnosticsPath"] = new("EndpointConfiguration.SetDiagnosticsPath", "Local file-system diagnostics are not supported. Use CustomDiagnosticsWriter instead.", null),
+            ["MakeInstanceUniquelyAddressable"] = new("EndpointConfiguration.MakeInstanceUniquelyAddressable", "Instances have unpredictable lifecycles and should not be uniquely addressable.", SendOnlyEndpointReason),
+            ["UniquelyIdentifyRunningInstance"] = new("EndpointConfiguration.UniquelyIdentifyRunningInstance", "Instances have unpredictable lifecycles and should not be uniquely addressable.", SendOnlyEndpointReason),
+            ["OverrideLocalAddress"] = new("EndpointConfiguration.OverrideLocalAddress", "The endpoint address is determined by the trigger configuration.", SendOnlyEndpointReason)
         };
 
     static readonly Dictionary<string, InvalidSendOptionsRule> InvalidSendAndReplyOptions =

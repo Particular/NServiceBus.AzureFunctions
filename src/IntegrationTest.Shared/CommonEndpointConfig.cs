@@ -4,13 +4,13 @@ using Infrastructure;
 
 public static class CommonEndpointConfig
 {
-    public static void Apply(EndpointConfiguration configuration)
+    public static void Apply(EndpointConfiguration endpointConfiguration)
     {
-        configuration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
-        configuration.EnableInstallers();
-        configuration.UsePersistence<LearningPersistence>();
-        configuration.UseSerialization<SystemJsonSerializer>();
+        endpointConfiguration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
+        endpointConfiguration.EnableInstallers();
+        endpointConfiguration.UsePersistence<LearningPersistence>();
+        endpointConfiguration.UseSerialization<SystemJsonSerializer>();
 
-        configuration.EnableFeature<TestStorageFeature>();
+        endpointConfiguration.EnableFeature<TestStorageFeature>();
     }
 }

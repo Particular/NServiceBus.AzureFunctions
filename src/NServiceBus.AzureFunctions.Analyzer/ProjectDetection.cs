@@ -40,15 +40,3 @@ static class ProjectDetection
         return rootNamespace;
     }
 }
-
-static class KnownTypeNames
-{
-    public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";
-}
-
-static class BuildPropertyNames
-{
-    public const string FunctionsExecutionModel = "build_property.FunctionsExecutionModel";
-    public const string OutputType = "build_property.OutputType";
-    public const string RootNamespace = "build_property.RootNamespace";
-}

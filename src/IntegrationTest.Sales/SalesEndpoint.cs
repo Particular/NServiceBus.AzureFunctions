@@ -17,15 +17,15 @@ public partial class SalesEndpoint
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureSales(EndpointConfiguration configuration, IServiceCollection services)
+    public static void ConfigureSales(EndpointConfiguration endpointConfiguration, IServiceCollection services)
     {
-        CommonEndpointConfig.Apply(configuration);
+        CommonEndpointConfig.Apply(endpointConfiguration);
 
         services.AddSingleton(new MyComponent("Sales"));
-        configuration.AddHandler<Handlers.SubmitOrderHandler>();
-        configuration.AuditProcessedMessagesTo("audit");
+        endpointConfiguration.AddHandler<Handlers.SubmitOrderHandler>();
+        endpointConfiguration.AuditProcessedMessagesTo("audit");
 
-        configuration.Recoverability()
+        endpointConfiguration.Recoverability()
             .MoveErrorsToAzureServiceBusDeadLetterQueue();
     }
 }

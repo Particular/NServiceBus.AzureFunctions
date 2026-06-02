@@ -14,9 +14,9 @@ public partial class ShippingEndpoint
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureShipping(EndpointConfiguration endpoint)
+    public static void ConfigureShipping(EndpointConfiguration endpointConfiguration)
     {
-        CommonEndpointConfig.Apply(endpoint);
-        endpoint.AddHandler<ShipOrderHandler>();
+        CommonEndpointConfig.Apply(endpointConfiguration);
+        endpointConfiguration.AddHandler<ShipOrderHandler>();
     }
 }

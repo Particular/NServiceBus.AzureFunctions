@@ -158,6 +158,6 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    const string MethodName = "AddNServiceBusFunctions";
+    const string MethodName = KnownTypeNames.AddNServiceBusFunctions;
     const string CompositionClassName = "NServiceBusFunctionsComposition";
 }

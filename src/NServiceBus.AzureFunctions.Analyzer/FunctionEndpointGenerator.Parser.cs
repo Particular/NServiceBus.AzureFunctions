@@ -623,16 +623,16 @@ public sealed partial class FunctionEndpointGenerator
         public static bool TryGet(Compilation compilation, TriggerDefinition triggerDefinition, out FunctionEndpointGeneratorKnownTypes knownTypes)
         {
             var functionAttribute =
-                compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionAttribute");
+                compilation.GetTypeByMetadataName(KnownTypeNames.FunctionAttribute);
             var triggerAttribute =
                 compilation.GetTypeByMetadataName(triggerDefinition.TriggerAttributeMetadataName);
-            var functionContext = compilation.GetTypeByMetadataName("Microsoft.Azure.Functions.Worker.FunctionContext");
-            var cancellationToken = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
-            var endpointConfiguration = compilation.GetTypeByMetadataName("NServiceBus.EndpointConfiguration");
-            var iHandleMessages = compilation.GetTypeByMetadataName("NServiceBus.IHandleMessages`1");
-            var iServiceCollection = compilation.GetTypeByMetadataName("Microsoft.Extensions.DependencyInjection.IServiceCollection");
-            var iconfiguration = compilation.GetTypeByMetadataName("Microsoft.Extensions.Configuration.IConfiguration");
-            var iHostEnvironment = compilation.GetTypeByMetadataName("Microsoft.Extensions.Hosting.IHostEnvironment");
+            var functionContext = compilation.GetTypeByMetadataName(KnownTypeNames.FunctionContext);
+            var cancellationToken = compilation.GetTypeByMetadataName(KnownTypeNames.CancellationToken);
+            var endpointConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType);
+            var iHandleMessages = compilation.GetTypeByMetadataName(KnownTypeNames.IHandleMessages);
+            var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
+            var iconfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration);
+            var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
 
             if (functionAttribute is null
                 || triggerAttribute is null

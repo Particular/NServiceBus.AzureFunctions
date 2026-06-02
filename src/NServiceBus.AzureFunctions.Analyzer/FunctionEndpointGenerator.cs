@@ -14,7 +14,7 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
     {
         var extractionCandidates = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                "NServiceBus.NServiceBusFunctionAttribute",
+                KnownTypeNames.NServiceBusFunctionAttribute,
                 predicate: static (node, _) => node is MethodDeclarationSyntax,
                 transform: static (ctx, _) => ctx);
 

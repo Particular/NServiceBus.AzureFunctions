@@ -14,6 +14,9 @@ static class DiagnosticIds
     public const string MultipleConfigureMethods = "NSBFUNC005";
     public const string AutoCompleteEnabled = "NSBFUNC006";
     public const string InvalidFunctionMethod = "NSBFUNC007";
+    public const string InvalidEndpointConfiguration = "NSBFUNC008";
+    public const string InvalidSendOptions = "NSBFUNC009";
+    public const string InvalidEndpointTransportConfiguration = "NSBFUNC010";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -68,6 +71,30 @@ static class DiagnosticIds
         id: InvalidFunctionMethod,
         title: "Invalid NServiceBus function method",
         messageFormat: "Method '{0}' is not a valid NServiceBus function: {1}",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor InvalidEndpointConfigurationDescriptor = new(
+        id: InvalidEndpointConfiguration,
+        title: "Invalid endpoint configuration",
+        messageFormat: "'{0}' is not supported for {1}: {2}",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor InvalidSendOptionsDescriptor = new(
+        id: InvalidSendOptions,
+        title: "Invalid send options",
+        messageFormat: "'{0}' is not supported for {1}: {2}",
+        category: "NServiceBus.AzureFunctions",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    internal static readonly DiagnosticDescriptor InvalidEndpointTransportConfigurationDescriptor = new(
+        id: InvalidEndpointTransportConfiguration,
+        title: "Required transport configuration",
+        messageFormat: "'{0}' must use AzureServiceBusServerlessTransport for {1}",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

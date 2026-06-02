@@ -211,8 +211,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor,
             invocationExpression.GetLocation(),
             "EndpointConfiguration.UseTransport",
-            GetEndpointContextLabel(endpointContext),
-            "Use AzureServiceBusServerlessTransport when calling EndpointConfiguration.UseTransport(...)."));
+            GetEndpointContextLabel(endpointContext)));
     }
 
     static bool IsInsideSendOnlyCallback(

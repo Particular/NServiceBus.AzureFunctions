@@ -93,8 +93,8 @@ static class DiagnosticIds
 
     internal static readonly DiagnosticDescriptor InvalidEndpointTransportConfigurationDescriptor = new(
         id: InvalidEndpointTransportConfiguration,
-        title: "Invalid transport configuration",
-        messageFormat: "'{0}' is invalid for {1}: {2}",
+        title: "Required transport configuration",
+        messageFormat: "'{0}' must use AzureServiceBusServerlessTransport for {1}",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

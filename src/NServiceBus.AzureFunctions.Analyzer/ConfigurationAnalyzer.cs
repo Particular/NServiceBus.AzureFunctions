@@ -40,30 +40,24 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.ActionOfT1T2),
             context.Compilation.GetTypeByMetadataName(KnownTypeNames.FunctionsHostApplicationBuilderExtensions));
 
-        // Methods with supported configure signatures are tracked as send-only endpoints when
-        // passed as method group arguments to AddSendOnlyNServiceBusEndpoint, so the
-        // code-block-scoped path can label them correctly.
         var sendOnlyConfigureMethods = new ConcurrentDictionary<IMethodSymbol, bool>(SymbolEqualityComparer.Default);
+        var deferredInvocations = new ConcurrentBag<DeferredInvocation>();
 
-        // EndpointConfiguration analysis in qualifying methods: code-block-scoped so callbacks
-        // are limited to methods with the right signature only.
+        // Collect EndpointConfiguration invocations in qualifying methods.
+        // Context resolution is deferred to compilation end to avoid race conditions
+        // with sendOnlyConfigureMethods population from other syntax-node actions.
         context.RegisterCodeBlockStartAction<SyntaxKind>(blockStartContext =>
         {
             if (blockStartContext.OwningSymbol is IMethodSymbol method && HasSupportedConfigureMethodSignature(method, knownSymbols))
             {
-                var endpointContext = sendOnlyConfigureMethods.ContainsKey(method)
-                    ? EndpointConfigurationContext.SendOnlyEndpoint
-                    : EndpointConfigurationContext.AzureFunctionsEndpoint;
-
                 blockStartContext.RegisterSyntaxNodeAction(
-                    nodeContext => AnalyzeEndpointConfiguration(nodeContext, endpointContext, knownSymbols),
+                    nodeContext => CollectEndpointConfigurationInvocation(nodeContext, method, deferredInvocations),
                     SyntaxKind.InvocationExpression);
             }
         });
 
-        // Detects AddSendOnlyNServiceBusEndpoint invocations to track method group arguments
-        // for the code-block path, and analyzes EndpointConfiguration calls inside lambda callbacks
-        // using syntax-tree walking to find the enclosing send-only context.
+        // Track method group arguments to AddSendOnlyNServiceBusEndpoint and analyze
+        // EndpointConfiguration calls inside lambda callbacks (syntax-tree walking).
         context.RegisterSyntaxNodeAction(
             nodeContext => AnalyzeSendOnlyInvocation(nodeContext, knownSymbols, sendOnlyConfigureMethods),
             SyntaxKind.InvocationExpression);
@@ -72,21 +66,57 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(
             nodeContext => AnalyzeSendAndReplyOptions(nodeContext, knownSymbols),
             SyntaxKind.InvocationExpression);
+
+        // Resolve deferred invocations after all syntax-node and code-block actions have completed.
+        // By this point sendOnlyConfigureMethods is fully populated — no race.
+        context.RegisterCompilationEndAction(endContext =>
+        {
+            foreach (var deferred in deferredInvocations)
+            {
+                var endpointContext = sendOnlyConfigureMethods.ContainsKey(deferred.OwningMethod.OriginalDefinition)
+                    ? EndpointConfigurationContext.SendOnlyEndpoint
+                    : EndpointConfigurationContext.AzureFunctionsEndpoint;
+
+                AnalyzeEndpointConfiguration(
+                    deferred.Invocation,
+                    deferred.SemanticModel,
+                    endContext.ReportDiagnostic,
+                    endpointContext,
+                    knownSymbols,
+                    endContext.CancellationToken);
+            }
+        });
+    }
+
+    static void CollectEndpointConfigurationInvocation(
+        SyntaxNodeAnalysisContext context,
+        IMethodSymbol owningMethod,
+        ConcurrentBag<DeferredInvocation> deferredInvocations)
+    {
+        if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } invocationExpression)
+        {
+            return;
+        }
+
+        deferredInvocations.Add(new DeferredInvocation(invocationExpression, owningMethod, context.SemanticModel));
     }
 
     static void AnalyzeEndpointConfiguration(
-        SyntaxNodeAnalysisContext context,
+        InvocationExpressionSyntax invocationExpression,
+        SemanticModel semanticModel,
+        Action<Diagnostic> reportDiagnostic,
         EndpointConfigurationContext endpointContext,
-        KnownSymbols knownSymbols)
+        KnownSymbols knownSymbols,
+        CancellationToken cancellationToken)
     {
-        if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression } invocationExpression)
+        if (invocationExpression.Expression is not MemberAccessExpressionSyntax memberAccessExpression)
         {
             return;
         }
 
         if (memberAccessExpression.Name.Identifier.ValueText == UseTransportMethodName)
         {
-            AnalyzeInvalidTransportConfiguration(context, invocationExpression, endpointContext, knownSymbols);
+            AnalyzeInvalidTransportConfiguration(invocationExpression, semanticModel, reportDiagnostic, endpointContext, knownSymbols, cancellationToken);
             return;
         }
 
@@ -95,7 +125,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(
+        reportDiagnostic(Diagnostic.Create(
             DiagnosticIds.InvalidEndpointConfigurationDescriptor,
             invocationExpression.GetLocation(),
             rule.ApiName,
@@ -113,9 +143,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Check if this is an AddSendOnlyNServiceBusEndpoint call and track method group arguments.
-        if (context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken).Symbol is IMethodSymbol { Name: KnownTypeNames.AddSendOnlyNServiceBusEndpoint, Parameters.Length: 2 } methodSymbol
-            && ContainsType(methodSymbol, knownSymbols.FunctionsHostApplicationBuilderExtensions)
+        if (IsAddSendOnlyNServiceBusEndpoint(context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken).Symbol, knownSymbols)
             && invocationExpression.ArgumentList.Arguments.Count >= 2)
         {
             var lastArgument = invocationExpression.ArgumentList.Arguments[^1].Expression;
@@ -127,7 +155,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // Analyze EndpointConfiguration calls inside lambda callbacks using syntax-tree walking.
         if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression })
         {
             return;
@@ -145,7 +172,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
         if (memberAccessExpression.Name.Identifier.ValueText == UseTransportMethodName)
         {
-            AnalyzeInvalidTransportConfiguration(context, invocationExpression, EndpointConfigurationContext.SendOnlyEndpoint, knownSymbols);
+            AnalyzeInvalidTransportConfiguration(invocationExpression, context.SemanticModel, context.ReportDiagnostic, EndpointConfigurationContext.SendOnlyEndpoint, knownSymbols, context.CancellationToken);
             return;
         }
 
@@ -163,22 +190,24 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     }
 
     static void AnalyzeInvalidTransportConfiguration(
-        SyntaxNodeAnalysisContext context,
         InvocationExpressionSyntax invocationExpression,
+        SemanticModel semanticModel,
+        Action<Diagnostic> reportDiagnostic,
         EndpointConfigurationContext endpointContext,
-        KnownSymbols knownSymbols)
+        KnownSymbols knownSymbols,
+        CancellationToken cancellationToken)
     {
-        if (context.SemanticModel.GetSymbolInfo(invocationExpression, context.CancellationToken).Symbol is not IMethodSymbol methodSymbol)
+        if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is not IMethodSymbol methodSymbol)
         {
             return;
         }
 
-        if (UsesAllowedTransport(invocationExpression, methodSymbol, context.SemanticModel, knownSymbols, context.CancellationToken))
+        if (UsesAllowedTransport(invocationExpression, methodSymbol, semanticModel, knownSymbols, cancellationToken))
         {
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(
+        reportDiagnostic(Diagnostic.Create(
             DiagnosticIds.InvalidEndpointTransportConfigurationDescriptor,
             invocationExpression.GetLocation(),
             "EndpointConfiguration.UseTransport",
@@ -231,6 +260,10 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             rule.Reason));
     }
 
+    static bool IsAddSendOnlyNServiceBusEndpoint(ISymbol? symbol, KnownSymbols knownSymbols)
+        => symbol is IMethodSymbol { Name: KnownTypeNames.AddSendOnlyNServiceBusEndpoint, Parameters.Length: 2 } method
+           && ContainsType(method, knownSymbols.FunctionsHostApplicationBuilderExtensions);
+
     static bool IsEndpointConfigurationReceiver(
         MemberAccessExpressionSyntax memberAccessExpression,
         SemanticModel semanticModel,
@@ -276,9 +309,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is not IMethodSymbol { Name: KnownTypeNames.AddSendOnlyNServiceBusEndpoint } methodSymbol
-            || methodSymbol.Parameters.Length != 2
-            || !ContainsType(methodSymbol, knownSymbols.FunctionsHostApplicationBuilderExtensions))
+        if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is not IMethodSymbol methodSymbol
+            || !IsAddSendOnlyNServiceBusEndpoint(methodSymbol, knownSymbols))
         {
             return false;
         }
@@ -363,6 +395,11 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     const string AzureFunctionsEndpoints = "Azure Functions endpoints";
     const string SendOnlyEndpoints = "Send-only endpoints";
     const string SendOnlyEndpointReason = "Send-only endpoints do not receive messages.";
+
+    readonly record struct DeferredInvocation(
+        InvocationExpressionSyntax Invocation,
+        IMethodSymbol OwningMethod,
+        SemanticModel SemanticModel);
 
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,

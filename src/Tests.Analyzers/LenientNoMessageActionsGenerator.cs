@@ -11,20 +11,21 @@ using NServiceBus.Core.Analyzer;
 class LenientNoMessageActionsGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
-        => FunctionEndpointGenerator.InitializeGenerator(context,
-            new FunctionEndpointGenerator.TriggerDefinition(
-                TriggerAttributeMetadataName: "Demo.Testing.TestTriggerAttribute",
-                AdditionalParameterTypes: ImmutableEquatableArray<FunctionEndpointGenerator.AdditionalParameterType>.Empty,
-                ProcessorTypeFullyQualified: "global::Demo.Testing.TestProcessor",
-                AddressExtraction: FunctionEndpointGenerator.AddressExtractionPolicy.FromNamedConstructorParameter("queueName"),
-                ConnectionSetting: FunctionEndpointGenerator.ConnectionSettingPolicy.FromNamedProperty("ConnSetting"),
-                AutoComplete: FunctionEndpointGenerator.AutoCompletePolicy.None,
-                RegistrationMethodFullyQualified: "global::Demo.Testing.TestFunctionManifestRegistration.Register",
-                ProcessMethodName: "Process",
-                Shape: FunctionEndpointGenerator.TriggerShape.RequiredAllowingAdditionalParameters(
-                    FunctionEndpointGenerator.ParameterRole.TriggerMessage,
-                    FunctionEndpointGenerator.ParameterRole.FunctionContext,
-                    FunctionEndpointGenerator.ParameterRole.CancellationToken)));
+        => FunctionEndpointGenerator.InitializeGenerator<LenientNoMessageActionsTriggerDefinition>(context);
+
+    sealed record LenientNoMessageActionsTriggerDefinition() : FunctionEndpointGenerator.TriggerDefinition(
+        TriggerAttributeMetadataName: "Demo.Testing.TestTriggerAttribute",
+        AdditionalParameterTypes: ImmutableEquatableArray<FunctionEndpointGenerator.AdditionalParameterType>.Empty,
+        ProcessorTypeFullyQualified: "global::Demo.Testing.TestProcessor",
+        AddressExtraction: FunctionEndpointGenerator.AddressExtractionPolicy.FromNamedConstructorParameter("queueName"),
+        ConnectionSetting: FunctionEndpointGenerator.ConnectionSettingPolicy.FromNamedProperty("ConnSetting"),
+        AutoComplete: FunctionEndpointGenerator.AutoCompletePolicy.None,
+        RegistrationMethodFullyQualified: "global::Demo.Testing.TestFunctionManifestRegistration.Register",
+        ProcessMethodName: "Process",
+        Shape: FunctionEndpointGenerator.TriggerShape.RequiredAllowingAdditionalParameters(
+            FunctionEndpointGenerator.ParameterRole.TriggerMessage,
+            FunctionEndpointGenerator.ParameterRole.FunctionContext,
+            FunctionEndpointGenerator.ParameterRole.CancellationToken));
 
     internal static class TrackingNames
     {

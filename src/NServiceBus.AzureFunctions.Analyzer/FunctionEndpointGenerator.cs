@@ -6,10 +6,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 [Generator]
 public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
 {
-    public void Initialize(IncrementalGeneratorInitializationContext context)
-        => InitializeGenerator(context, AzureServiceBusTrigger);
+    public void Initialize(IncrementalGeneratorInitializationContext context) => InitializeGenerator<AzureServiceBusTriggerDefinition>(context);
 
-    internal static void InitializeGenerator(IncrementalGeneratorInitializationContext context, TriggerDefinition triggerDefinition)
+    internal static void InitializeGenerator<TDefinition>(IncrementalGeneratorInitializationContext context)
+        where TDefinition : TriggerDefinition, new()
     {
         var extractionCandidates = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -17,11 +17,8 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
                 predicate: static (node, _) => node is MethodDeclarationSyntax,
                 transform: static (ctx, _) => ctx);
 
-        var triggerDefinitionProvider = context.CompilationProvider
-            .Select((_, _) => triggerDefinition);
-
         var extractionResults = extractionCandidates
-            .Combine(triggerDefinitionProvider)
+            .Combine(context.CompilationProvider.Select(static (_, _) => new TDefinition()))
             .Select(static (pair, ct) => Parser.Extract(pair.Left, pair.Right, ct))
             .WithTrackingName(TrackingNames.Extraction);
 

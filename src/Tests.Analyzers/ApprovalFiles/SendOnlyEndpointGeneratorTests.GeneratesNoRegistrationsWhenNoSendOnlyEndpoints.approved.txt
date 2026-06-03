@@ -1,2 +1,0 @@
-// == Compilation Diagnostics ==========================================================================================
-SendOnly.cs(1,1): hidden CS8019: Unnecessary using directive.

@@ -11,7 +11,7 @@ public class SendOnlyEndpointGeneratorTests
     [Test]
     public void GeneratesSendOnlyEndpointRegistration() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
-            .WithSource(TestSources.ValidSendOnlyEndpoint, "SendOnly.cs")
+            .WithSource(TestSources.ValidSendOnlyEndpoint)
             .Run()
             .Approve()
             .AssertRunsAreEqual();
@@ -19,7 +19,7 @@ public class SendOnlyEndpointGeneratorTests
     [Test]
     public void GeneratesSendOnlyEndpointInGlobalNamespace() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
-            .WithSource(TestSources.ValidSendOnlyEndpointInGlobalNamespace, "SendOnly.cs")
+            .WithSource(TestSources.ValidSendOnlyEndpointInGlobalNamespace)
             .Run()
             .Approve()
             .AssertRunsAreEqual();
@@ -27,7 +27,7 @@ public class SendOnlyEndpointGeneratorTests
     [Test]
     public void GeneratesSendOnlyEndpointWithAllAdditionalParameters() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
-            .WithSource(TestSources.ValidSendOnlyEndpointWithAllAdditionalParameters, "SendOnly.cs")
+            .WithSource(TestSources.ValidSendOnlyEndpointWithAllAdditionalParameters)
             .Run()
             .Approve()
             .AssertRunsAreEqual();
@@ -35,7 +35,7 @@ public class SendOnlyEndpointGeneratorTests
     [Test]
     public void GeneratesSendOnlyEndpointWithNoAdditionalParameters() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
-            .WithSource(TestSources.ValidSendOnlyEndpointWithNoAdditionalParameters, "SendOnly.cs")
+            .WithSource(TestSources.ValidSendOnlyEndpointWithNoAdditionalParameters)
             .Run()
             .Approve()
             .AssertRunsAreEqual();
@@ -43,7 +43,7 @@ public class SendOnlyEndpointGeneratorTests
     [Test]
     public void GeneratesNoRegistrationsWhenNoSendOnlyEndpoints() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
-            .WithSource(TestSources.NoSendOnlyEndpoints, "SendOnly.cs")
+            .WithSource(TestSources.NoSendOnlyEndpoints)
             .Run()
             .Approve()
             .AssertRunsAreEqual();
@@ -51,7 +51,7 @@ public class SendOnlyEndpointGeneratorTests
     [Test]
     public void GeneratesMultipleSendOnlyEndpoints() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
-            .WithSource(TestSources.MultipleSendOnlyEndpoints, "SendOnly.cs")
+            .WithSource(TestSources.MultipleSendOnlyEndpoints)
             .Run()
             .Approve()
             .AssertRunsAreEqual();

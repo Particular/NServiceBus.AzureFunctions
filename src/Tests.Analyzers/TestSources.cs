@@ -219,7 +219,6 @@ static class TestSources
         """;
 
     public const string NoSendOnlyEndpoints = """
-        using NServiceBus;
         namespace Demo;
 
         public static class SomeClass

@@ -13,28 +13,32 @@ public class FunctionEndpointGeneratorTests
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesFunctionEndpointInGlobalNamespace() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.ValidFunctionInGlobalNamespace)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesNoRegistrationsForOrdinaryFunctionsOnly() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.OrdinaryFunctionOnly)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesEndpointWithoutMessageActions() =>
         SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(TestSources.NoMessageActionsFunction)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void ReportsInvalidFunctionMethodWhenShapeContainsExtraUnrecognizedParameters()

@@ -21,5 +21,6 @@ public class FunctionCompositionGeneratorTests
             .WithProperty("build_property.RootNamespace", "My.FunctionApp")
             .SuppressCompilationErrors()
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 }

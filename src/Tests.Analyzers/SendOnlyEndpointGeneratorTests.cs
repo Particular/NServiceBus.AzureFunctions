@@ -13,42 +13,48 @@ public class SendOnlyEndpointGeneratorTests
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidSendOnlyEndpoint, "SendOnly.cs")
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesSendOnlyEndpointInGlobalNamespace() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidSendOnlyEndpointInGlobalNamespace, "SendOnly.cs")
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesSendOnlyEndpointWithAllAdditionalParameters() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidSendOnlyEndpointWithAllAdditionalParameters, "SendOnly.cs")
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesSendOnlyEndpointWithNoAdditionalParameters() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidSendOnlyEndpointWithNoAdditionalParameters, "SendOnly.cs")
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesNoRegistrationsWhenNoSendOnlyEndpoints() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.NoSendOnlyEndpoints, "SendOnly.cs")
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesMultipleSendOnlyEndpoints() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.MultipleSendOnlyEndpoints, "SendOnly.cs")
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void ReportsInvalidSendOnlyEndpointMethodWhenMethodIsNotStatic()

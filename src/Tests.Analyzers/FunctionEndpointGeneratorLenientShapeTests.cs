@@ -11,7 +11,8 @@ public class FunctionEndpointGeneratorLenientShapeTests
         SourceGeneratorTest.ForIncrementalGenerator<LenientNoMessageActionsGenerator>()
             .WithSource(SourceWithAdditionalParameter)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     const string SourceWithAdditionalParameter = """
         using System.Threading;

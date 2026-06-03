@@ -14,6 +14,7 @@ public class FunctionCompositionGeneratorTests
             .WithIncrementalGenerator<FunctionEndpointGenerator>()
             .WithIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
+            .WithSource(TestSources.ValidSendOnlyEndpoint, "SendOnly.cs")
             .ControlOutput(All)
             .WithProperty("build_property.OutputType", "Exe")
             .WithProperty("build_property.FunctionsExecutionModel", "isolated")

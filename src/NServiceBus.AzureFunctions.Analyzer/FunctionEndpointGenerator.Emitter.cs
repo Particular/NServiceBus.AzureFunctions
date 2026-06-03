@@ -108,17 +108,6 @@ public sealed partial class FunctionEndpointGenerator
             writer.WriteLine("yield break;");
             writer.Indentation--;
             writer.WriteLine("}");
-            writer.WriteLine();
-            writer.WriteLine("/// <summary>");
-            writer.WriteLine("/// Gets send-only endpoint manifests for NServiceBus endpoints in this assembly.");
-            writer.WriteLine("/// </summary>");
-            writer.WriteLine("public static global::System.Collections.Generic.IEnumerable<global::NServiceBus.SendOnlyEndpointManifest>");
-            writer.WriteLine("    GetSendOnlyEndpointManifests()");
-            writer.WriteLine("{");
-            writer.Indentation++;
-            writer.WriteLine("yield break;");
-            writer.Indentation--;
-            writer.WriteLine("}");
             writer.Indentation--;
             writer.WriteLine("}");
 

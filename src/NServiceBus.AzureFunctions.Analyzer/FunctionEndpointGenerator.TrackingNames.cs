@@ -9,5 +9,7 @@ public sealed partial class FunctionEndpointGenerator
         public const string Functions = nameof(Functions);
         public const string AssemblyClassName = nameof(AssemblyClassName);
         public const string Combined = nameof(Combined);
+
+        public static string[] All => [Extraction, Diagnostics, Functions, AssemblyClassName, Combined];
     }
 }

@@ -99,4 +99,32 @@ static class TestSources
             }
         }
         """;
+
+    public const string ValidSendOnlyEndpoint = """
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+
+        file static class UsesGlobalTypes
+        {
+            public static void Use(
+                FunctionContext functionContext,
+                ServiceBusReceivedMessage message,
+                IConfiguration configuration,
+                IHostEnvironment environment)
+            {
+                CancellationToken cancellationToken = default;
+                _ = cancellationToken;
+                _ = Task.CompletedTask;
+            }
+        }
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("client")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+            {
+            }
+        }
+        """;
 }

@@ -46,7 +46,7 @@ public sealed partial class SendOnlyEndpointGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.SendOnlyEndpoints);
 
         var assemblyClassName = context.CompilationProvider
-            .Select(static (c, _) => CompilationAssemblyDetails.FromAssembly(c.Assembly).ToGenerationClassName())
+            .Select(static (c, _) => CompilationAssemblyDetails.FromAssembly(c.Assembly).ToSendOnlyGenerationClassName())
             .WithTrackingName(TrackingNames.AssemblyClassName);
 
         var combined = sendOnlyEndpointSpecs.Collect()

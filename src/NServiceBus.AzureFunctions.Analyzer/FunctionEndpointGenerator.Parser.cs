@@ -575,7 +575,7 @@ public sealed partial class FunctionEndpointGenerator
         string ProcessCallExpression,
         ConfigureMethodSpec ConfigureMethod);
 
-    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics)
+    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics) : IDiagnosticsSpec
     {
         public static FunctionSpecs Empty { get; } = new(ImmutableEquatableArray<FunctionSpec>.Empty, ImmutableEquatableArray<Diagnostic>.Empty);
     }

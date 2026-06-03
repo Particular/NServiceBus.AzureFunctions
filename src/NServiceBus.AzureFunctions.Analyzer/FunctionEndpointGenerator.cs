@@ -27,20 +27,7 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
 
         var diagnostics = extractionResults
             .Collect()
-            .SelectMany(static (results, _) =>
-            {
-                // DiagnosticWithInfo implements structural equality (Location, Info, AdditionalLocations)
-                // so HashSet deduplicates correctly. ImmutableEquatableArray enables incremental caching:
-                // unchanged documents reuse the same SyntaxTree references, so diagnostics compare equal
-                // across steps. Within an edited file, new tree references cause re-reporting, which is
-                // correct and cheap.
-                var diagnostics = new HashSet<Diagnostic>();
-                foreach (var result in results)
-                {
-                    diagnostics.UnionWith(result.Diagnostics);
-                }
-                return diagnostics.ToImmutableEquatableArray();
-            })
+            .SelectMany(static (results, _) => results.ToDiagnostics())
             .WithTrackingName(TrackingNames.Diagnostics);
 
         context.RegisterSourceOutput(diagnostics, static (spc, diag) =>

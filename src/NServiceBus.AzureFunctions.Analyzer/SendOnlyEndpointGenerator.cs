@@ -1,6 +1,5 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using Core.Analyzer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -28,15 +27,7 @@ public sealed partial class SendOnlyEndpointGenerator : IIncrementalGenerator
 
         var diagnostics = extractionResults
             .Collect()
-            .SelectMany(static (results, _) =>
-            {
-                var diagnostics = new HashSet<Diagnostic>();
-                foreach (var result in results)
-                {
-                    diagnostics.UnionWith(result.Diagnostics);
-                }
-                return diagnostics.ToImmutableEquatableArray();
-            })
+            .SelectMany(static (results, _) => results.ToDiagnostics())
             .WithTrackingName(TrackingNames.Diagnostics);
 
         context.RegisterSourceOutput(diagnostics, static (spc, diag) => spc.ReportDiagnostic(diag));

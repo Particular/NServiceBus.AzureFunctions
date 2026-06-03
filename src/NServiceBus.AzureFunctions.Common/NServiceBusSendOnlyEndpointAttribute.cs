@@ -14,7 +14,7 @@ public sealed class NServiceBusSendOnlyEndpointAttribute(string endpointName) : 
 
     /// <summary>
     /// Gets or sets the name of the application setting or configuration section that contains the transport connection details.
-    /// When not set, the transport's default connection name is used.
+    /// When not set, the trigger's default connection name is used.
     /// </summary>
     /// <remarks>
     /// This property holds the <em>name</em> of a configuration key, not the connection string value itself.

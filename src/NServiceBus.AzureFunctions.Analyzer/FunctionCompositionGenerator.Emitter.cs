@@ -39,6 +39,10 @@ public sealed partial class FunctionCompositionGenerator
                 writer.WriteLine("{");
                 writer.WriteLine("    manifest.Register(builder, manifest);");
                 writer.WriteLine("}");
+                writer.WriteLine($"foreach (var manifest in global::{registrationClass.FullClassName}.GetSendOnlyEndpointManifests())");
+                writer.WriteLine("{");
+                writer.WriteLine("    manifest.Register(builder, manifest);");
+                writer.WriteLine("}");
             }
 
             writer.CloseCurlies();

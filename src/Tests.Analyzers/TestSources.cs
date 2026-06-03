@@ -59,6 +59,11 @@ static class TestSources
             public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.FunctionManifest __) { }
         }
 
+        public static class TestSendOnlyEndpointManifestRegistration
+        {
+            public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.SendOnlyEndpointManifest __) { }
+        }
+
         public partial class Functions
         {
             [NServiceBusFunction]

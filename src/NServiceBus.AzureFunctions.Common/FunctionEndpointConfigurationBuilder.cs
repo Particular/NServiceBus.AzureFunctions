@@ -37,7 +37,7 @@ public static class FunctionEndpointConfigurationBuilder
 
         if (endpointConfiguration.IsSendOnly)
         {
-            throw new InvalidOperationException($"Functions can't be send only endpoints, use {sendOnlyEndpointApiName}");
+            throw new InvalidOperationException($"Functions can't be send-only endpoints, use {sendOnlyEndpointApiName}.");
         }
 
         var resolvedAddress = FunctionBindingExpression.Resolve(functionManifest.Address, builder.Configuration);
@@ -50,22 +50,21 @@ public static class FunctionEndpointConfigurationBuilder
     }
 
     /// <summary>
-    /// Builds a send-only <see cref="EndpointConfiguration"/> with the customizations supplied via
-    /// <paramref name="configure"/>.
+    /// Builds a send-only <see cref="EndpointConfiguration"/> from the supplied <paramref name="manifest"/>.
     /// </summary>
     /// <param name="builder">The Functions application builder the endpoint is attached to.</param>
-    /// <param name="endpointName">The logical name of the send-only endpoint.</param>
-    /// <param name="configure">Callback invoked to configure the endpoint and register endpoint-specific services.</param>
+    /// <param name="manifest">The manifest describing the send-only endpoint to configure.</param>
     public static EndpointConfiguration BuildSendOnlyEndpointConfiguration(
         FunctionsApplicationBuilder builder,
-        string endpointName,
-        Action<EndpointConfiguration, IServiceCollection> configure)
+        SendOnlyEndpointManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(endpointName);
-        ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(manifest);
 
-        var endpointConfiguration = CreateDefaultEndpointConfiguration(endpointName, builder, configure);
+        var endpointConfiguration = CreateDefaultEndpointConfiguration(
+            manifest.Name,
+            builder,
+            (configuration, endpointServices) => manifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
 
         endpointConfiguration.SendOnly();
 

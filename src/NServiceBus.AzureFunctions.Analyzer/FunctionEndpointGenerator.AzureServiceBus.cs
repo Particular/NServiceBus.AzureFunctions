@@ -23,4 +23,7 @@ public sealed partial class FunctionEndpointGenerator
             MessageActions,
             ParameterRole.FunctionContext,
             ParameterRole.CancellationToken));
+
+    static readonly SendOnlyEndpointDefinition AzureServiceBusSendOnlyEndpoint = new(
+        RegistrationMethodFullyQualified: $"global::{KnownTypeNames.AzureServiceBusFunctionsHostApplicationBuilderExtensions}.{KnownTypeNames.AddNServiceBusAzureServiceBusSendOnlyEndpoint}");
 }

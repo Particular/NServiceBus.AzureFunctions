@@ -10,15 +10,19 @@ public sealed partial class FunctionEndpointGenerator
 {
     static class Emitter
     {
-        public static void Emit(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
+        public static void Emit(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, ImmutableArray<SendOnlyEndpointSpec> sendOnlyEndpoints, string assemblyClassName)
         {
-            if (functions.Length <= 0)
+            if (functions.Length <= 0 && sendOnlyEndpoints.Length <= 0)
             {
                 return;
             }
 
-            EmitMethodBodies(spc, functions);
-            EmitRegistration(spc, functions, assemblyClassName);
+            if (functions.Length > 0)
+            {
+                EmitMethodBodies(spc, functions);
+            }
+
+            EmitRegistration(spc, functions, sendOnlyEndpoints, assemblyClassName);
         }
 
         static void EmitMethodBodies(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions)
@@ -75,7 +79,7 @@ public sealed partial class FunctionEndpointGenerator
             spc.AddSource("FunctionMethodBodies.g.cs", writer.ToSourceText());
         }
 
-        static void EmitRegistration(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
+        static void EmitRegistration(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, ImmutableArray<SendOnlyEndpointSpec> sendOnlyEndpoints, string assemblyClassName)
         {
             var writer = new SourceWriter();
             writer.PreAmble();
@@ -106,7 +110,31 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             writer.WriteLine("yield break;");
-            writer.CloseCurlies();
+            writer.Indentation--;
+            writer.WriteLine("}");
+
+            writer.WriteLine();
+            writer.WriteLine("/// <summary>");
+            writer.WriteLine("/// Gets send-only endpoint manifests for NServiceBus endpoints in this assembly.");
+            writer.WriteLine("/// </summary>");
+            writer.WriteLine("public static global::System.Collections.Generic.IEnumerable<global::NServiceBus.SendOnlyEndpointManifest>");
+            writer.WriteLine("    GetSendOnlyEndpointManifests()");
+            writer.WriteLine("{");
+            writer.Indentation++;
+
+            foreach (var endpoint in sendOnlyEndpoints.OrderBy(f => f.EndpointName, StringComparer.Ordinal))
+            {
+                writer.WriteLine("yield return new global::NServiceBus.SendOnlyEndpointManifest(");
+                writer.WriteLine($"    \"{endpoint.EndpointName}\",");
+                writer.WriteLine($"    {GenerateConfigureMethodCall(endpoint.ConfigureMethod)},");
+                writer.WriteLine($"    {endpoint.RegistrationMethodFullyQualified});");
+            }
+
+            writer.WriteLine("yield break;");
+            writer.Indentation--;
+            writer.WriteLine("}");
+            writer.Indentation--;
+            writer.WriteLine("}");
 
             spc.AddSource("FunctionRegistration.g.cs", writer.ToSourceText());
         }

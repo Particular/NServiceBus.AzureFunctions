@@ -5,6 +5,7 @@ static class KnownTypeNames
     public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";
     public const string FunctionContext = "Microsoft.Azure.Functions.Worker.FunctionContext";
     public const string NServiceBusFunctionAttribute = "NServiceBus.NServiceBusFunctionAttribute";
+    public const string NServiceBusSendOnlyEndpointAttribute = "NServiceBus.NServiceBusSendOnlyEndpointAttribute";
     public const string CancellationToken = "System.Threading.CancellationToken";
     public const string EndpointConfigurationType = "NServiceBus.EndpointConfiguration";
     public const string IHandleMessages = "NServiceBus.IHandleMessages`1";
@@ -16,9 +17,9 @@ static class KnownTypeNames
     public const string IServiceCollection = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
     public const string IConfiguration = "Microsoft.Extensions.Configuration.IConfiguration";
     public const string IHostEnvironment = "Microsoft.Extensions.Hosting.IHostEnvironment";
-    public const string FunctionsHostApplicationBuilderExtensions = "NServiceBus.FunctionsHostApplicationBuilderExtensions";
     public const string AzureServiceBusFunctionsHostApplicationBuilderExtensions = "NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions";
-    public const string AddSendOnlyNServiceBusEndpoint = "AddSendOnlyNServiceBusEndpoint";
+    public const string SendOnlyEndpointManifest = "NServiceBus.SendOnlyEndpointManifest";
     public const string AddNServiceBusFunctions = "AddNServiceBusFunctions";
     public const string AddNServiceBusAzureServiceBusFunction = "AddNServiceBusAzureServiceBusFunction";
+    public const string AddNServiceBusAzureServiceBusSendOnlyEndpoint = "AddNServiceBusAzureServiceBusSendOnlyEndpoint";
 }

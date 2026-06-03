@@ -37,6 +37,48 @@ public class FunctionEndpointGeneratorTests
             .Approve();
 
     [Test]
+    public void GeneratesSendOnlyEndpointRegistration() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.ValidFunction)
+            .WithSource("""
+                namespace Demo;
+
+                using Microsoft.Extensions.DependencyInjection;
+
+                public static class ClientEndpoint
+                {
+                    [NServiceBusSendOnlyEndpoint("client")]
+                    public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+                    {
+                    }
+                }
+                """, "SendOnly.cs")
+            .Run()
+            .Approve();
+
+    [Test]
+    public void ReportsInvalidSendOnlyEndpointMethodWhenMethodIsNotStatic()
+    {
+        var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource("""
+                namespace Demo;
+
+                public class ClientEndpoint
+                {
+                    [NServiceBusSendOnlyEndpoint("client")]
+                    public void ConfigureClient(EndpointConfiguration endpointConfiguration)
+                    {
+                    }
+                }
+                """)
+            .SuppressCompilationErrors()
+            .SuppressDiagnosticErrors()
+            .Run();
+
+        Assert.That(result.GeneratorDiagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidSendOnlyEndpointMethod));
+    }
+
+    [Test]
     public void ReportsInvalidFunctionMethodWhenShapeContainsExtraUnrecognizedParameters()
     {
         var diagnostic = GetInvalidFunctionMethodDiagnostic<NoMessageActionsGenerator>(
@@ -571,6 +613,11 @@ public class FunctionEndpointGeneratorTests
             public static class TestFunctionManifestRegistration
             {
                 public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.FunctionManifest __) { }
+            }
+
+            public static class TestSendOnlyEndpointManifestRegistration
+            {
+                public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.SendOnlyEndpointManifest __) { }
             }
 
             {{classBody}}

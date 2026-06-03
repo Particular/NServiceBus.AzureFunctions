@@ -6,8 +6,9 @@ public sealed partial class FunctionCompositionGenerator
     {
         public const string HostProject = nameof(HostProject);
         public const string LocalFunctions = nameof(LocalFunctions);
+        public const string LocalSendOnlyEndpoints = nameof(LocalSendOnlyEndpoints);
         public const string Composition = nameof(Composition);
 
-        public static string[] All => [HostProject, LocalFunctions, Composition];
+        public static string[] All => [HostProject, LocalFunctions, LocalSendOnlyEndpoints, Composition];
     }
 }

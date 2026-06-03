@@ -120,19 +120,16 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     public Task DoesNotReportUseTransportWithAzureServiceBusServerlessTransport()
     {
         var source = """
-            using Microsoft.Azure.Functions.Worker.Builder;
             using NServiceBus.AzureFunctions.AzureServiceBus;
             using NServiceBus.Transport.AzureServiceBus;
             namespace Demo;
 
-            public static class Program
+            public static class ClientEndpoint
             {
-                public static void Configure(FunctionsApplicationBuilder builder)
+                [NServiceBusSendOnlyEndpoint("client")]
+                public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
                 {
-                    builder.AddSendOnlyNServiceBusEndpoint("client", (endpointConfiguration, services) =>
-                    {
-                        endpointConfiguration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
-                    });
+                    endpointConfiguration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
                 }
             }
             """;
@@ -165,17 +162,14 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyCallbacks(string configuration, string diagnosticId)
     {
         var source = $$"""
-            using Microsoft.Azure.Functions.Worker.Builder;
             namespace Demo;
 
-            public static class Program
+            public static class ClientEndpoint
             {
-                public static void Configure(FunctionsApplicationBuilder builder)
+                [NServiceBusSendOnlyEndpoint("client")]
+                public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
                 {
-                    builder.AddSendOnlyNServiceBusEndpoint("client", (endpointConfiguration, services) =>
-                    {
-                        [|endpointConfiguration.{{configuration}}|];
-                    });
+                    [|endpointConfiguration.{{configuration}}|];
                 }
             }
             """;
@@ -187,18 +181,13 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyMethodGroupCallback()
     {
         var source = """
-            using Microsoft.Azure.Functions.Worker.Builder;
             using Microsoft.Extensions.DependencyInjection;
             namespace Demo;
 
-            public static class Program
+            public static class ClientEndpoint
             {
-                public static void Configure(FunctionsApplicationBuilder builder)
-                {
-                    builder.AddSendOnlyNServiceBusEndpoint("client", Program.ConfigureSendOnly);
-                }
-
-                static void ConfigureSendOnly(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+                [NServiceBusSendOnlyEndpoint("client")]
+                public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
                 {
                     [|endpointConfiguration.MakeInstanceUniquelyAddressable("instance")|];
                 }

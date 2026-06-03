@@ -52,6 +52,10 @@ internal static class NServiceBusFunctionsComposition
             {
                 manifest.Register(builder, manifest);
             }
+            foreach (var manifest in global::NServiceBus.Generated.GeneratedFunctionRegistrations_GeneratesProjectComposition_4d91953014478208.GetSendOnlyEndpointManifests())
+            {
+                manifest.Register(builder, manifest);
+            }
         }
     }
 }
@@ -114,6 +118,15 @@ public static class GeneratedFunctionRegistrations_GeneratesProjectComposition_4
             "ProcessOrder", "sales-queue", "AzureServiceBus",
             (endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfiguration, ihostenvironment),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction);
+        yield break;
+    }
+
+    /// <summary>
+    /// Gets send-only endpoint manifests for NServiceBus endpoints in this assembly.
+    /// </summary>
+    public static global::System.Collections.Generic.IEnumerable<global::NServiceBus.SendOnlyEndpointManifest>
+        GetSendOnlyEndpointManifests()
+    {
         yield break;
     }
 }

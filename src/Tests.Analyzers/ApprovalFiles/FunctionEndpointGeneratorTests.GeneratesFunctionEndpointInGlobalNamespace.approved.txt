@@ -55,4 +55,13 @@ public static class GeneratedFunctionRegistrations_GeneratesFunctionEndpointInGl
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction);
         yield break;
     }
+
+    /// <summary>
+    /// Gets send-only endpoint manifests for NServiceBus endpoints in this assembly.
+    /// </summary>
+    public static global::System.Collections.Generic.IEnumerable<global::NServiceBus.SendOnlyEndpointManifest>
+        GetSendOnlyEndpointManifests()
+    {
+        yield break;
+    }
 }

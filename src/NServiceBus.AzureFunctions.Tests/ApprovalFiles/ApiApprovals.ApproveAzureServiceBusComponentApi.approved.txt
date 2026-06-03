@@ -29,5 +29,6 @@ namespace NServiceBus.Configuration.AdvancedExtensibility
     public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
     {
         public static void AddNServiceBusAzureServiceBusFunction(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.FunctionManifest functionManifest) { }
+        public static void AddNServiceBusAzureServiceBusSendOnlyEndpoint(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.SendOnlyEndpointManifest sendOnlyEndpointManifest) { }
     }
 }

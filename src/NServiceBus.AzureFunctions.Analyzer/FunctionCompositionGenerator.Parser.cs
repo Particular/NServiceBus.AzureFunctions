@@ -23,7 +23,7 @@ public sealed partial class FunctionCompositionGenerator
             return new HostProjectSpec(isHostProject, effectiveRootNameSpace);
         }
 
-        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, CancellationToken cancellationToken = default)
+        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, bool hasLocalSendOnlyEndpoints, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,7 +45,7 @@ public sealed partial class FunctionCompositionGenerator
                 }
             }
 
-            if (hasLocalFunctions)
+            if (hasLocalFunctions || hasLocalSendOnlyEndpoints)
             {
                 registrations.Add(CreateGeneratedRegistrationClassSpec(compilation.Assembly));
             }

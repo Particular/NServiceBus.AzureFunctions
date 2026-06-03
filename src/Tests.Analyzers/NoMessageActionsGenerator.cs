@@ -24,7 +24,8 @@ class NoMessageActionsGenerator : IIncrementalGenerator
                 Shape: FunctionEndpointGenerator.TriggerShape.Required(
                     FunctionEndpointGenerator.ParameterRole.TriggerMessage,
                     FunctionEndpointGenerator.ParameterRole.FunctionContext,
-                    FunctionEndpointGenerator.ParameterRole.CancellationToken)));
+                    FunctionEndpointGenerator.ParameterRole.CancellationToken)),
+            new FunctionEndpointGenerator.SendOnlyEndpointDefinition("global::Demo.Testing.TestSendOnlyEndpointManifestRegistration.Register"));
 
     internal static class TrackingNames
     {

@@ -23,7 +23,7 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
 
         var hasLocalSendOnlyEndpoints = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                KnownTypeNames.NServiceBusSendOnlyEndpointAttribute,
+                KnownTypeNames.NServiceBusSendOnlyFunctionAttribute,
                 static (node, _) => node is MethodDeclarationSyntax,
                 static (_, _) => true)
             .Collect()

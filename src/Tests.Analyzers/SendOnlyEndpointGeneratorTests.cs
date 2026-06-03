@@ -75,7 +75,7 @@ public class SendOnlyEndpointGeneratorTests
 
                 public class ClientEndpoint
                 {
-                    [NServiceBusSendOnlyEndpoint("client")]
+                    [NServiceBusSendOnlyFunction("client")]
                     public void ConfigureClient(EndpointConfiguration endpointConfiguration)
                     {
                     }
@@ -98,7 +98,7 @@ public class SendOnlyEndpointGeneratorTests
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void WrongName(EndpointConfiguration endpointConfiguration)
                 {
                 }
@@ -118,7 +118,7 @@ public class SendOnlyEndpointGeneratorTests
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void ConfigureClient(string wrongParam)
                 {
                 }
@@ -138,7 +138,7 @@ public class SendOnlyEndpointGeneratorTests
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void ConfigureClient()
                 {
                 }
@@ -158,7 +158,7 @@ public class SendOnlyEndpointGeneratorTests
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void ConfigureClient(EndpointConfiguration endpointConfiguration, string invalidParam)
                 {
                 }
@@ -178,7 +178,7 @@ public class SendOnlyEndpointGeneratorTests
 
             public class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public void WrongName(string invalidParam)
                 {
                 }

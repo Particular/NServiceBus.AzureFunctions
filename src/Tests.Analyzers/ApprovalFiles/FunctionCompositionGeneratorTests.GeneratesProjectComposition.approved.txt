@@ -35,7 +35,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 public static class ClientEndpoint
 {
-    [NServiceBusSendOnlyEndpoint("client")]
+    [NServiceBusSendOnlyFunction("client")]
     public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
     {
     }

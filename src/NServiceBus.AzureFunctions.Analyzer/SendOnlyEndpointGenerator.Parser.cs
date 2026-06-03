@@ -155,7 +155,7 @@ public sealed partial class SendOnlyEndpointGenerator
 
         public static bool TryGet(Compilation compilation, out SendOnlyEndpointGeneratorKnownTypes knownTypes)
         {
-            var sendOnlyEndpointAttribute = compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyEndpointAttribute);
+            var sendOnlyEndpointAttribute = compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyFunctionAttribute);
             var endpointConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType);
             var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
             var iconfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration);

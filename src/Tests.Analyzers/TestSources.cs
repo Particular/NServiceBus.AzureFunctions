@@ -134,7 +134,7 @@ static class TestSources
 
         public static class ClientEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("client")]
+            [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
             {
             }
@@ -147,7 +147,7 @@ static class TestSources
 
         public static class ClientEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("client")]
+            [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
             {
             }
@@ -164,7 +164,7 @@ static class TestSources
 
         public static class ClientEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("client")]
+            [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(
                 EndpointConfiguration endpointConfiguration,
                 IServiceCollection services,
@@ -181,7 +181,7 @@ static class TestSources
 
         public static class ClientEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("client")]
+            [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
             {
             }
@@ -198,7 +198,7 @@ static class TestSources
 
         public static class ClientEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("client")]
+            [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(
                 EndpointConfiguration endpointConfiguration,
                 IServiceCollection services)
@@ -208,7 +208,7 @@ static class TestSources
 
         public static class SenderEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("sender")]
+            [NServiceBusSendOnlyFunction("sender")]
             public static void ConfigureSender(
                 EndpointConfiguration endpointConfiguration,
                 IConfiguration configuration,
@@ -235,7 +235,7 @@ static class TestSources
 
         public static class ClientEndpoint
         {
-            [NServiceBusSendOnlyEndpoint("client", Connection = "MyCustomConnection")]
+            [NServiceBusSendOnlyFunction("client", Connection = "MyCustomConnection")]
             public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
             {
             }

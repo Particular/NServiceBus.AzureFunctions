@@ -35,7 +35,7 @@ public static class FunctionEndpointConfigurationBuilder
 
         if (endpointConfiguration.IsSendOnly)
         {
-            throw new InvalidOperationException($"Functions can't be send-only endpoints, use [{typeof(NServiceBusSendOnlyEndpointAttribute)}] to create send-only endpoints.");
+            throw new InvalidOperationException($"Functions can't be send-only endpoints, use [{typeof(NServiceBusSendOnlyFunctionAttribute)}] to create send-only endpoints.");
         }
 
         var resolvedAddress = FunctionBindingExpression.Resolve(functionManifest.Address, builder.Configuration);

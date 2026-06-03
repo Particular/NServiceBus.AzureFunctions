@@ -10,7 +10,7 @@ public sealed partial class SendOnlyEndpointGenerator : IIncrementalGenerator
     {
         var extractionCandidates = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                KnownTypeNames.NServiceBusSendOnlyEndpointAttribute,
+                KnownTypeNames.NServiceBusSendOnlyFunctionAttribute,
                 predicate: static (node, _) => node is MethodDeclarationSyntax,
                 transform: static (ctx, _) => ctx);
 

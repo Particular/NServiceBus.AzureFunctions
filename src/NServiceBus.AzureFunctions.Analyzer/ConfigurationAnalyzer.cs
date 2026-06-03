@@ -33,7 +33,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyEndpointAttribute));
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyFunctionAttribute));
 
             compilationStartContext.RegisterCodeBlockStartAction<SyntaxKind>(blockStartContext =>
             {

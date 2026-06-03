@@ -34,9 +34,9 @@ namespace NServiceBus
         public NServiceBusFunctionAttribute() { }
     }
     [System.AttributeUsage(System.AttributeTargets.Method, Inherited=false)]
-    public sealed class NServiceBusSendOnlyEndpointAttribute : System.Attribute
+    public sealed class NServiceBusSendOnlyFunctionAttribute : System.Attribute
     {
-        public NServiceBusSendOnlyEndpointAttribute(string endpointName) { }
+        public NServiceBusSendOnlyFunctionAttribute(string endpointName) { }
         public string? Connection { get; set; }
         public string EndpointName { get; }
     }

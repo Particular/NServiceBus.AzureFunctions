@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 public static class ClientEndpoint
 {
-    [NServiceBusSendOnlyEndpoint("client", Connection = "AzureWebJobsServiceBus")]
+    [NServiceBusSendOnlyFunction("client", Connection = "AzureWebJobsServiceBus")]
     public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
     {
         services.AddSingleton(new MyComponent("client"));

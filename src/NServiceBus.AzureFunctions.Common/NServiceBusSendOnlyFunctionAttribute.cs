@@ -5,7 +5,7 @@ namespace NServiceBus;
 /// The source generator produces endpoint registration code from methods marked with this attribute.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-public sealed class NServiceBusSendOnlyEndpointAttribute(string endpointName) : Attribute
+public sealed class NServiceBusSendOnlyFunctionAttribute(string endpointName) : Attribute
 {
     /// <summary>
     /// Gets the logical endpoint name.

@@ -143,7 +143,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
                 {
                     endpointConfiguration.UseTransport(new AzureServiceBusServerlessTransport(TopicTopology.Default));
@@ -183,7 +183,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
                 {
                     [|endpointConfiguration.{{configuration}}|];
@@ -203,7 +203,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
 
             public static class ClientEndpoint
             {
-                [NServiceBusSendOnlyEndpoint("client")]
+                [NServiceBusSendOnlyFunction("client")]
                 public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
                 {
                     [|endpointConfiguration.MakeInstanceUniquelyAddressable("instance")|];

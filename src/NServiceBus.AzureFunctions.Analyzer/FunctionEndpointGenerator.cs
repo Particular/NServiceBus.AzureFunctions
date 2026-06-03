@@ -8,6 +8,10 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context) => InitializeGenerator<AzureServiceBusTriggerDefinition>(context);
 
+    // This method currently exists to proof that technically the generator pipeline can be extended with other trigger definitions
+    // without having to change the analyzer. In practice, we don't have any other trigger definitions at the moment,
+    // but there are tests that verify it would be possible to add more. There might still be some refactoring opportunities to make the extension story better
+    // but this is good enough for now.
     internal static void InitializeGenerator<TDefinition>(IncrementalGeneratorInitializationContext context)
         where TDefinition : TriggerDefinition, new()
     {

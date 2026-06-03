@@ -34,27 +34,6 @@ public sealed partial class FunctionEndpointGenerator
             };
         }
 
-        internal static SendOnlyEndpointSpecs ExtractSendOnly(GeneratorAttributeSyntaxContext context, SendOnlyEndpointDefinition sendOnlyEndpointDefinition, CancellationToken cancellationToken = default)
-        {
-            if (context.Attributes.Length == 0)
-            {
-                return SendOnlyEndpointSpecs.Empty;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!FunctionEndpointGeneratorKnownTypes.TryGet(context.SemanticModel.Compilation, AzureServiceBusTrigger, out var knownTypes))
-            {
-                return SendOnlyEndpointSpecs.Empty;
-            }
-
-            return context.TargetSymbol switch
-            {
-                IMethodSymbol methodSymbol => ExtractSendOnlyFromMethod(methodSymbol, knownTypes, sendOnlyEndpointDefinition),
-                _ => SendOnlyEndpointSpecs.Empty
-            };
-        }
-
         static FunctionSpecs ExtractFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, CancellationToken cancellationToken)
         {
             var diagnostics = new List<Diagnostic>();
@@ -79,16 +58,6 @@ public sealed partial class FunctionEndpointGenerator
             var spec = ExtractFunctionSpec(methodSymbol, knownTypes, triggerDefinition, diagnostics);
             var functions = spec is null ? ImmutableEquatableArray<FunctionSpec>.Empty : ((FunctionSpec[])[spec]).ToImmutableEquatableArray();
             return new FunctionSpecs(functions, diagnostics.ToImmutableEquatableArray());
-        }
-
-        static SendOnlyEndpointSpecs ExtractSendOnlyFromMethod(IMethodSymbol methodSymbol, FunctionEndpointGeneratorKnownTypes knownTypes, SendOnlyEndpointDefinition sendOnlyEndpointDefinition)
-        {
-            var diagnostics = new List<Diagnostic>();
-            var spec = ExtractSendOnlyEndpointSpec(methodSymbol, knownTypes, sendOnlyEndpointDefinition, diagnostics);
-            var sendOnlyEndpoints = spec is null
-                ? ImmutableEquatableArray<SendOnlyEndpointSpec>.Empty
-                : ((SendOnlyEndpointSpec[])[spec]).ToImmutableEquatableArray();
-            return new SendOnlyEndpointSpecs(sendOnlyEndpoints, diagnostics.ToImmutableEquatableArray());
         }
 
         static FunctionSpec? ExtractFunctionSpec(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, TriggerDefinition triggerDefinition, List<Diagnostic> diagnostics)
@@ -310,79 +279,6 @@ public sealed partial class FunctionEndpointGenerator
                 functionName, addressName!, connectionSettingName,
                 triggerDefinition.ProcessorTypeFullyQualified, triggerDefinition.RegistrationMethodFullyQualified, processCallExpression, configureMethod!.Value);
         }
-
-        static SendOnlyEndpointSpec? ExtractSendOnlyEndpointSpec(
-            IMethodSymbol method,
-            FunctionEndpointGeneratorKnownTypes knownTypes,
-            SendOnlyEndpointDefinition sendOnlyEndpointDefinition,
-            List<Diagnostic> diagnostics)
-        {
-            if (!TryGetSendOnlyEndpointAttribute(method, knownTypes, out var sendOnlyEndpointAttribute)
-                || sendOnlyEndpointAttribute.ConstructorArguments.Length == 0
-                || sendOnlyEndpointAttribute.ConstructorArguments[0].Value is not string endpointName)
-            {
-                return null;
-            }
-
-            var problems = ImmutableList.CreateBuilder<string>();
-
-            if (!method.IsStatic)
-            {
-                problems.Add("method must be static");
-            }
-
-            var expectedMethodName = $"Configure{endpointName}";
-            if (!string.Equals(method.Name, expectedMethodName, StringComparison.OrdinalIgnoreCase))
-            {
-                problems.Add($"method name must be '{expectedMethodName}'");
-            }
-
-            if (method.Parameters.Length == 0 || !SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, knownTypes.EndpointConfiguration))
-            {
-                problems.Add("first parameter must be EndpointConfiguration");
-            }
-
-            for (var i = 1; i < method.Parameters.Length; i++)
-            {
-                if (!IsAllowedConfigureMethodParameterType(method.Parameters[i].Type, knownTypes))
-                {
-                    problems.Add("parameters after EndpointConfiguration must be IServiceCollection, IConfiguration, or IHostEnvironment");
-                    break;
-                }
-            }
-
-            if (problems.Count > 0)
-            {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.InvalidSendOnlyEndpointMethodDescriptor, method, method.Name, string.Join(", ", problems)));
-                return null;
-            }
-
-            var containingType = method.ContainingType;
-            var ns = containingType.ContainingNamespace.IsGlobalNamespace ? "" : containingType.ContainingNamespace.ToDisplayString();
-
-            var parameterTypeNames = new string[method.Parameters.Length];
-            for (var i = 0; i < method.Parameters.Length; i++)
-            {
-                parameterTypeNames[i] = method.Parameters[i].Type.Name.ToLowerInvariant();
-            }
-
-            var configureMethod = new ConfigureMethodSpec(
-                method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                method.Name,
-                parameterTypeNames.ToImmutableEquatableArray());
-
-            return new SendOnlyEndpointSpec(
-                ns,
-                containingType.Name,
-                endpointName,
-                sendOnlyEndpointDefinition.RegistrationMethodFullyQualified,
-                configureMethod);
-        }
-
-        static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, FunctionEndpointGeneratorKnownTypes knownTypes)
-            => SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IServiceCollection)
-               || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfiguration)
-               || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IHostEnvironment);
 
         static ParameterRole? ClassifyParameterRole(IParameterSymbol parameter, bool hasTriggerAttribute, FunctionEndpointGeneratorKnownTypes knownTypes)
         {
@@ -648,21 +544,6 @@ public sealed partial class FunctionEndpointGenerator
             return false;
         }
 
-        static bool TryGetSendOnlyEndpointAttribute(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, [NotNullWhen(true)] out AttributeData? sendOnlyEndpointAttribute)
-        {
-            foreach (var attribute in method.GetAttributes())
-            {
-                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownTypes.SendOnlyEndpointAttribute))
-                {
-                    sendOnlyEndpointAttribute = attribute;
-                    return true;
-                }
-            }
-
-            sendOnlyEndpointAttribute = null!;
-            return false;
-        }
-
         static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
         {
             foreach (var syntaxReference in type.DeclaringSyntaxReferences)
@@ -711,28 +592,13 @@ public sealed partial class FunctionEndpointGenerator
         string ProcessCallExpression,
         ConfigureMethodSpec ConfigureMethod);
 
-    internal sealed record SendOnlyEndpointSpec(
-        string ContainingNamespace,
-        string ContainingClassName,
-        string EndpointName,
-        string RegistrationMethodFullyQualified,
-        ConfigureMethodSpec ConfigureMethod);
-
     internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics)
     {
         public static FunctionSpecs Empty { get; } = new(ImmutableEquatableArray<FunctionSpec>.Empty, ImmutableEquatableArray<Diagnostic>.Empty);
     }
 
-    internal readonly record struct SendOnlyEndpointSpecs(ImmutableEquatableArray<SendOnlyEndpointSpec> SendOnlyEndpoints, ImmutableEquatableArray<Diagnostic> Diagnostics)
-    {
-        public static SendOnlyEndpointSpecs Empty { get; } = new(ImmutableEquatableArray<SendOnlyEndpointSpec>.Empty, ImmutableEquatableArray<Diagnostic>.Empty);
-    }
-
-    internal readonly record struct SendOnlyEndpointDefinition(string RegistrationMethodFullyQualified);
-
     readonly struct FunctionEndpointGeneratorKnownTypes(
         INamedTypeSymbol functionAttribute,
-        INamedTypeSymbol sendOnlyEndpointAttribute,
         INamedTypeSymbol triggerAttribute,
         INamedTypeSymbol functionContext,
         INamedTypeSymbol cancellationToken,
@@ -744,7 +610,6 @@ public sealed partial class FunctionEndpointGenerator
         ImmutableDictionary<ParameterRole, INamedTypeSymbol> additionalParameterSymbols)
     {
         public INamedTypeSymbol FunctionAttribute { get; } = functionAttribute;
-        public INamedTypeSymbol SendOnlyEndpointAttribute { get; } = sendOnlyEndpointAttribute;
         public INamedTypeSymbol TriggerAttribute { get; } = triggerAttribute;
         public INamedTypeSymbol FunctionContext { get; } = functionContext;
         public INamedTypeSymbol CancellationToken { get; } = cancellationToken;
@@ -759,7 +624,6 @@ public sealed partial class FunctionEndpointGenerator
         {
             var functionAttribute =
                 compilation.GetTypeByMetadataName(KnownTypeNames.FunctionAttribute);
-            var sendOnlyEndpointAttribute = compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyEndpointAttribute);
             var triggerAttribute =
                 compilation.GetTypeByMetadataName(triggerDefinition.TriggerAttributeMetadataName);
             var functionContext = compilation.GetTypeByMetadataName(KnownTypeNames.FunctionContext);
@@ -771,7 +635,6 @@ public sealed partial class FunctionEndpointGenerator
             var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
 
             if (functionAttribute is null
-                || sendOnlyEndpointAttribute is null
                 || triggerAttribute is null
                 || functionContext is null
                 || cancellationToken is null
@@ -799,7 +662,6 @@ public sealed partial class FunctionEndpointGenerator
 
             knownTypes = new FunctionEndpointGeneratorKnownTypes(
                 functionAttribute,
-                sendOnlyEndpointAttribute,
                 triggerAttribute,
                 functionContext,
                 cancellationToken,

@@ -38,12 +38,25 @@ public class FunctionEndpointGeneratorTests
 
     [Test]
     public void GeneratesSendOnlyEndpointRegistration() =>
-        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
-            .WithSource(TestSources.ValidFunction)
+        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource("""
                 namespace Demo;
 
                 using Microsoft.Extensions.DependencyInjection;
+
+                file static class UsesGlobalTypes
+                {
+                    public static void Use(
+                        FunctionContext functionContext,
+                        ServiceBusReceivedMessage message,
+                        IConfiguration configuration,
+                        IHostEnvironment environment)
+                    {
+                        CancellationToken cancellationToken = default;
+                        _ = cancellationToken;
+                        _ = Task.CompletedTask;
+                    }
+                }
 
                 public static class ClientEndpoint
                 {
@@ -59,7 +72,7 @@ public class FunctionEndpointGeneratorTests
     [Test]
     public void ReportsInvalidSendOnlyEndpointMethodWhenMethodIsNotStatic()
     {
-        var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+        var result = SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource("""
                 namespace Demo;
 

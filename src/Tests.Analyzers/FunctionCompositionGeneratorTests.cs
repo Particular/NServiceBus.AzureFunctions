@@ -12,6 +12,7 @@ public class FunctionCompositionGeneratorTests
     public void GeneratesProjectComposition() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionCompositionGenerator>()
             .WithIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
             .ControlOutput(All)
             .WithProperty("build_property.OutputType", "Exe")

@@ -10,19 +10,15 @@ public sealed partial class FunctionEndpointGenerator
 {
     static class Emitter
     {
-        public static void Emit(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, ImmutableArray<SendOnlyEndpointSpec> sendOnlyEndpoints, string assemblyClassName)
+        public static void Emit(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
         {
-            if (functions.Length <= 0 && sendOnlyEndpoints.Length <= 0)
+            if (functions.Length <= 0)
             {
                 return;
             }
 
-            if (functions.Length > 0)
-            {
-                EmitMethodBodies(spc, functions);
-            }
-
-            EmitRegistration(spc, functions, sendOnlyEndpoints, assemblyClassName);
+            EmitMethodBodies(spc, functions);
+            EmitRegistration(spc, functions, assemblyClassName);
         }
 
         static void EmitMethodBodies(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions)
@@ -79,7 +75,7 @@ public sealed partial class FunctionEndpointGenerator
             spc.AddSource("FunctionMethodBodies.g.cs", writer.ToSourceText());
         }
 
-        static void EmitRegistration(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, ImmutableArray<SendOnlyEndpointSpec> sendOnlyEndpoints, string assemblyClassName)
+        static void EmitRegistration(SourceProductionContext spc, ImmutableArray<FunctionSpec> functions, string assemblyClassName)
         {
             var writer = new SourceWriter();
             writer.PreAmble();
@@ -112,7 +108,6 @@ public sealed partial class FunctionEndpointGenerator
             writer.WriteLine("yield break;");
             writer.Indentation--;
             writer.WriteLine("}");
-
             writer.WriteLine();
             writer.WriteLine("/// <summary>");
             writer.WriteLine("/// Gets send-only endpoint manifests for NServiceBus endpoints in this assembly.");
@@ -121,15 +116,6 @@ public sealed partial class FunctionEndpointGenerator
             writer.WriteLine("    GetSendOnlyEndpointManifests()");
             writer.WriteLine("{");
             writer.Indentation++;
-
-            foreach (var endpoint in sendOnlyEndpoints.OrderBy(f => f.EndpointName, StringComparer.Ordinal))
-            {
-                writer.WriteLine("yield return new global::NServiceBus.SendOnlyEndpointManifest(");
-                writer.WriteLine($"    \"{endpoint.EndpointName}\",");
-                writer.WriteLine($"    {GenerateConfigureMethodCall(endpoint.ConfigureMethod)},");
-                writer.WriteLine($"    {endpoint.RegistrationMethodFullyQualified});");
-            }
-
             writer.WriteLine("yield break;");
             writer.Indentation--;
             writer.WriteLine("}");

@@ -8,6 +8,23 @@ using Particular.AnalyzerTesting;
 [TestFixture]
 public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnalyzer>
 {
+    const string NServiceBusUsings = """
+        using System.Threading.Tasks;
+        using NServiceBus;
+
+        """;
+
+    const string FunctionUsings = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
+        """;
+
     static readonly TestCaseData[] UnsupportedEndpointConfigurationCallCases =
     [
         new("PurgeOnStartup(true)", DiagnosticIds.InvalidEndpointConfiguration),
@@ -36,7 +53,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCalls(string configuration, string diagnosticId)
     {
-        var source = $$"""
+        var source = FunctionUsings + $$"""
             namespace Demo;
 
             public class Functions
@@ -65,7 +82,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethods(string configuration, string diagnosticId)
     {
-        var source = $$"""
+        var source = NServiceBusUsings + $$"""
             namespace Demo;
 
             public static class CommonEndpointConfig
@@ -83,7 +100,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task DoesNotReportEndpointConfigurationCallsInMethodsWithoutSupportedSignature(string configuration, string diagnosticId)
     {
-        var source = $$"""
+        var source = NServiceBusUsings + $$"""
             namespace Demo;
 
             public static class CommonEndpointConfig
@@ -101,7 +118,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCaseSource(nameof(UnsupportedSendAndReplyOptionCases))]
     public Task ReportsDiagnosticForUnsupportedSendAndReplyOptions(string optionsType, string method, string diagnosticId)
     {
-        var source = $$"""
+        var source = NServiceBusUsings + $$"""
             namespace Demo;
 
             public class Functions
@@ -119,7 +136,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [Test]
     public Task DoesNotReportUseTransportWithAzureServiceBusServerlessTransport()
     {
-        var source = """
+        var source = NServiceBusUsings + """
             using NServiceBus.AzureFunctions.AzureServiceBus;
             using NServiceBus.Transport.AzureServiceBus;
             namespace Demo;
@@ -140,7 +157,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [Test]
     public Task DoesNotReportUseTransportWithAzureServiceBusServerlessTransportVariable()
     {
-        var source = """
+        var source = NServiceBusUsings + """
             using NServiceBus.AzureFunctions.AzureServiceBus;
             using NServiceBus.Transport.AzureServiceBus;
             namespace Demo;
@@ -161,7 +178,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyCallbacks(string configuration, string diagnosticId)
     {
-        var source = $$"""
+        var source = NServiceBusUsings + $$"""
             namespace Demo;
 
             public static class ClientEndpoint
@@ -180,7 +197,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [Test]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInSendOnlyMethodGroupCallback()
     {
-        var source = """
+        var source = NServiceBusUsings + """
             using Microsoft.Extensions.DependencyInjection;
             namespace Demo;
 
@@ -200,7 +217,7 @@ public class ConfigurationAnalyzerTests : AnalyzerTestFixture<ConfigurationAnaly
     [TestCaseSource(nameof(UnsupportedEndpointConfigurationCallCases))]
     public Task ReportsDiagnosticForUnsupportedEndpointConfigurationCallsInHelperMethodsWithAllowedParameters(string configuration, string diagnosticId)
     {
-        var source = $$"""
+        var source = NServiceBusUsings + $$"""
             using Microsoft.Extensions.DependencyInjection;
             using Microsoft.Extensions.Configuration;
             using Microsoft.Extensions.Hosting;

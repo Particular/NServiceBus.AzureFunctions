@@ -20,6 +20,8 @@ public class SendOnlyEndpointGeneratorTests
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource("""
+                using NServiceBus;
+
                 namespace Demo;
 
                 public class ClientEndpoint

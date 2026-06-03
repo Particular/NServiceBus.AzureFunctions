@@ -3,6 +3,11 @@ namespace NServiceBus.AzureFunctions.Analyzers.Tests;
 static class TestSources
 {
     public const string OrdinaryFunctionOnly = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+
         namespace Demo;
 
         public class Functions
@@ -17,6 +22,14 @@ static class TestSources
        """;
 
     public const string ValidFunction = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
         namespace Demo;
 
         public partial class Functions
@@ -39,6 +52,11 @@ static class TestSources
         """;
 
     public const string NoMessageActionsFunction = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Azure.Functions.Worker;
+        using NServiceBus;
+
         namespace Demo.Testing;
 
         [System.AttributeUsage(System.AttributeTargets.Parameter)]
@@ -81,6 +99,14 @@ static class TestSources
         """;
 
     public const string ValidFunctionInGlobalNamespace = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
         public partial class Functions
         {
             [NServiceBusFunction]
@@ -101,23 +127,10 @@ static class TestSources
         """;
 
     public const string ValidSendOnlyEndpoint = """
+        using NServiceBus;
         namespace Demo;
 
         using Microsoft.Extensions.DependencyInjection;
-
-        file static class UsesGlobalTypes
-        {
-            public static void Use(
-                FunctionContext functionContext,
-                ServiceBusReceivedMessage message,
-                IConfiguration configuration,
-                IHostEnvironment environment)
-            {
-                CancellationToken cancellationToken = default;
-                _ = cancellationToken;
-                _ = Task.CompletedTask;
-            }
-        }
 
         public static class ClientEndpoint
         {

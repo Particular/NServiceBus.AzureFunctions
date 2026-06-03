@@ -14,6 +14,11 @@ public class FunctionEndpointGeneratorLenientShapeTests
             .Approve();
 
     const string SourceWithAdditionalParameter = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Azure.Functions.Worker;
+        using NServiceBus;
+
         namespace Demo.Testing;
 
         [System.AttributeUsage(System.AttributeTargets.Parameter)]

@@ -24,10 +24,14 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest);
         var transport = GetAzureServiceBusTransport(endpointConfiguration);
 
-        var resolvedConnectionSettingName = string.IsNullOrWhiteSpace(functionManifest.ConnectionSettingName)
-            ? functionManifest.ConnectionSettingName
-            : FunctionBindingExpression.Resolve(functionManifest.ConnectionSettingName, builder.Configuration);
-        transport.ConnectionName = resolvedConnectionSettingName;
+        if (!string.IsNullOrEmpty(functionManifest.ConnectionSettingName))
+        {
+            // the connection name is resolved at runtime from the configuration and doesn't need to
+            // support binding expressions since Azure Functions also doesn't support them for trigger connection settings.
+            // The binding expression always wins
+            transport.ConnectionName = functionManifest.ConnectionSettingName;
+        }
+
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
         builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
     }
@@ -42,12 +46,9 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         builder.Services.AddAzureClientsCore();
 
         var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildSendOnlyEndpointConfiguration(builder, sendOnlyEndpointManifest);
-        var transport = GetAzureServiceBusTransport(endpointConfiguration);
+        _ = GetAzureServiceBusTransport(endpointConfiguration);
 
-        if (!string.IsNullOrWhiteSpace(transport.ConnectionName))
-        {
-            transport.ConnectionName = FunctionBindingExpression.Resolve(transport.ConnectionName, builder.Configuration);
-        }
+        // The connection name is resolved at runtime from the configuration and doesn't need to be assigned here
 
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
     }

@@ -106,10 +106,7 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             writer.WriteLine("yield break;");
-            writer.Indentation--;
-            writer.WriteLine("}");
-            writer.Indentation--;
-            writer.WriteLine("}");
+            writer.CloseCurlies();
 
             spc.AddSource("FunctionRegistration.g.cs", writer.ToSourceText());
         }

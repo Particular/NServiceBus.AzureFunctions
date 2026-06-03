@@ -140,4 +140,91 @@ static class TestSources
             }
         }
         """;
+
+    public const string ValidSendOnlyEndpointInGlobalNamespace = """
+        using NServiceBus;
+        using Microsoft.Extensions.DependencyInjection;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("client")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithAllAdditionalParameters = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                IServiceCollection services,
+                IConfiguration configuration,
+                IHostEnvironment environment)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithNoAdditionalParameters = """
+        using NServiceBus;
+        namespace Demo;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("client")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
+            {
+            }
+        }
+        """;
+
+    public const string MultipleSendOnlyEndpoints = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                IServiceCollection services)
+            {
+            }
+        }
+
+        public static class SenderEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("sender")]
+            public static void ConfigureSender(
+                EndpointConfiguration endpointConfiguration,
+                IConfiguration configuration,
+                IHostEnvironment environment)
+            {
+            }
+        }
+        """;
+
+    public const string NoSendOnlyEndpoints = """
+        using NServiceBus;
+        namespace Demo;
+
+        public static class SomeClass
+        {
+            public static void DoSomething() { }
+        }
+        """;
 }

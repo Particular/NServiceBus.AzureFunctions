@@ -116,7 +116,12 @@ public sealed partial class SendOnlyEndpointGenerator
         public static SendOnlyEndpointSpecs Empty { get; } = new(ImmutableEquatableArray<SendOnlyEndpointSpec>.Empty, ImmutableEquatableArray<Diagnostic>.Empty);
     }
 
-    internal readonly record struct SendOnlyEndpointDefinition(string RegistrationMethodFullyQualified);
+    internal readonly record struct SendOnlyEndpointDefinition
+    {
+        public string RegistrationMethodFullyQualified { get; } = $"global::{KnownTypeNames.AzureServiceBusFunctionsHostApplicationBuilderExtensions}.{KnownTypeNames.AddNServiceBusAzureServiceBusSendOnlyEndpoint}";
+
+        public SendOnlyEndpointDefinition() { }
+    }
 
     readonly struct SendOnlyEndpointGeneratorKnownTypes(
         INamedTypeSymbol sendOnlyEndpointAttribute,

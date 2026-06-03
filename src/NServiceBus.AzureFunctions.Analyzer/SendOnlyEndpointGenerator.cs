@@ -15,8 +15,7 @@ public sealed partial class SendOnlyEndpointGenerator : IIncrementalGenerator
                 transform: static (ctx, _) => ctx);
 
         var extractionResults = extractionCandidates
-            .Combine(context.CompilationProvider.Select(static (_, _) => new SendOnlyEndpointDefinition(
-                $"global::{KnownTypeNames.AzureServiceBusFunctionsHostApplicationBuilderExtensions}.{KnownTypeNames.AddNServiceBusAzureServiceBusSendOnlyEndpoint}")))
+            .Combine(context.CompilationProvider.Select(static (_, _) => new SendOnlyEndpointDefinition()))
             .Select(static (pair, ct) => Parser.Extract(pair.Left, pair.Right, ct))
             .WithTrackingName(TrackingNames.Extraction);
 

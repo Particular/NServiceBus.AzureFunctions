@@ -103,7 +103,7 @@ static class DiagnosticIds
     internal static readonly DiagnosticDescriptor InvalidSendOnlyEndpointMethodDescriptor = new(
         id: InvalidSendOnlyEndpointMethod,
         title: "Invalid NServiceBus send-only endpoint method",
-        messageFormat: "Method '{0}' is not a valid NServiceBus send-only endpoint: {1}",
+        messageFormat: "Method '{0}' defines an NServiceBus send-only endpoint but is not correctly implemented: {1}",
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

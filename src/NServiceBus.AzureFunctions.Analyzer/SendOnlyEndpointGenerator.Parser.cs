@@ -45,8 +45,7 @@ public sealed partial class SendOnlyEndpointGenerator
             SendOnlyEndpointDefinition sendOnlyEndpointDefinition,
             List<Diagnostic> diagnostics)
         {
-            if (!TryGetSendOnlyEndpointAttribute(method, knownTypes.SendOnlyEndpointAttribute, out var sendOnlyEndpointAttribute)
-                || sendOnlyEndpointAttribute is null
+            if (!method.TryGetAttribute(knownTypes.SendOnlyEndpointAttribute, out var sendOnlyEndpointAttribute)
                 || sendOnlyEndpointAttribute.ConstructorArguments.Length == 0
                 || sendOnlyEndpointAttribute.ConstructorArguments[0].Value is not string endpointName)
             {
@@ -82,7 +81,7 @@ public sealed partial class SendOnlyEndpointGenerator
 
             if (problems.Count > 0)
             {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.InvalidSendOnlyEndpointMethodDescriptor, method, method.Name, string.Join(", ", problems)));
+                diagnostics.Add(method.CreateDiagnostic(DiagnosticIds.InvalidSendOnlyEndpointMethodDescriptor, method.Name, string.Join(", ", problems)));
                 return null;
             }
 
@@ -101,32 +100,8 @@ public sealed partial class SendOnlyEndpointGenerator
                     parameterTypeNames.ToImmutableEquatableArray()));
         }
 
-        static bool TryGetSendOnlyEndpointAttribute(IMethodSymbol method, INamedTypeSymbol sendOnlyEndpointAttribute, out AttributeData? sendOnlyEndpointAttributeData)
-        {
-            foreach (var attribute in method.GetAttributes())
-            {
-                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, sendOnlyEndpointAttribute))
-                {
-                    sendOnlyEndpointAttributeData = attribute;
-                    return true;
-                }
-            }
-
-            sendOnlyEndpointAttributeData = null;
-            return false;
-        }
-
         static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, SendOnlyEndpointGeneratorKnownTypes knownTypes)
-            => SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IServiceCollection)
-               || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfiguration)
-               || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IHostEnvironment);
-
-        static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ISymbol symbol, params object[] arguments)
-        {
-            var locations = symbol.Locations;
-            var location = locations.Length > 0 ? locations[0] : null;
-            return Diagnostic.Create(descriptor, location, arguments);
-        }
+            => parameterType.IsAllowedConfigureMethodParameterType(knownTypes.IServiceCollection, knownTypes.IConfiguration, knownTypes.IHostEnvironment);
     }
 
     internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);

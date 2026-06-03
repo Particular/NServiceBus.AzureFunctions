@@ -202,27 +202,10 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     }
 
     static bool HasSendOnlyEndpointAttribute(IMethodSymbol method, INamedTypeSymbol? sendOnlyEndpointAttribute)
-    {
-        if (sendOnlyEndpointAttribute is null)
-        {
-            return false;
-        }
-
-        foreach (var attribute in method.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, sendOnlyEndpointAttribute))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+        => sendOnlyEndpointAttribute is not null && method.HasAttribute(sendOnlyEndpointAttribute);
 
     static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, KnownSymbols knownSymbols)
-        => SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IServiceCollection)
-           || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IConfiguration)
-           || SymbolEqualityComparer.Default.Equals(parameterType, knownSymbols.IHostEnvironment);
+        => parameterType.IsAllowedConfigureMethodParameterType(knownSymbols.IServiceCollection!, knownSymbols.IConfiguration!, knownSymbols.IHostEnvironment!);
 
     static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext) => endpointContext == EndpointConfigurationContext.SendOnlyEndpoint ? SendOnlyEndpoints : AzureFunctionsEndpoints;
 

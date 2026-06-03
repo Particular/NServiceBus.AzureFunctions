@@ -7,9 +7,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 public sealed partial class SendOnlyEndpointGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
-        => InitializeGenerator(context, AzureServiceBusSendOnlyEndpoint);
-
-    static void InitializeGenerator(IncrementalGeneratorInitializationContext context, SendOnlyEndpointDefinition sendOnlyEndpointDefinition)
     {
         var extractionCandidates = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -17,11 +14,9 @@ public sealed partial class SendOnlyEndpointGenerator : IIncrementalGenerator
                 predicate: static (node, _) => node is MethodDeclarationSyntax,
                 transform: static (ctx, _) => ctx);
 
-        var sendOnlyEndpointDefinitionProvider = context.CompilationProvider
-            .Select((_, _) => sendOnlyEndpointDefinition);
-
         var extractionResults = extractionCandidates
-            .Combine(sendOnlyEndpointDefinitionProvider)
+            .Combine(context.CompilationProvider.Select(static (_, _) => new SendOnlyEndpointDefinition(
+                $"global::{KnownTypeNames.AzureServiceBusFunctionsHostApplicationBuilderExtensions}.{KnownTypeNames.AddNServiceBusAzureServiceBusSendOnlyEndpoint}")))
             .Select(static (pair, ct) => Parser.Extract(pair.Left, pair.Right, ct))
             .WithTrackingName(TrackingNames.Extraction);
 

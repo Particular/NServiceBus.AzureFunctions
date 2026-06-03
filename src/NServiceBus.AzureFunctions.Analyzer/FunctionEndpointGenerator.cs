@@ -17,7 +17,8 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
                 predicate: static (node, _) => node is MethodDeclarationSyntax,
                 transform: static (ctx, _) => ctx);
 
-        var triggerDefinitionProvider = CreateTriggerDefinitionProvider(context, triggerDefinition);
+        var triggerDefinitionProvider = context.CompilationProvider
+            .Select((_, _) => triggerDefinition);
 
         var extractionResults = extractionCandidates
             .Combine(triggerDefinitionProvider)
@@ -45,10 +46,5 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.Combined);
 
         context.RegisterSourceOutput(combined, static (spc, data) => Emitter.Emit(spc, data.Left, data.Right));
-
-        static IncrementalValueProvider<TriggerDefinition> CreateTriggerDefinitionProvider(
-            IncrementalGeneratorInitializationContext context,
-            TriggerDefinition triggerDefinition) =>
-            context.CompilationProvider.Select((_, _) => triggerDefinition);
     }
 }

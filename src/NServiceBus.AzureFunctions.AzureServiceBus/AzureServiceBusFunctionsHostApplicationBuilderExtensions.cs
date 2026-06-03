@@ -21,7 +21,7 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
     {
         builder.Services.AddAzureClientsCore();
 
-        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest, $"[{nameof(NServiceBusSendOnlyEndpointAttribute)}]");
+        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest);
         var transport = GetAzureServiceBusTransport(endpointConfiguration);
 
         var resolvedConnectionSettingName = string.IsNullOrWhiteSpace(functionManifest.ConnectionSettingName)

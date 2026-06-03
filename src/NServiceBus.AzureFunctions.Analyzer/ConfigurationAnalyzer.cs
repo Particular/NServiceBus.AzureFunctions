@@ -1,6 +1,5 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
@@ -23,97 +22,50 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     {
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.RegisterCompilationStartAction(OnCompilationStart);
-    }
 
-    static void OnCompilationStart(CompilationStartAnalysisContext context)
-    {
-        var knownSymbols = new KnownSymbols(
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
-            context.Compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyEndpointAttribute));
-
-        var sendOnlyConfigureMethods = new ConcurrentDictionary<IMethodSymbol, bool>(SymbolEqualityComparer.Default);
-        var deferredInvocations = new ConcurrentBag<DeferredInvocation>();
-
-        // Collect EndpointConfiguration invocations in qualifying methods.
-        // Context resolution is deferred to compilation end to avoid race conditions
-        // with sendOnlyConfigureMethods population from other syntax-node actions.
-        context.RegisterCodeBlockStartAction<SyntaxKind>(blockStartContext =>
+        context.RegisterCompilationStartAction(compilationStartContext =>
         {
-            if (blockStartContext.OwningSymbol is IMethodSymbol method && HasSupportedConfigureMethodSignature(method, knownSymbols))
+            var knownSymbols = new KnownSymbols(
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyEndpointAttribute));
+
+            compilationStartContext.RegisterCodeBlockStartAction<SyntaxKind>(blockStartContext =>
             {
-                if (HasSendOnlyEndpointAttribute(method, knownSymbols.SendOnlyEndpointAttribute))
+                if (blockStartContext.OwningSymbol is not IMethodSymbol method)
                 {
-                    sendOnlyConfigureMethods.TryAdd(method.OriginalDefinition, true);
+                    return;
                 }
 
-                blockStartContext.RegisterSyntaxNodeAction(
-                    nodeContext => CollectEndpointConfigurationInvocation(nodeContext, method, deferredInvocations),
-                    SyntaxKind.InvocationExpression);
-            }
-        });
+                if (!HasSupportedConfigureMethodSignature(method, knownSymbols))
+                {
+                    return;
+                }
 
-        // SendOptions/ReplyOptions: syntax-node-scoped, purely receiver-type checked.
-        context.RegisterSyntaxNodeAction(
-            nodeContext => AnalyzeSendAndReplyOptions(nodeContext, knownSymbols),
-            SyntaxKind.InvocationExpression);
+                var endpointContext = HasSendOnlyEndpointAttribute(method, knownSymbols.SendOnlyEndpointAttribute) ? EndpointConfigurationContext.SendOnlyEndpoint : EndpointConfigurationContext.AzureFunctionsEndpoint;
 
-        // Resolve deferred invocations after all syntax-node and code-block actions have completed.
-        // By this point sendOnlyConfigureMethods is fully populated — no race.
-        context.RegisterCompilationEndAction(endContext =>
-        {
-            foreach (var deferred in deferredInvocations)
-            {
-                var endpointContext = sendOnlyConfigureMethods.ContainsKey(deferred.OwningMethod.OriginalDefinition)
-                    ? EndpointConfigurationContext.SendOnlyEndpoint
-                    : EndpointConfigurationContext.AzureFunctionsEndpoint;
+                blockStartContext.RegisterSyntaxNodeAction(nodeContext => AnalyzeEndpointConfigurationInvocation(nodeContext, endpointContext, knownSymbols), SyntaxKind.InvocationExpression);
+            });
 
-                AnalyzeEndpointConfiguration(
-                    deferred.Invocation,
-                    deferred.SemanticModel,
-                    endContext.ReportDiagnostic,
-                    endpointContext,
-                    knownSymbols,
-                    endContext.CancellationToken);
-            }
+            compilationStartContext.RegisterSyntaxNodeAction(nodeContext => AnalyzeSendAndReplyOptions(nodeContext, knownSymbols), SyntaxKind.InvocationExpression);
         });
     }
 
-    static void CollectEndpointConfigurationInvocation(
-        SyntaxNodeAnalysisContext context,
-        IMethodSymbol owningMethod,
-        ConcurrentBag<DeferredInvocation> deferredInvocations)
+    static void AnalyzeEndpointConfigurationInvocation(SyntaxNodeAnalysisContext context, EndpointConfigurationContext endpointContext, KnownSymbols knownSymbols)
     {
-        if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax } invocationExpression)
-        {
-            return;
-        }
-
-        deferredInvocations.Add(new DeferredInvocation(invocationExpression, owningMethod, context.SemanticModel));
-    }
-
-    static void AnalyzeEndpointConfiguration(
-        InvocationExpressionSyntax invocationExpression,
-        SemanticModel semanticModel,
-        Action<Diagnostic> reportDiagnostic,
-        EndpointConfigurationContext endpointContext,
-        KnownSymbols knownSymbols,
-        CancellationToken cancellationToken)
-    {
-        if (invocationExpression.Expression is not MemberAccessExpressionSyntax memberAccessExpression)
+        if (context.Node is not InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax memberAccessExpression } invocationExpression)
         {
             return;
         }
 
         if (memberAccessExpression.Name.Identifier.ValueText == UseTransportMethodName)
         {
-            AnalyzeInvalidTransportConfiguration(invocationExpression, semanticModel, reportDiagnostic, endpointContext, knownSymbols, cancellationToken);
+            AnalyzeInvalidTransportConfiguration(invocationExpression, context.SemanticModel, context.ReportDiagnostic, endpointContext, knownSymbols, context.CancellationToken);
             return;
         }
 
@@ -122,7 +74,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        reportDiagnostic(Diagnostic.Create(
+        context.ReportDiagnostic(Diagnostic.Create(
             DiagnosticIds.InvalidEndpointConfigurationDescriptor,
             invocationExpression.GetLocation(),
             rule.ApiName,
@@ -209,9 +161,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
     static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext) => endpointContext == EndpointConfigurationContext.SendOnlyEndpoint ? SendOnlyEndpoints : AzureFunctionsEndpoints;
 
-    static string GetEndpointConfigurationReason(
-        InvalidEndpointConfigurationRule rule,
-        EndpointConfigurationContext endpointContext)
+    static string GetEndpointConfigurationReason(InvalidEndpointConfigurationRule rule, EndpointConfigurationContext endpointContext)
     {
         if (endpointContext == EndpointConfigurationContext.SendOnlyEndpoint
             && rule.SendOnlyReason is { } sendOnlyReason)
@@ -248,22 +198,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     const string UseTransportMethodName = "UseTransport";
     const string AzureFunctionsEndpoints = "Azure Functions endpoints";
     const string SendOnlyEndpoints = "Send-only endpoints";
-    const string SendOnlyEndpointReason = "Send-only endpoints do not receive messages.";
-
-    readonly record struct DeferredInvocation(
-        InvocationExpressionSyntax Invocation,
-        IMethodSymbol OwningMethod,
-        SemanticModel SemanticModel);
-
-    readonly record struct KnownSymbols(
-        INamedTypeSymbol? EndpointConfiguration,
-        INamedTypeSymbol? IServiceCollection,
-        INamedTypeSymbol? IConfiguration,
-        INamedTypeSymbol? IHostEnvironment,
-        INamedTypeSymbol? SendOptions,
-        INamedTypeSymbol? ReplyOptions,
-        INamedTypeSymbol? AzureServiceBusServerlessTransport,
-        INamedTypeSymbol? SendOnlyEndpointAttribute);
 
     enum EndpointConfigurationContext
     {
@@ -274,6 +208,16 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     readonly record struct InvalidEndpointConfigurationRule(string ApiName, string Reason, string? SendOnlyReason);
 
     readonly record struct InvalidSendOptionsRule(string Reason);
+
+    readonly record struct KnownSymbols(
+        INamedTypeSymbol? EndpointConfiguration,
+        INamedTypeSymbol? IServiceCollection,
+        INamedTypeSymbol? IConfiguration,
+        INamedTypeSymbol? IHostEnvironment,
+        INamedTypeSymbol? SendOptions,
+        INamedTypeSymbol? ReplyOptions,
+        INamedTypeSymbol? AzureServiceBusServerlessTransport,
+        INamedTypeSymbol? SendOnlyEndpointAttribute);
 
     static readonly Dictionary<string, InvalidEndpointConfigurationRule> InvalidEndpointConfigurationMethods =
         new()
@@ -286,6 +230,8 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             ["UniquelyIdentifyRunningInstance"] = new("EndpointConfiguration.UniquelyIdentifyRunningInstance", "Instances have unpredictable lifecycles and should not be uniquely addressable.", SendOnlyEndpointReason),
             ["OverrideLocalAddress"] = new("EndpointConfiguration.OverrideLocalAddress", "The endpoint address is determined by the trigger configuration.", SendOnlyEndpointReason)
         };
+
+    const string SendOnlyEndpointReason = "Send-only endpoints do not receive messages.";
 
     static readonly Dictionary<string, InvalidSendOptionsRule> InvalidSendAndReplyOptions =
         new()

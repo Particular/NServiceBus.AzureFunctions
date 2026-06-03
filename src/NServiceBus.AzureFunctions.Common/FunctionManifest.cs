@@ -13,4 +13,4 @@ using Microsoft.Azure.Functions.Worker.Builder;
 /// <param name="ConnectionSettingName">The configuration key whose value resolves to the transport connection (for example, a connection string or fully-qualified namespace).</param>
 /// <param name="Configuration">Callback invoked to customize the endpoint configuration and its service registrations.</param>
 /// <param name="Register">Transport-specific callback that registers the endpoint with the Functions host builder.</param>
-public sealed record FunctionManifest(string Name, string Address, string ConnectionSettingName, FunctionEndpointConfiguration Configuration, Action<FunctionsApplicationBuilder, FunctionManifest> Register);
+public sealed record FunctionManifest(string Name, string Address, string ConnectionSettingName, FunctionEndpointConfiguration Configuration, Action<FunctionsApplicationBuilder, FunctionManifest> Register) : IConnectionSettingManifest;

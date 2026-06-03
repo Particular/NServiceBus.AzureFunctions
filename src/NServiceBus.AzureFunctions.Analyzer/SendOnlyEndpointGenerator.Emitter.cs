@@ -38,8 +38,13 @@ public sealed partial class SendOnlyEndpointGenerator
 
             foreach (var endpoint in sendOnlyEndpoints.OrderBy(f => f.EndpointName, StringComparer.Ordinal))
             {
+                var connectionSettingName = endpoint.ConnectionSettingName is not null
+                    ? $"\"{endpoint.ConnectionSettingName}\""
+                    : "null";
+
                 writer.WriteLine("yield return new global::NServiceBus.SendOnlyEndpointManifest(");
                 writer.WriteLine($"    \"{endpoint.EndpointName}\",");
+                writer.WriteLine($"    {connectionSettingName},");
                 writer.WriteLine($"    {GenerateConfigureMethodCall(endpoint.ConfigureMethod)},");
                 writer.WriteLine($"    {endpoint.RegistrationMethodFullyQualified});");
             }

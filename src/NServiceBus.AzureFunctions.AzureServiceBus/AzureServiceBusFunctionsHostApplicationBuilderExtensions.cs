@@ -24,13 +24,7 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest);
         var transport = GetAzureServiceBusTransport(endpointConfiguration);
 
-        if (!string.IsNullOrEmpty(functionManifest.ConnectionSettingName))
-        {
-            // the connection name is resolved at runtime from the configuration and doesn't need to
-            // support binding expressions since Azure Functions also doesn't support them for trigger connection settings.
-            // The binding expression always wins
-            transport.ConnectionName = functionManifest.ConnectionSettingName;
-        }
+        ApplyConnectionSettingName(transport, functionManifest);
 
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
         builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
@@ -46,9 +40,9 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         builder.Services.AddAzureClientsCore();
 
         var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildSendOnlyEndpointConfiguration(builder, sendOnlyEndpointManifest);
-        _ = GetAzureServiceBusTransport(endpointConfiguration);
+        var transport = GetAzureServiceBusTransport(endpointConfiguration);
 
-        // The connection name is resolved at runtime from the configuration and doesn't need to be assigned here
+        ApplyConnectionSettingName(transport, sendOnlyEndpointManifest);
 
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
     }
@@ -58,5 +52,16 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         var transport = endpointConfiguration.GetSettings().GetOrDefault<TransportDefinition>() as AzureServiceBusServerlessTransport;
 
         return transport ?? throw new InvalidOperationException($"Endpoint '{endpointConfiguration.EndpointName}' must be configured with an '{nameof(AzureServiceBusServerlessTransport)}'.");
+    }
+
+    static void ApplyConnectionSettingName(AzureServiceBusServerlessTransport transport, IConnectionSettingManifest manifest)
+    {
+        if (!string.IsNullOrEmpty(manifest.ConnectionSettingName))
+        {
+            // the connection name is resolved at runtime from the configuration and doesn't need to
+            // support binding expressions since Azure Functions also doesn't support them for trigger connection settings.
+            // The binding expression always wins
+            transport.ConnectionName = manifest.ConnectionSettingName;
+        }
     }
 }

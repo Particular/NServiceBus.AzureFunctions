@@ -23,7 +23,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
 {
     /// <summary>
     /// Creates a new transport using the supplied <paramref name="topology"/>. The connection is
-    /// resolved from configuration during <see cref="Initialize"/> via <see cref="ConnectionName"/>.
+    /// resolved from configuration during <see cref="Initialize"/>.
     /// </summary>
     /// <param name="topology">The topic topology describing how events are published and subscribed to.</param>
     public AzureServiceBusServerlessTransport(TopicTopology topology) : base(TransportTransactionMode.ReceiveOnly,
@@ -128,7 +128,7 @@ public class AzureServiceBusServerlessTransport : TransportDefinition
     /// <c>AzureWebJobsServiceBus</c>, matching the setting used by Service Bus triggers.
     /// </summary>
     /// <remarks>The resolved value may be a connection string, or a configuration section containing a <c>fullyQualifiedNamespace</c> entry for token-credential authentication.</remarks>
-    public string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
+    internal string ConnectionName { get; set; } = DefaultServiceBusConnectionName;
 
     /// <inheritdoc />
     public override async Task<TransportInfrastructure> Initialize(

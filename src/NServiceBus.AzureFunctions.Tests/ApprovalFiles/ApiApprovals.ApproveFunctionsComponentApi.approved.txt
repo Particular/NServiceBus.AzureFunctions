@@ -15,7 +15,7 @@ namespace NServiceBus
         public static NServiceBus.EndpointConfiguration BuildReceiveEndpointConfiguration(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.FunctionManifest functionManifest) { }
         public static NServiceBus.EndpointConfiguration BuildSendOnlyEndpointConfiguration(Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder, NServiceBus.SendOnlyEndpointManifest manifest) { }
     }
-    public sealed class FunctionManifest : System.IEquatable<NServiceBus.FunctionManifest>
+    public sealed class FunctionManifest : NServiceBus.IConnectionSettingManifest, System.IEquatable<NServiceBus.FunctionManifest>
     {
         public FunctionManifest(string Name, string Address, string ConnectionSettingName, NServiceBus.FunctionEndpointConfiguration Configuration, System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.FunctionManifest> Register) { }
         public string Address { get; init; }
@@ -23,6 +23,10 @@ namespace NServiceBus
         public string ConnectionSettingName { get; init; }
         public string Name { get; init; }
         public System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.FunctionManifest> Register { get; init; }
+    }
+    public interface IConnectionSettingManifest
+    {
+        string? ConnectionSettingName { get; }
     }
     [System.AttributeUsage(System.AttributeTargets.Method, Inherited=false)]
     public sealed class NServiceBusFunctionAttribute : System.Attribute
@@ -33,12 +37,14 @@ namespace NServiceBus
     public sealed class NServiceBusSendOnlyEndpointAttribute : System.Attribute
     {
         public NServiceBusSendOnlyEndpointAttribute(string endpointName) { }
+        public string? Connection { get; set; }
         public string EndpointName { get; }
     }
-    public sealed class SendOnlyEndpointManifest : System.IEquatable<NServiceBus.SendOnlyEndpointManifest>
+    public sealed class SendOnlyEndpointManifest : NServiceBus.IConnectionSettingManifest, System.IEquatable<NServiceBus.SendOnlyEndpointManifest>
     {
-        public SendOnlyEndpointManifest(string Name, NServiceBus.FunctionEndpointConfiguration Configuration, System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.SendOnlyEndpointManifest> Register) { }
+        public SendOnlyEndpointManifest(string Name, string? ConnectionSettingName, NServiceBus.FunctionEndpointConfiguration Configuration, System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.SendOnlyEndpointManifest> Register) { }
         public NServiceBus.FunctionEndpointConfiguration Configuration { get; init; }
+        public string? ConnectionSettingName { get; init; }
         public string Name { get; init; }
         public System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.SendOnlyEndpointManifest> Register { get; init; }
     }

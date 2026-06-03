@@ -49,6 +49,14 @@ public class SendOnlyEndpointGeneratorTests
             .AssertRunsAreEqual();
 
     [Test]
+    public void GeneratesSendOnlyEndpointWithConnection() =>
+        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+            .WithSource(TestSources.ValidSendOnlyEndpointWithConnection)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
     public void GeneratesMultipleSendOnlyEndpoints() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.MultipleSendOnlyEndpoints)

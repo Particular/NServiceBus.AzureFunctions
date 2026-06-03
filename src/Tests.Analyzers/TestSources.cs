@@ -226,4 +226,19 @@ static class TestSources
             public static void DoSomething() { }
         }
         """;
+
+    public const string ValidSendOnlyEndpointWithConnection = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyEndpoint("client", Connection = "MyCustomConnection")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+            {
+            }
+        }
+        """;
 }

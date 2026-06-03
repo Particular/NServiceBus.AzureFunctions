@@ -91,13 +91,29 @@ public sealed partial class SendOnlyEndpointGenerator
                 parameterTypeNames[i] = method.Parameters[i].Type.Name.ToLowerInvariant();
             }
 
+            var connectionSettingName = ExtractConnectionSettingName(sendOnlyEndpointAttribute);
+
             return new SendOnlyEndpointSpec(
                 endpointName,
+                connectionSettingName,
                 sendOnlyEndpointDefinition.RegistrationMethodFullyQualified,
                 new ConfigureMethodSpec(
                     method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     method.Name,
                     parameterTypeNames.ToImmutableEquatableArray()));
+        }
+
+        static string? ExtractConnectionSettingName(AttributeData attribute)
+        {
+            foreach (var namedArg in attribute.NamedArguments)
+            {
+                if (namedArg is { Key: "Connection", Value.Value: string connectionName })
+                {
+                    return connectionName;
+                }
+            }
+
+            return null;
         }
 
         static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, SendOnlyEndpointGeneratorKnownTypes knownTypes)
@@ -108,6 +124,7 @@ public sealed partial class SendOnlyEndpointGenerator
 
     internal sealed record SendOnlyEndpointSpec(
         string EndpointName,
+        string? ConnectionSettingName,
         string RegistrationMethodFullyQualified,
         ConfigureMethodSpec ConfigureMethod);
 

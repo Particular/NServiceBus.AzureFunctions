@@ -22,7 +22,7 @@ public sealed partial class FunctionEndpointGenerator
     /// <item>Trigger method signatures are validated against <see cref="TriggerShape"/>.</item>
     /// </list>
     /// </remarks>
-    internal sealed record TriggerDefinition(
+    internal abstract record TriggerDefinition(
         string TriggerAttributeMetadataName,
         ImmutableEquatableArray<AdditionalParameterType> AdditionalParameterTypes,
         string ProcessorTypeFullyQualified,

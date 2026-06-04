@@ -40,19 +40,19 @@ public sealed partial class FunctionEndpointGenerator
 
             if (!methodSymbol.IsPartialDefinition)
             {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.MethodMustBePartialDescriptor, methodSymbol, methodSymbol.Name));
+                diagnostics.Add(methodSymbol.CreateDiagnostic(DiagnosticIds.MethodMustBePartialDescriptor, methodSymbol.Name));
             }
 
             var classSymbol = methodSymbol.ContainingType;
 
             if (!IsPartial(classSymbol, cancellationToken))
             {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol, classSymbol.Name));
+                diagnostics.Add(classSymbol.CreateDiagnostic(DiagnosticIds.ClassMustBePartialDescriptor, classSymbol.Name));
             }
 
             if (ImplementsIHandleMessages(classSymbol, knownTypes))
             {
-                diagnostics.Add(CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol, classSymbol.Name));
+                diagnostics.Add(classSymbol.CreateDiagnostic(DiagnosticIds.ShouldNotImplementIHandleMessagesDescriptor, classSymbol.Name));
             }
 
             var spec = ExtractFunctionSpec(methodSymbol, knownTypes, triggerDefinition, diagnostics);
@@ -224,12 +224,12 @@ public sealed partial class FunctionEndpointGenerator
 
             if (autoCompleteMustBeDisabled)
             {
-                diagnostics.Add(CreateDiagnostic(
-                    DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled,
-                    method,
-                    method.Name,
-                    autoCompletePropertyName!,
-                    knownTypes.TriggerAttribute.Name));
+                diagnostics.Add(
+                    method.CreateDiagnostic(
+                        DiagnosticIds.AutoCompleteMustBeExplicitlyDisabled,
+                        method.Name,
+                        autoCompletePropertyName!,
+                        knownTypes.TriggerAttribute.Name));
             }
 
             connectionSettingName ??= "";
@@ -473,7 +473,7 @@ public sealed partial class FunctionEndpointGenerator
                 {
                     if (configureMethod is not null)
                     {
-                        diagnostics.Add(CreateDiagnostic(DiagnosticIds.MultipleConfigureMethodsDescriptor, functionClassType, configureMethodName, functionClassType.Name));
+                        diagnostics.Add(functionClassType.CreateDiagnostic(DiagnosticIds.MultipleConfigureMethodsDescriptor, configureMethodName, functionClassType.Name));
                         return null;
                     }
 
@@ -530,19 +530,7 @@ public sealed partial class FunctionEndpointGenerator
         }
 
         static bool TryGetFunctionAttribute(IMethodSymbol method, FunctionEndpointGeneratorKnownTypes knownTypes, [NotNullWhen(true)] out AttributeData? functionAttribute)
-        {
-            foreach (var attribute in method.GetAttributes())
-            {
-                if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownTypes.FunctionAttribute))
-                {
-                    functionAttribute = attribute;
-                    return true;
-                }
-            }
-
-            functionAttribute = null!;
-            return false;
-        }
+            => method.TryGetAttribute(knownTypes.FunctionAttribute, out functionAttribute);
 
         static bool IsPartial(INamedTypeSymbol type, CancellationToken cancellationToken)
         {
@@ -566,12 +554,7 @@ public sealed partial class FunctionEndpointGenerator
             return false;
         }
 
-        static Diagnostic CreateDiagnostic(DiagnosticDescriptor descriptor, ISymbol symbol, params object[] arguments)
-        {
-            var locations = symbol.Locations;
-            var location = locations.Length > 0 ? locations[0] : null;
-            return Diagnostic.Create(descriptor, location, arguments);
-        }
+
     }
 
     internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);
@@ -592,7 +575,7 @@ public sealed partial class FunctionEndpointGenerator
         string ProcessCallExpression,
         ConfigureMethodSpec ConfigureMethod);
 
-    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics)
+    internal readonly record struct FunctionSpecs(ImmutableEquatableArray<FunctionSpec> Functions, ImmutableEquatableArray<Diagnostic> Diagnostics) : IDiagnosticsSpec
     {
         public static FunctionSpecs Empty { get; } = new(ImmutableEquatableArray<FunctionSpec>.Empty, ImmutableEquatableArray<Diagnostic>.Empty);
     }

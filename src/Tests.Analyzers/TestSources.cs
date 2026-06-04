@@ -3,6 +3,11 @@ namespace NServiceBus.AzureFunctions.Analyzers.Tests;
 static class TestSources
 {
     public const string OrdinaryFunctionOnly = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+
         namespace Demo;
 
         public class Functions
@@ -17,6 +22,14 @@ static class TestSources
        """;
 
     public const string ValidFunction = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
         namespace Demo;
 
         public partial class Functions
@@ -39,6 +52,11 @@ static class TestSources
         """;
 
     public const string NoMessageActionsFunction = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Azure.Functions.Worker;
+        using NServiceBus;
+
         namespace Demo.Testing;
 
         [System.AttributeUsage(System.AttributeTargets.Parameter)]
@@ -59,6 +77,11 @@ static class TestSources
             public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.FunctionManifest __) { }
         }
 
+        public static class TestSendOnlyEndpointManifestRegistration
+        {
+            public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.SendOnlyEndpointManifest __) { }
+        }
+
         public partial class Functions
         {
             [NServiceBusFunction]
@@ -76,6 +99,14 @@ static class TestSources
         """;
 
     public const string ValidFunctionInGlobalNamespace = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
         public partial class Functions
         {
             [NServiceBusFunction]
@@ -90,6 +121,122 @@ static class TestSources
                 EndpointConfiguration endpointConfiguration,
                 IConfiguration iconfiguration,
                 IHostEnvironment ihostenvironment)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpoint = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointInGlobalNamespace = """
+        using NServiceBus;
+        using Microsoft.Extensions.DependencyInjection;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithAllAdditionalParameters = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                IServiceCollection services,
+                IConfiguration configuration,
+                IHostEnvironment environment)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithNoAdditionalParameters = """
+        using NServiceBus;
+        namespace Demo;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration)
+            {
+            }
+        }
+        """;
+
+    public const string MultipleSendOnlyEndpoints = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                IServiceCollection services)
+            {
+            }
+        }
+
+        public static class SenderEndpoint
+        {
+            [NServiceBusSendOnlyFunction("sender")]
+            public static void ConfigureSender(
+                EndpointConfiguration endpointConfiguration,
+                IConfiguration configuration,
+                IHostEnvironment environment)
+            {
+            }
+        }
+        """;
+
+    public const string NoSendOnlyEndpoints = """
+        namespace Demo;
+
+        public static class SomeClass
+        {
+            public static void DoSomething() { }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithConnection = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.DependencyInjection;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client", Connection = "MyCustomConnection")]
+            public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
             {
             }
         }

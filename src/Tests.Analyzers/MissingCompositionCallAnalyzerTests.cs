@@ -80,6 +80,7 @@ public class MissingCompositionCallAnalyzerTests
 
     static SourceGeneratorTest CreateSourceGeneratorAnalyzerTest() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithIncrementalGenerator<FunctionCompositionGenerator>()
             .WithAnalyzer<MissingCompositionCallAnalyzer>()
             .BuildAs(OutputKind.ConsoleApplication)

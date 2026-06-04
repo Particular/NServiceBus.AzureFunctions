@@ -13,28 +13,32 @@ public class FunctionEndpointGeneratorTests
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesFunctionEndpointInGlobalNamespace() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.ValidFunctionInGlobalNamespace)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesNoRegistrationsForOrdinaryFunctionsOnly() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.OrdinaryFunctionOnly)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void GeneratesEndpointWithoutMessageActions() =>
         SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(TestSources.NoMessageActionsFunction)
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 
     [Test]
     public void ReportsInvalidFunctionMethodWhenShapeContainsExtraUnrecognizedParameters()
@@ -84,6 +88,14 @@ public class FunctionEndpointGeneratorTests
     }
 
     const string FunctionClassMustBePartial = """
+          using System.Threading;
+          using System.Threading.Tasks;
+          using Azure.Messaging.ServiceBus;
+          using Microsoft.Azure.Functions.Worker;
+          using Microsoft.Extensions.Configuration;
+          using Microsoft.Extensions.Hosting;
+          using NServiceBus;
+
           namespace Demo;
 
           public class Functions
@@ -106,6 +118,14 @@ public class FunctionEndpointGeneratorTests
           """;
 
     const string FunctionMethodMustBePartial = """
+          using System.Threading;
+          using System.Threading.Tasks;
+          using Azure.Messaging.ServiceBus;
+          using Microsoft.Azure.Functions.Worker;
+          using Microsoft.Extensions.Configuration;
+          using Microsoft.Extensions.Hosting;
+          using NServiceBus;
+
           namespace Demo;
 
           public partial class Functions
@@ -131,6 +151,14 @@ public class FunctionEndpointGeneratorTests
           """;
 
     const string FunctionClassShouldNotImplementIHandleMessages = """
+         using System.Threading;
+         using System.Threading.Tasks;
+         using Azure.Messaging.ServiceBus;
+         using Microsoft.Azure.Functions.Worker;
+         using Microsoft.Extensions.Configuration;
+         using Microsoft.Extensions.Hosting;
+         using NServiceBus;
+
          namespace Demo;
 
          public partial class Functions : IHandleMessages<ServiceBusReceivedMessage>
@@ -162,9 +190,15 @@ public class FunctionEndpointGeneratorTests
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
            .WithSource("""
-               namespace Demo;
+                using System.Threading;
+                using System.Threading.Tasks;
+                using Azure.Messaging.ServiceBus;
+                using Microsoft.Azure.Functions.Worker;
+                using NServiceBus;
 
-               public partial class Functions : IHandleMessages<ServiceBusReceivedMessage>
+                namespace Demo;
+
+                public partial class Functions : IHandleMessages<ServiceBusReceivedMessage>
                {
                    [NServiceBusFunction]
                    [Function("ProcessOrder")]
@@ -213,6 +247,13 @@ public class FunctionEndpointGeneratorTests
     }
 
     const string MultipleConfigureMethods = """
+       using System.Threading;
+       using System.Threading.Tasks;
+       using Azure.Messaging.ServiceBus;
+       using Microsoft.Azure.Functions.Worker;
+       using Microsoft.Extensions.Configuration;
+       using NServiceBus;
+
        namespace Demo;
 
        public partial class Functions
@@ -238,6 +279,12 @@ public class FunctionEndpointGeneratorTests
        """;
 
     const string MissingAutoComplete = """
+       using System.Threading;
+       using System.Threading.Tasks;
+       using Azure.Messaging.ServiceBus;
+       using Microsoft.Azure.Functions.Worker;
+       using NServiceBus;
+
        namespace Demo;
 
        public partial class Functions
@@ -257,6 +304,12 @@ public class FunctionEndpointGeneratorTests
        """;
 
     const string AutoCompleteEnabled = """
+       using System.Threading;
+       using System.Threading.Tasks;
+       using Azure.Messaging.ServiceBus;
+       using Microsoft.Azure.Functions.Worker;
+       using NServiceBus;
+
        namespace Demo;
 
        public partial class Functions
@@ -283,6 +336,11 @@ public class FunctionEndpointGeneratorTests
     public void ReportsInvalidFunctionMethodWhenTriggerParameterMissing()
     {
         var diagnostic = GetInvalidFunctionMethodDiagnostic<FunctionEndpointGenerator>("""
+           using System.Threading;
+           using System.Threading.Tasks;
+           using Microsoft.Azure.Functions.Worker;
+           using NServiceBus;
+
            namespace Demo;
 
            public partial class Functions
@@ -306,6 +364,12 @@ public class FunctionEndpointGeneratorTests
     public void ReportsInvalidFunctionMethodWhenMessageActionsRequiredButMissing()
     {
         var diagnostic = GetInvalidFunctionMethodDiagnostic<FunctionEndpointGenerator>("""
+           using System.Threading;
+           using System.Threading.Tasks;
+           using Azure.Messaging.ServiceBus;
+           using Microsoft.Azure.Functions.Worker;
+           using NServiceBus;
+
            namespace Demo;
 
            public partial class Functions
@@ -471,6 +535,12 @@ public class FunctionEndpointGeneratorTests
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource("""
+           using System.Threading;
+           using System.Threading.Tasks;
+           using Azure.Messaging.ServiceBus;
+           using Microsoft.Azure.Functions.Worker;
+           using NServiceBus;
+
            namespace Demo;
 
            public partial class Functions
@@ -558,6 +628,11 @@ public class FunctionEndpointGeneratorTests
             : "";
 
         return $$"""
+            using System.Threading;
+            using System.Threading.Tasks;
+            using Microsoft.Azure.Functions.Worker;
+            using NServiceBus;
+
             namespace Demo.Testing;
 
             [System.AttributeUsage(System.AttributeTargets.Parameter)]

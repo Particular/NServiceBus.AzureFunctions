@@ -7,10 +7,22 @@ readonly record struct CompilationAssemblyDetails(string SimpleName, string Iden
 {
     public static CompilationAssemblyDetails FromAssembly(IAssemblySymbol assembly) => new(assembly.Name, assembly.Identity.GetDisplayName());
 
-    const string NamePrefix = "GeneratedFunctionRegistrations_";
+    const string FunctionNamePrefix = "GeneratedFunctionRegistrations_";
+    const string SendOnlyNamePrefix = "GeneratedSendOnlyEndpointRegistrations_";
+
     public string ToGenerationClassName()
     {
+        return ToClassName(FunctionNamePrefix);
+    }
+
+    public string ToSendOnlyGenerationClassName()
+    {
+        return ToClassName(SendOnlyNamePrefix);
+    }
+
+    string ToClassName(string prefix)
+    {
         var hash = NonCryptographicHash.GetHash(Identity);
-        return $"{NamePrefix}{SimpleName.Replace('.', '_')}_{hash:x16}";
+        return $"{prefix}{SimpleName.Replace('.', '_')}_{hash:x16}";
     }
 }

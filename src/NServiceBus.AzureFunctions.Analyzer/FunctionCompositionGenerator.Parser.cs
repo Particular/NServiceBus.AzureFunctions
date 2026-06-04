@@ -23,7 +23,7 @@ public sealed partial class FunctionCompositionGenerator
             return new HostProjectSpec(isHostProject, effectiveRootNameSpace);
         }
 
-        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, CancellationToken cancellationToken = default)
+        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, bool hasLocalSendOnlyEndpoints, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -38,16 +38,27 @@ public sealed partial class FunctionCompositionGenerator
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var registration = CreateGeneratedRegistrationClassSpec(referencedAssembly);
-                if (compilation.GetTypeByMetadataName(registration.FullClassName) is not null)
-                {
-                    registrations.Add(registration);
-                }
+                AddGeneratedRegistrationClasses(compilation, referencedAssembly, registrations);
             }
 
             if (hasLocalFunctions)
             {
-                registrations.Add(CreateGeneratedRegistrationClassSpec(compilation.Assembly));
+                AddGeneratedRegistrationClass(
+                    compilation,
+                    $"NServiceBus.Generated.{CompilationAssemblyDetails.FromAssembly(compilation.Assembly).ToGenerationClassName()}",
+                    RegistrationClassKind.Function,
+                    registrations,
+                    includeWithoutLookup: true);
+            }
+
+            if (hasLocalSendOnlyEndpoints)
+            {
+                AddGeneratedRegistrationClass(
+                    compilation,
+                    $"NServiceBus.Generated.{CompilationAssemblyDetails.FromAssembly(compilation.Assembly).ToSendOnlyGenerationClassName()}",
+                    RegistrationClassKind.SendOnly,
+                    registrations,
+                    includeWithoutLookup: true);
             }
 
             if (registrations.Count == 0)
@@ -62,14 +73,39 @@ public sealed partial class FunctionCompositionGenerator
             return new CompositionSpec(orderedRegistrations, hostProject.RootNamespace);
         }
 
-        static GeneratedRegistrationClassSpec CreateGeneratedRegistrationClassSpec(IAssemblySymbol assembly)
+        static void AddGeneratedRegistrationClasses(
+            Compilation compilation,
+            IAssemblySymbol assembly,
+            ISet<GeneratedRegistrationClassSpec> registrations,
+            bool includeWithoutLookup = false)
         {
-            var className = CompilationAssemblyDetails.FromAssembly(assembly).ToGenerationClassName();
-            return new GeneratedRegistrationClassSpec($"NServiceBus.Generated.{className}");
+            var details = CompilationAssemblyDetails.FromAssembly(assembly);
+
+            AddGeneratedRegistrationClass(compilation, $"NServiceBus.Generated.{details.ToGenerationClassName()}", RegistrationClassKind.Function, registrations, includeWithoutLookup);
+            AddGeneratedRegistrationClass(compilation, $"NServiceBus.Generated.{details.ToSendOnlyGenerationClassName()}", RegistrationClassKind.SendOnly, registrations, includeWithoutLookup);
+        }
+
+        static void AddGeneratedRegistrationClass(
+            Compilation compilation,
+            string fullClassName,
+            RegistrationClassKind kind,
+            ISet<GeneratedRegistrationClassSpec> registrations,
+            bool includeWithoutLookup)
+        {
+            if (includeWithoutLookup || compilation.GetTypeByMetadataName(fullClassName) is not null)
+            {
+                registrations.Add(new GeneratedRegistrationClassSpec(fullClassName, kind));
+            }
         }
     }
 
-    internal readonly record struct GeneratedRegistrationClassSpec(string FullClassName);
+    internal readonly record struct GeneratedRegistrationClassSpec(string FullClassName, RegistrationClassKind Kind);
+    internal enum RegistrationClassKind
+    {
+        Function,
+        SendOnly
+    }
+
     internal readonly record struct HostProjectSpec(bool IsHostProject, string? RootNamespace);
     internal sealed record CompositionSpec(ImmutableEquatableArray<GeneratedRegistrationClassSpec> RegistrationClasses, string? RootNamespace);
 }

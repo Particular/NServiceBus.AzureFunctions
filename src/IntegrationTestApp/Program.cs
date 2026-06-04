@@ -17,18 +17,6 @@ builder.Services.AddSingleton(new MyComponent("global"));
 
 builder.AddNServiceBusFunctions();
 
-builder.AddSendOnlyNServiceBusEndpoint("client", (configuration, services) =>
-{
-    services.AddSingleton(new MyComponent("client"));
-
-    var transport = new AzureServiceBusServerlessTransport(TopicTopology.Default) { ConnectionName = "AzureWebJobsServiceBus" };
-
-    var routing = configuration.UseTransport(transport);
-
-    routing.RouteToEndpoint(typeof(SubmitOrder), "sales");
-    configuration.UseSerialization<SystemJsonSerializer>();
-});
-
 var host = builder.Build();
 
 await host.RunAsync();

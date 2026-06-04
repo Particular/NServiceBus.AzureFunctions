@@ -12,12 +12,15 @@ public class FunctionCompositionGeneratorTests
     public void GeneratesProjectComposition() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionCompositionGenerator>()
             .WithIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.ValidFunction)
+            .WithSource(TestSources.ValidSendOnlyEndpoint, "SendOnly.cs")
             .ControlOutput(All)
             .WithProperty("build_property.OutputType", "Exe")
             .WithProperty("build_property.FunctionsExecutionModel", "isolated")
             .WithProperty("build_property.RootNamespace", "My.FunctionApp")
             .SuppressCompilationErrors()
             .Run()
-            .Approve();
+            .Approve()
+            .AssertRunsAreEqual();
 }

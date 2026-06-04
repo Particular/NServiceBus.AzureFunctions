@@ -16,16 +16,6 @@ using Particular.AnalyzerTesting;
 [SetUpFixture]
 public class SetUpFixture
 {
-    const string CommonUsings = """
-        global using System.Threading;
-        global using System.Threading.Tasks;
-        global using Microsoft.Azure.Functions.Worker;
-        global using Azure.Messaging.ServiceBus;
-        global using Microsoft.Extensions.Configuration;
-        global using Microsoft.Extensions.Hosting;
-        global using NServiceBus;
-        """;
-
     static readonly ImmutableList<PortableExecutableReference> ProjectReferences =
     [
         MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
@@ -52,11 +42,9 @@ public class SetUpFixture
     public void OneTimeSetUp()
     {
         AnalyzerTest.ConfigureAllAnalyzerTests(test => test
-            .AddReferences(ProjectReferences)
-            .WithSource(CommonUsings, "GlobalUsings.cs"));
+            .AddReferences(ProjectReferences));
 
         SourceGeneratorTest.ConfigureAllSourceGeneratorTests(test => test
-            .AddReferences(ProjectReferences)
-            .WithSource(CommonUsings, "GlobalUsings.cs"));
+            .AddReferences(ProjectReferences));
     }
 }

@@ -1,16 +1,19 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using Core.Analyzer;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 [Generator]
 public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
 {
-    public void Initialize(IncrementalGeneratorInitializationContext context)
-        => InitializeGenerator(context, AzureServiceBusTrigger);
+    public void Initialize(IncrementalGeneratorInitializationContext context) => InitializeGenerator<AzureServiceBusTriggerDefinition>(context);
 
-    internal static void InitializeGenerator(IncrementalGeneratorInitializationContext context, TriggerDefinition triggerDefinition)
+    // This method currently exists to proof that technically the generator pipeline can be extended with other trigger definitions
+    // without having to change the analyzer. In practice, we don't have any other trigger definitions at the moment,
+    // but there are tests that verify it would be possible to add more. There might still be some refactoring opportunities to make the extension story better
+    // but this is good enough for now.
+    internal static void InitializeGenerator<TDefinition>(IncrementalGeneratorInitializationContext context)
+        where TDefinition : TriggerDefinition, new()
     {
         var extractionCandidates = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -18,29 +21,14 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
                 predicate: static (node, _) => node is MethodDeclarationSyntax,
                 transform: static (ctx, _) => ctx);
 
-        var triggerDefinitionProvider = CreateTriggerDefinitionProvider(context, triggerDefinition);
-
         var extractionResults = extractionCandidates
-            .Combine(triggerDefinitionProvider)
+            .Combine(context.CompilationProvider.Select(static (_, _) => new TDefinition()))
             .Select(static (pair, ct) => Parser.Extract(pair.Left, pair.Right, ct))
             .WithTrackingName(TrackingNames.Extraction);
 
         var diagnostics = extractionResults
-            .Collect() // Materialize all results for cross-method diagnostic deduplication.
-            .SelectMany(static (results, _) =>
-            {
-                // DiagnosticWithInfo implements structural equality (Location, Info, AdditionalLocations)
-                // so HashSet deduplicates correctly. ImmutableEquatableArray enables incremental caching:
-                // unchanged documents reuse the same SyntaxTree references, so diagnostics compare equal
-                // across steps. Within an edited file, new tree references cause re-reporting, which is
-                // correct and cheap.
-                var diagnostics = new HashSet<Diagnostic>();
-                foreach (var result in results)
-                {
-                    diagnostics.UnionWith(result.Diagnostics);
-                }
-                return diagnostics.ToImmutableEquatableArray();
-            })
+            .Collect()
+            .SelectMany(static (results, _) => results.ToDiagnostics())
             .WithTrackingName(TrackingNames.Diagnostics);
 
         context.RegisterSourceOutput(diagnostics, static (spc, diag) =>
@@ -59,10 +47,5 @@ public sealed partial class FunctionEndpointGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.Combined);
 
         context.RegisterSourceOutput(combined, static (spc, data) => Emitter.Emit(spc, data.Left, data.Right));
-
-        static IncrementalValueProvider<TriggerDefinition> CreateTriggerDefinitionProvider(
-            IncrementalGeneratorInitializationContext context,
-            TriggerDefinition triggerDefinition) =>
-            context.CompilationProvider.Select((_, _) => triggerDefinition);
     }
 }

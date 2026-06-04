@@ -21,15 +21,30 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
     {
         builder.Services.AddAzureClientsCore();
 
-        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest, nameof(FunctionsHostApplicationBuilderExtensions.AddSendOnlyNServiceBusEndpoint));
+        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildReceiveEndpointConfiguration(builder, functionManifest);
         var transport = GetAzureServiceBusTransport(endpointConfiguration);
 
-        var resolvedConnectionSettingName = string.IsNullOrWhiteSpace(functionManifest.ConnectionSettingName)
-            ? functionManifest.ConnectionSettingName
-            : FunctionBindingExpression.Resolve(functionManifest.ConnectionSettingName, builder.Configuration);
-        transport.ConnectionName = resolvedConnectionSettingName;
+        ApplyConnectionSettingName(transport, functionManifest);
+
         builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
         builder.Services.AddKeyedSingleton<AzureServiceBusMessageProcessor>(functionManifest.Name, (_, _) => new AzureServiceBusMessageProcessor(transport, functionManifest.Name));
+    }
+
+    /// <summary>
+    /// Adds the necessary services to the container to support the send-only endpoint described by the provided <see cref="SendOnlyEndpointManifest"/>.
+    /// Should only be called by the source generator.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void AddNServiceBusAzureServiceBusSendOnlyEndpoint(this FunctionsApplicationBuilder builder, SendOnlyEndpointManifest sendOnlyEndpointManifest)
+    {
+        builder.Services.AddAzureClientsCore();
+
+        var endpointConfiguration = FunctionEndpointConfigurationBuilder.BuildSendOnlyEndpointConfiguration(builder, sendOnlyEndpointManifest);
+        var transport = GetAzureServiceBusTransport(endpointConfiguration);
+
+        ApplyConnectionSettingName(transport, sendOnlyEndpointManifest);
+
+        builder.Services.AddNServiceBusEndpoint(endpointConfiguration, endpointConfiguration.EndpointName);
     }
 
     static AzureServiceBusServerlessTransport GetAzureServiceBusTransport(EndpointConfiguration endpointConfiguration)
@@ -37,5 +52,16 @@ public static class AzureServiceBusFunctionsHostApplicationBuilderExtensions
         var transport = endpointConfiguration.GetSettings().GetOrDefault<TransportDefinition>() as AzureServiceBusServerlessTransport;
 
         return transport ?? throw new InvalidOperationException($"Endpoint '{endpointConfiguration.EndpointName}' must be configured with an '{nameof(AzureServiceBusServerlessTransport)}'.");
+    }
+
+    static void ApplyConnectionSettingName(AzureServiceBusServerlessTransport transport, IConnectionSettingManifest manifest)
+    {
+        if (!string.IsNullOrEmpty(manifest.ConnectionSettingName))
+        {
+            // the connection name is resolved at runtime from the configuration and doesn't need to
+            // support binding expressions since Azure Functions also doesn't support them for trigger connection settings.
+            // The binding expression always wins
+            transport.ConnectionName = manifest.ConnectionSettingName;
+        }
     }
 }

@@ -35,10 +35,20 @@ public sealed partial class FunctionCompositionGenerator
             foreach (var registrationClass in composition.RegistrationClasses)
             {
                 context.CancellationToken.ThrowIfCancellationRequested();
-                writer.WriteLine($"foreach (var manifest in global::{registrationClass.FullClassName}.GetFunctionManifests())");
-                writer.WriteLine("{");
-                writer.WriteLine("    manifest.Register(builder, manifest);");
-                writer.WriteLine("}");
+                if (registrationClass.Kind == RegistrationClassKind.Function)
+                {
+                    writer.WriteLine($"foreach (var manifest in global::{registrationClass.FullClassName}.GetFunctionManifests())");
+                    writer.WriteLine("{");
+                    writer.WriteLine("    manifest.Register(builder, manifest);");
+                    writer.WriteLine("}");
+                }
+                else
+                {
+                    writer.WriteLine($"foreach (var manifest in global::{registrationClass.FullClassName}.GetSendOnlyEndpointManifests())");
+                    writer.WriteLine("{");
+                    writer.WriteLine("    manifest.Register(builder, manifest);");
+                    writer.WriteLine("}");
+                }
             }
 
             writer.CloseCurlies();

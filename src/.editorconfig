@@ -33,6 +33,8 @@ dotnet_diagnostic.CA1711.severity = error
 dotnet_diagnostic.CA2007.severity = error
 dotnet_diagnostic.CA2016.severity = error
 
+# ConfigureAwait - not a library
+dotnet_diagnostic.CA2007.severity = none
 
 #### .NET Coding Conventions ####
 

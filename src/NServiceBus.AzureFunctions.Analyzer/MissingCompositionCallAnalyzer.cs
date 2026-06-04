@@ -24,10 +24,7 @@ public sealed class MissingCompositionCallAnalyzer : DiagnosticAnalyzer
     {
         var globalOptions = context.Options.AnalyzerConfigOptionsProvider.GlobalOptions;
 
-        var isExeOutput = ProjectDetection.IsExecutableProject(context.Compilation, globalOptions);
-        var isAzureFunctionsProject = ProjectDetection.IsIsolatedFunctionsProject(context.Compilation, globalOptions);
-
-        if (!isExeOutput || !isAzureFunctionsProject)
+        if (!ProjectDetection.IsIsolatedFunctionsHostProject(globalOptions))
         {
             return;
         }

@@ -1,9 +1,7 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using static BuildPropertyNames;
-using static KnownTypeNames;
 
 static class ProjectDetection
 {

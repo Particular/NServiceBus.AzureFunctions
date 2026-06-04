@@ -6,6 +6,11 @@
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\NServiceBus.AzureFunctions.CodeFixes\NServiceBus.AzureFunctions.CodeFixes.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <ItemGroup Label="Public dependencies">
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
     <PackageReference Include="NServiceBus" Version="10.2.4" />

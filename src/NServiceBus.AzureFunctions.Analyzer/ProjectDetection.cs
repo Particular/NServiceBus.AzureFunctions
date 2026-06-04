@@ -5,19 +5,20 @@ using static BuildPropertyNames;
 
 static class ProjectDetection
 {
-    const string IsolatedExecutionModel = "isolated";
-
-    // We intentionally key on FunctionsExecutionModel instead of AzureFunctionsVersion so detection
-    // stays stable if the Functions SDK updates version labels (for example, v4 -> v5).
-    public static bool IsIsolatedFunctionsProject(AnalyzerConfigOptions options)
-        => options.TryGetValue(FunctionsExecutionModel, out var executionModel)
-           && string.Equals(executionModel, IsolatedExecutionModel, StringComparison.OrdinalIgnoreCase);
-
+    // FunctionHost detection intentionally combines both checks:
+    // - OutputType == Exe keeps generation scoped to the host executable rather than class libraries.
+    // - FunctionsExecutionModel == isolated identifies Azure Functions worker projects reliably across Functions version changes.
     public static bool IsIsolatedFunctionsHostProject(AnalyzerConfigOptions options)
         => IsExecutableProject(options)
            && IsIsolatedFunctionsProject(options);
 
-    public static bool IsExecutableProject(AnalyzerConfigOptions options)
+    // We intentionally key on FunctionsExecutionModel instead of AzureFunctionsVersion so detection
+    // stays stable if the Functions SDK updates version labels (for example, v4 -> v5).
+    static bool IsIsolatedFunctionsProject(AnalyzerConfigOptions options)
+        => options.TryGetValue(FunctionsExecutionModel, out var executionModel)
+           && string.Equals(executionModel, IsolatedExecutionModel, StringComparison.OrdinalIgnoreCase);
+
+    static bool IsExecutableProject(AnalyzerConfigOptions options)
         => options.TryGetValue(OutputType, out var outputType)
            && string.Equals(outputType, "Exe", StringComparison.OrdinalIgnoreCase);
 
@@ -31,4 +32,6 @@ static class ProjectDetection
 
         return rootNamespace;
     }
+
+    const string IsolatedExecutionModel = "isolated";
 }

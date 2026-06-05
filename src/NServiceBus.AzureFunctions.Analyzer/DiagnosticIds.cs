@@ -10,13 +10,13 @@ static class DiagnosticIds
     public const string ClassMustBePartial = "NSBFUNC001";
     public const string ShouldNotImplementIHandleMessages = "NSBFUNC002";
     public const string MethodMustBePartial = "NSBFUNC003";
-    public const string MultipleConfigureMethods = "NSBFUNC005";
-    public const string AutoCompleteEnabled = "NSBFUNC006";
-    public const string InvalidFunctionMethod = "NSBFUNC007";
-    public const string InvalidEndpointConfiguration = "NSBFUNC008";
-    public const string InvalidSendOptions = "NSBFUNC009";
-    public const string InvalidEndpointTransportConfiguration = "NSBFUNC010";
-    public const string InvalidSendOnlyEndpointMethod = "NSBFUNC011";
+    public const string MultipleConfigureMethods = "NSBFUNC004";
+    public const string AutoCompleteEnabled = "NSBFUNC005";
+    public const string InvalidFunctionMethod = "NSBFUNC006";
+    public const string InvalidEndpointConfiguration = "NSBFUNC007";
+    public const string InvalidSendOptions = "NSBFUNC008";
+    public const string InvalidEndpointTransportConfiguration = "NSBFUNC009";
+    public const string InvalidSendOnlyEndpointMethod = "NSBFUNC010";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,

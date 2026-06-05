@@ -599,7 +599,7 @@ public class FunctionEndpointGeneratorTests
             .Run();
 
         var diagnostics = result.GeneratorDiagnostics;
-        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == "NSBFUNC007"));
+        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidFunctionMethod));
     }
 
     #endregion
@@ -615,10 +615,10 @@ public class FunctionEndpointGeneratorTests
             .Run();
 
         var diagnostics = result.GeneratorDiagnostics;
-        Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == "NSBFUNC007"),
-            "Expected NSBFUNC007 diagnostic to be reported");
+        Assert.That(diagnostics, Has.Some.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidFunctionMethod),
+            $"Expected {DiagnosticIds.InvalidFunctionMethod} diagnostic to be reported");
 
-        return diagnostics.First(d => d.Id == "NSBFUNC007");
+        return diagnostics.First(d => d.Id == DiagnosticIds.InvalidFunctionMethod);
     }
 
     static string NoMessageActionsSource(string classBody, bool triggerHasConstructor = true)

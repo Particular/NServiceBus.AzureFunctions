@@ -14,10 +14,7 @@ public sealed partial class FunctionCompositionGenerator
         internal static HostProjectSpec ParseHostProject(AnalyzerConfigOptionsProvider provider)
         {
             var options = provider.GlobalOptions;
-            // Host detection intentionally combines both checks:
-            // - FunctionsExecutionModel == isolated identifies Azure Functions worker projects reliably across Functions version changes.
-            // - OutputType == Exe keeps generation scoped to the host executable rather than class libraries.
-            var isHostProject = ProjectDetection.IsExecutableProject(options) && ProjectDetection.IsIsolatedFunctionsProject(options);
+            var isHostProject = ProjectDetection.IsIsolatedHostFunctionsProject(options);
             var effectiveRootNameSpace = ProjectDetection.GetRootNamespace(options);
 
             return new HostProjectSpec(isHostProject, effectiveRootNameSpace);

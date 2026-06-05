@@ -10,14 +10,13 @@ static class DiagnosticIds
     public const string ClassMustBePartial = "NSBFUNC001";
     public const string ShouldNotImplementIHandleMessages = "NSBFUNC002";
     public const string MethodMustBePartial = "NSBFUNC003";
-    public const string MissingAddNServiceBusFunctionsCall = "NSBFUNC004";
-    public const string MultipleConfigureMethods = "NSBFUNC005";
-    public const string AutoCompleteEnabled = "NSBFUNC006";
-    public const string InvalidFunctionMethod = "NSBFUNC007";
-    public const string InvalidEndpointConfiguration = "NSBFUNC008";
-    public const string InvalidSendOptions = "NSBFUNC009";
-    public const string InvalidEndpointTransportConfiguration = "NSBFUNC010";
-    public const string InvalidSendOnlyEndpointMethod = "NSBFUNC011";
+    public const string MultipleConfigureMethods = "NSBFUNC004";
+    public const string AutoCompleteEnabled = "NSBFUNC005";
+    public const string InvalidFunctionMethod = "NSBFUNC006";
+    public const string InvalidEndpointConfiguration = "NSBFUNC007";
+    public const string InvalidSendOptions = "NSBFUNC008";
+    public const string InvalidEndpointTransportConfiguration = "NSBFUNC009";
+    public const string InvalidSendOnlyEndpointMethod = "NSBFUNC010";
 
     internal static readonly DiagnosticDescriptor ClassMustBePartialDescriptor = new(
         id: ClassMustBePartial,
@@ -42,15 +41,6 @@ static class DiagnosticIds
         category: "NServiceBus.AzureFunctions",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
-
-    internal static readonly DiagnosticDescriptor MissingAddNServiceBusFunctionsCallDescriptor = new(
-        id: MissingAddNServiceBusFunctionsCall,
-        title: "AddNServiceBusFunctions() is not called",
-        messageFormat: "This project has NServiceBus endpoint registrations but does not call builder.AddNServiceBusFunctions(). Endpoints will not be started.",
-        category: "NServiceBus.AzureFunctions",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        customTags: [WellKnownDiagnosticTags.CompilationEnd]);
 
     internal static readonly DiagnosticDescriptor MultipleConfigureMethodsDescriptor = new(
         id: MultipleConfigureMethods,

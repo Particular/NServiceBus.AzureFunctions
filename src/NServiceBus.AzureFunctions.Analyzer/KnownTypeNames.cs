@@ -18,4 +18,7 @@ static class KnownTypeNames
     public const string AzureServiceBusFunctionsHostApplicationBuilderExtensions = "NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions";
     public const string AddNServiceBusAzureServiceBusFunction = "AddNServiceBusAzureServiceBusFunction";
     public const string AddNServiceBusAzureServiceBusSendOnlyEndpoint = "AddNServiceBusAzureServiceBusSendOnlyEndpoint";
+    public const string FunctionsApplicationBuilder = "Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder";
+    public const string GeneratedFunctionsCompositionClassName = "NServiceBusGeneratedFunctionsComposition";
+    public const string GeneratedFunctionsCompositionRegisterMethodName = "Register";
 }

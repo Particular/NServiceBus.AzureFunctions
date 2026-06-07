@@ -8,9 +8,7 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var hostProject = context.AnalyzerConfigOptionsProvider
-            .Select(static (provider, _) => Parser.ParseHostProject(provider))
-            .WithTrackingName(TrackingNames.HostProject);
+        var hostProject = HostProjectPipeline.Build(context);
 
         var hasLocalFunctions = context.SyntaxProvider
             .ForAttributeWithMetadataName(

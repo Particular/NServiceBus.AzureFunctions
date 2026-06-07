@@ -24,6 +24,10 @@ namespace NServiceBus
         public string Name { get; init; }
         public System.Action<Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder, NServiceBus.FunctionManifest> Register { get; init; }
     }
+    public static class HostApplicationBuilderExtensions
+    {
+        public static void AddNServiceBusFunctions(this Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder) { }
+    }
     public interface IConnectionSettingManifest
     {
         string? ConnectionSettingName { get; }

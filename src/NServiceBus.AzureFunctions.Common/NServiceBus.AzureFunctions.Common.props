@@ -1,5 +1,14 @@
 <Project>
 
+  <!--
+    We are enabling interceptors on downstream projects because the runtime extensions
+    (for example, AddNServiceBusFunctions) live in the NServiceBus namespace and the
+    generated interceptor definitions are emitted under the same namespace.
+  -->
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);NServiceBus</InterceptorsNamespaces>
+  </PropertyGroup>
+
   <ItemGroup>
     <CompilerVisibleProperty Include="OutputType" />
     <CompilerVisibleProperty Include="FunctionsExecutionModel" />

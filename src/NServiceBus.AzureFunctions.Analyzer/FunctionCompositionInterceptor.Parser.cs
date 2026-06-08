@@ -28,21 +28,52 @@ public sealed partial class FunctionCompositionInterceptor
             ArgumentList.Arguments.Count: 0,
         };
 
-        static bool IsAddNServiceBusFunctionsMethod(IMethodSymbol method) => method is
-        {
-            Name: AddNServiceBusFunctionsMethodName,
-            IsGenericMethod: false,
-            IsExtensionMethod: true,
-            ContainingType:
+        static bool IsAddNServiceBusFunctionsMethod(IMethodSymbol method) =>
+            (method.ReducedFrom ?? method) is
             {
-                Name: AddNServiceBusFunctionsClassName,
-                ContainingNamespace:
+                Name: AddNServiceBusFunctionsMethodName,
+                IsGenericMethod: false,
+                IsExtensionMethod: true,
+                ContainingType:
                 {
-                    Name: "NServiceBus",
-                    ContainingNamespace.IsGlobalNamespace: true
-                }
-            }
-        };
+                    Name: AddNServiceBusFunctionsClassName,
+                    ContainingNamespace:
+                    {
+                        Name: "NServiceBus",
+                        ContainingNamespace.IsGlobalNamespace: true
+                    }
+                },
+                Parameters:
+                [
+                    {
+                        Type: INamedTypeSymbol
+                        {
+                            Name: "FunctionsApplicationBuilder",
+                            ContainingNamespace:
+                            {
+                                Name: "Builder",
+                                ContainingNamespace:
+                                {
+                                    Name: "Worker",
+                                    ContainingNamespace:
+                                    {
+                                        Name: "Functions",
+                                        ContainingNamespace:
+                                        {
+                                            Name: "Azure",
+                                            ContainingNamespace:
+                                            {
+                                                Name: "Microsoft",
+                                                ContainingNamespace.IsGlobalNamespace: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            };
 
         public static InterceptableCompositionSpec? Parse(InvocationExpressionSyntax invocation, SemanticModel semanticModel, HostProjectSpec hostProject, CancellationToken cancellationToken = default)
         {

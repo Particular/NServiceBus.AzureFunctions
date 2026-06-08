@@ -32,7 +32,7 @@ public sealed partial class FunctionCompositionInterceptor
         {
             Name: AddNServiceBusFunctionsMethodName,
             IsGenericMethod: false,
-            Parameters.Length: 1,
+            IsExtensionMethod: true,
             ContainingType:
             {
                 Name: AddNServiceBusFunctionsClassName,

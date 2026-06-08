@@ -71,7 +71,7 @@ public sealed partial class FunctionCompositionInterceptor
                 sourceWriter.Indentation++;
 
                 sourceWriter.WriteLine("System.ArgumentNullException.ThrowIfNull(builder);");
-                sourceWriter.WriteLine("""if (builder.Properties.TryAdd("NServiceBus.AzureFunctions.AddNServiceBusFunctions", true))""");
+                sourceWriter.WriteLine("""if (!builder.Properties.TryAdd("NServiceBus.AzureFunctions.AddNServiceBusFunctions", true))""");
                 sourceWriter.WriteLine("{");
                 sourceWriter.Indentation++;
                 sourceWriter.WriteLine("""throw new global::System.Exception("`AddNServiceBusFunctions` can only be used once on the same functions application builder instance because subsequent calls would override each other.");""");

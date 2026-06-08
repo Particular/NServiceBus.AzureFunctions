@@ -23,15 +23,16 @@ public sealed partial class FunctionCompositionInterceptor
                 Name: IdentifierNameSyntax
                 {
                     Identifier.ValueText: AddNServiceBusFunctionsMethodName
-                }
+                },
             },
-            ArgumentList.Arguments.Count: 0
+            ArgumentList.Arguments.Count: 0,
         };
 
         static bool IsAddNServiceBusFunctionsMethod(IMethodSymbol method) => method is
         {
             Name: AddNServiceBusFunctionsMethodName,
             IsGenericMethod: false,
+            Parameters.Length: 1,
             ContainingType:
             {
                 Name: AddNServiceBusFunctionsClassName,

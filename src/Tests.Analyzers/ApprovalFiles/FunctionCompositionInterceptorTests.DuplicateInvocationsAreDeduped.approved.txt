@@ -23,6 +23,9 @@ namespace System.Runtime.CompilerServices
 
 namespace NServiceBus
 {
+
+    using System.Collections.Generic;
+
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("NService.Core.Analyzer.Tests", "1.0.0")]
     static file class InterceptionsOfAddNServiceBusFunctionsMethod
     {
@@ -33,6 +36,11 @@ namespace NServiceBus
             public void AddNServiceBusFunctions_AddNServiceBusFunctions_2950d0a69f6789c0()
             {
                 System.ArgumentNullException.ThrowIfNull(builder);
+                if (builder.Properties.TryAdd("NServiceBus.AzureFunctions.AddNServiceBusFunctions", true))
+                {
+                    throw new global::System.Exception("`AddNServiceBusFunctions` can only be used once on the same functions application builder instance because subsequent calls would override each other.");
+                }
+
                 Test.Host.NServiceBusGeneratedFunctionsComposition.Register(builder);
             }
         }

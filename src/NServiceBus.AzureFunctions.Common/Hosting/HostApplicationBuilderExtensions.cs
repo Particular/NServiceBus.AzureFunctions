@@ -21,6 +21,10 @@ public static class HostApplicationBuilderExtensions
     public static void AddNServiceBusFunctions(this FunctionsApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        if (builder.Properties.TryAdd("NServiceBus.AzureFunctions.AddNServiceBusFunctions", true))
+        {
+            throw new Exception("`AddNServiceBusFunctions` can only be used once on the same functions application builder instance because subsequent calls would override each other.");
+        }
         // Intentionally empty. Replaced at compile time by the FunctionCompositionInterceptor.
     }
 }

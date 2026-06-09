@@ -41,6 +41,9 @@ public sealed partial class FunctionCompositionInterceptor
             sourceWriter.WriteLine("{");
             sourceWriter.Indentation++;
 
+            // Group specs by the resolved method name so multiple call sites share a single
+            // generated method with multiple [InterceptsLocation] attributes, mirroring the
+            // AddHandlerInterceptor behavior.
             var groups = specs.Specs
                 .Select(spec => (MethodName: BuildMethodName(), Spec: spec))
                 .GroupBy(item => item.MethodName, StringComparer.Ordinal)

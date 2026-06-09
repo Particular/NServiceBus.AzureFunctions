@@ -23,9 +23,6 @@ public class FunctionCompositionInterceptorTests
                             }
                         }
                         """, "test.cs")
-            .WithProperty("build_property.OutputType", "Exe")
-            .WithProperty("build_property.FunctionsExecutionModel", "isolated")
-            .WithProperty("build_property.RootNamespace", "Test.Host")
             .WithInterceptorNamespace("NServiceBus")
             .Run()
             .Approve()
@@ -39,8 +36,8 @@ public class FunctionCompositionInterceptorTests
                         using Microsoft.Azure.Functions.Worker.Builder;
                         using NServiceBus;
 
-                        public class DuplicateInvocationsTest
-                        {
+                         public class DuplicateInvocationsTest
+                         {
                             public void Configure(FunctionsApplicationBuilder builder)
                             {
                                 builder.AddNServiceBusFunctions();
@@ -49,47 +46,53 @@ public class FunctionCompositionInterceptorTests
                             }
                         }
                         """, "test.cs")
-            .WithProperty("build_property.OutputType", "Exe")
-            .WithProperty("build_property.FunctionsExecutionModel", "isolated")
-            .WithProperty("build_property.RootNamespace", "Test.Host")
             .WithInterceptorNamespace("NServiceBus")
             .Run()
             .Approve()
             .AssertRunsAreEqual();
 
     [Test]
-    public void NoInvocationStillEmitsCompositionClass() =>
+    public void LocalRegistrationsWithoutInvocationStillEmitCompositionClass() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionCompositionInterceptor>()
+            .WithIncrementalGenerator<FunctionCompositionGenerator>()
+            .WithIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.ValidFunction, "test.cs")
+            .WithInterceptorNamespace("NServiceBus")
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
+    public void NoInvocationAndNoRegistrationsEmitNoGeneratedSources() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionCompositionInterceptor>()
             .WithIncrementalGenerator<FunctionCompositionGenerator>()
             .WithSource("""
-                        using Microsoft.Azure.Functions.Worker.Builder;
-                        using Microsoft.Extensions.Hosting;
-
-                        public class NoInvocationTest
+                        public class NoInvocationOrRegistrationsTest
                         {
-                            public void Configure(FunctionsApplicationBuilder builder, IHostEnvironment env)
-                            {
-                                // No call to AddNServiceBusFunctions
-                            }
                         }
                         """, "test.cs")
-            .WithProperty("build_property.OutputType", "Exe")
-            .WithProperty("build_property.FunctionsExecutionModel", "isolated")
-            .WithProperty("build_property.RootNamespace", "Test.Host")
             .WithInterceptorNamespace("NServiceBus")
             .Run()
             .Approve()
             .AssertRunsAreEqual();
 
     [Test]
-    public void NonIsolatedHostEmitsNoGeneratedSources() =>
+    public void CopycatMethodDoesNotEmitGeneratedSources() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionCompositionInterceptor>()
             .WithIncrementalGenerator<FunctionCompositionGenerator>()
             .WithSource("""
                         using Microsoft.Azure.Functions.Worker.Builder;
-                        using NServiceBus;
 
-                        public class NonIsolatedHostTest
+                        namespace Demo;
+
+                        public static class HostApplicationBuilderExtensions
+                        {
+                            public static void AddNServiceBusFunctions(this FunctionsApplicationBuilder builder)
+                            {
+                            }
+                        }
+
+                        public class CopycatMethodTest
                         {
                             public void Configure(FunctionsApplicationBuilder builder)
                             {
@@ -97,10 +100,6 @@ public class FunctionCompositionInterceptorTests
                             }
                         }
                         """, "test.cs")
-            .WithProperty("build_property.OutputType", "Exe")
-            // No FunctionsExecutionModel property => not an isolated host project, so both the
-            // composition class and the interceptor are suppressed.
-            .WithProperty("build_property.RootNamespace", "Test.Host")
             .WithInterceptorNamespace("NServiceBus")
             .Run()
             .Approve()

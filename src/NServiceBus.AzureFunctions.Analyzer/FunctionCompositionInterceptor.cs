@@ -9,23 +9,10 @@ public sealed partial class FunctionCompositionInterceptor : IIncrementalGenerat
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var hostProject = HostProjectPipeline.Build(context);
-
         var addNServiceBusFunctions = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => Parser.SyntaxLooksLikeAddNServiceBusFunctionsMethod(node),
-                transform: static (ctx, _) => (invocation: (InvocationExpressionSyntax)ctx.Node, semanticModel: ctx.SemanticModel))
-            .Combine(hostProject)
-            .Where(static pair =>
-            {
-                var (_, hostProject) = pair;
-                return hostProject.IsHostProject;
-            })
-            .Select(static (pair, cancellationToken) =>
-            {
-                var ((invocation, semanticModel), hostProject) = pair;
-                return Parser.Parse(invocation, semanticModel, hostProject, cancellationToken);
-            })
+                predicate: static (node, _) => AddNServiceBusFunctionsParser.SyntaxLooksLikeInvocation(node),
+                transform: static (ctx, cancellationToken) => AddNServiceBusFunctionsParser.ParseInvocation((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel, cancellationToken))
             .Where(static spec => spec.HasValue)
             .Select(static (spec, _) => spec!.Value)
             .WithTrackingName(TrackingNames.AddNServiceBusFunctionsSpec);
@@ -41,4 +28,6 @@ public sealed partial class FunctionCompositionInterceptor : IIncrementalGenerat
                 emitter.Emit(specs);
             });
     }
+
+    internal readonly record struct InterceptableCompositionSpecs(ImmutableEquatableArray<AddNServiceBusFunctionsInvocationSpec> Specs);
 }

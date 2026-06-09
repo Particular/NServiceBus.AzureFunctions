@@ -10,11 +10,11 @@ public sealed partial class FunctionCompositionGenerator
 {
     static class Parser
     {
-        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, bool hasLocalSendOnlyEndpoints, CancellationToken cancellationToken = default)
+        internal static CompositionSpec? ParseComposition(Compilation compilation, bool hasLocalFunctions, bool hasLocalSendOnlyEndpoints, bool hasAddNServiceBusFunctionsInvocation, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!hostProject.IsHostProject)
+            if (!hasLocalFunctions && !hasLocalSendOnlyEndpoints && !hasAddNServiceBusFunctionsInvocation)
             {
                 return null;
             }
@@ -52,10 +52,9 @@ public sealed partial class FunctionCompositionGenerator
                 .OrderBy(static registration => registration.FullClassName, StringComparer.Ordinal)
                 .ToImmutableEquatableArray();
 
-            // Always emit a CompositionSpec, even when there are no registrations, so the
-            // FunctionCompositionInterceptor can safely call NServiceBusGeneratedFunctionsComposition
-            // .Register(builder) at every intercepted call site.
-            return new CompositionSpec(orderedRegistrations, hostProject.RootNamespace);
+            // Emit an empty composition when AddNServiceBusFunctions is used without any
+            // discovered registrations so the interceptor still has a valid call target.
+            return new CompositionSpec(orderedRegistrations);
         }
 
         static void AddGeneratedRegistrationClasses(
@@ -91,7 +90,5 @@ public sealed partial class FunctionCompositionGenerator
         SendOnly
     }
 
-    internal sealed record CompositionSpec(ImmutableEquatableArray<GeneratedRegistrationClassSpec> RegistrationClasses, string? RootNamespace);
+    internal sealed record CompositionSpec(ImmutableEquatableArray<GeneratedRegistrationClassSpec> RegistrationClasses);
 }
-
-readonly record struct HostProjectSpec(bool IsHostProject, string? RootNamespace);

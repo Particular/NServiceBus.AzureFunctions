@@ -15,8 +15,8 @@ public class FunctionCompositionInterceptorTests
                         using Microsoft.Azure.Functions.Worker.Builder;
                         using NServiceBus;
 
-                         public class BasicInvocationTest
-                         {
+                        public class BasicInvocationTest
+                        {
                             public void Configure(FunctionsApplicationBuilder builder)
                             {
                                 builder.AddNServiceBusFunctions();

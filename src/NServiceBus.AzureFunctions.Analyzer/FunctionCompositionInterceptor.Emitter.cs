@@ -41,11 +41,8 @@ public sealed partial class FunctionCompositionInterceptor
             sourceWriter.WriteLine("{");
             sourceWriter.Indentation++;
 
-            // Group specs by the resolved method name so multiple call sites share a single
-            // generated method with multiple [InterceptsLocation] attributes, mirroring the
-            // AddHandlerInterceptor behavior.
             var groups = specs.Specs
-                .Select(spec => (MethodName: BuildMethodName(spec.RootNamespace), Spec: spec))
+                .Select(spec => (MethodName: BuildMethodName(), Spec: spec))
                 .GroupBy(item => item.MethodName, StringComparer.Ordinal)
                 .OrderBy(group => group.Key, StringComparer.Ordinal)
                 .ToArray();
@@ -53,7 +50,7 @@ public sealed partial class FunctionCompositionInterceptor
             for (var index = 0; index < groups.Length; index++)
             {
                 var group = groups[index];
-                (string MethodName, InterceptableCompositionSpec Spec)? first = null;
+                (string MethodName, AddNServiceBusFunctionsInvocationSpec Spec)? first = null;
                 foreach (var item in group)
                 {
                     first ??= item;
@@ -79,7 +76,7 @@ public sealed partial class FunctionCompositionInterceptor
                 sourceWriter.WriteLine("}");
 
                 sourceWriter.WriteLine();
-                sourceWriter.WriteLine($"{BuildRegisterCall(firstSpec.RootNamespace)};");
+                sourceWriter.WriteLine($"{BuildRegisterCall()};");
 
                 sourceWriter.Indentation--;
                 sourceWriter.WriteLine("}");
@@ -94,18 +91,13 @@ public sealed partial class FunctionCompositionInterceptor
             context.AddSource("InterceptionsOfAddNServiceBusFunctionsMethod.g.cs", sourceWriter.ToSourceText());
         }
 
-        static string BuildMethodName(string? rootNamespace) =>
+        static string BuildMethodName() =>
             InterceptorMethodNameBuilder.Build(
                 "AddNServiceBusFunctions_",
                 "AddNServiceBusFunctions",
-                $"{rootNamespace ?? "global"}.{KnownTypeNames.GeneratedFunctionsCompositionClassName}");
+                KnownTypeNames.GeneratedFunctionsCompositionFullName);
 
-        static string BuildRegisterCall(string? rootNamespace)
-        {
-            var qualified = string.IsNullOrWhiteSpace(rootNamespace)
-                ? KnownTypeNames.GeneratedFunctionsCompositionClassName
-                : $"{rootNamespace}.{KnownTypeNames.GeneratedFunctionsCompositionClassName}";
-            return $"{qualified}.{KnownTypeNames.GeneratedFunctionsCompositionRegisterMethodName}(builder)";
-        }
+        static string BuildRegisterCall() =>
+            $"{KnownTypeNames.GeneratedFunctionsCompositionFullName}.{KnownTypeNames.GeneratedFunctionsCompositionRegisterMethodName}(builder)";
     }
 }

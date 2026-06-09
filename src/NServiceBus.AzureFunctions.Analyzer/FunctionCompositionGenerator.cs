@@ -8,8 +8,6 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var hostProject = HostProjectPipeline.Build(context);
-
         var hasLocalFunctions = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 KnownTypeNames.NServiceBusFunctionAttribute,
@@ -28,10 +26,19 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
             .Select(static (matches, _) => matches.Length > 0)
             .WithTrackingName(TrackingNames.LocalSendOnlyEndpoints);
 
+        var hasAddNServiceBusFunctionsInvocation = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (node, _) => AddNServiceBusFunctionsDetection.SyntaxLooksLikeInvocation(node),
+                transform: static (ctx, cancellationToken) => AddNServiceBusFunctionsDetection.ParseInvocation((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel, cancellationToken))
+            .Where(static spec => spec.HasValue)
+            .Collect()
+            .Select(static (matches, _) => matches.Length > 0)
+            .WithTrackingName(TrackingNames.AddNServiceBusFunctionsInvocations);
+
         var compositions = context.CompilationProvider
-            .Combine(hostProject)
             .Combine(hasLocalFunctions)
             .Combine(hasLocalSendOnlyEndpoints)
+            .Combine(hasAddNServiceBusFunctionsInvocation)
             .Select(static (data, cancellationToken) => Parser.ParseComposition(data.Left.Left.Left, data.Left.Left.Right, data.Left.Right, data.Right, cancellationToken))
             .WithTrackingName(TrackingNames.Composition);
 

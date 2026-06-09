@@ -18,7 +18,7 @@ public sealed partial class FunctionCompositionGenerator
 
             var writer = new SourceWriter();
             writer.PreAmble();
-            writer.WithFileScopedNamespace(composition.RootNamespace);
+            writer.WithFileScopedNamespace(KnownTypeNames.GeneratedCompositionNamespace);
             writer.WithGeneratedCodeAttribute();
             writer.WriteLine($"internal static class {KnownTypeNames.GeneratedFunctionsCompositionClassName}");
             writer.WriteLine("{");

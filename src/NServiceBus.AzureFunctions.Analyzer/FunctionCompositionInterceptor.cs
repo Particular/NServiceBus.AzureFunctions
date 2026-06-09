@@ -11,8 +11,8 @@ public sealed partial class FunctionCompositionInterceptor : IIncrementalGenerat
     {
         var addNServiceBusFunctions = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => AddNServiceBusFunctionsDetection.SyntaxLooksLikeInvocation(node),
-                transform: static (ctx, cancellationToken) => AddNServiceBusFunctionsDetection.ParseInvocation((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel, cancellationToken))
+                predicate: static (node, _) => AddNServiceBusFunctionsParser.SyntaxLooksLikeInvocation(node),
+                transform: static (ctx, cancellationToken) => AddNServiceBusFunctionsParser.ParseInvocation((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel, cancellationToken))
             .Where(static spec => spec.HasValue)
             .Select(static (spec, _) => spec!.Value)
             .WithTrackingName(TrackingNames.AddNServiceBusFunctionsSpec);

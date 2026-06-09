@@ -28,8 +28,8 @@ public sealed partial class FunctionCompositionGenerator : IIncrementalGenerator
 
         var hasAddNServiceBusFunctionsInvocation = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => AddNServiceBusFunctionsDetection.SyntaxLooksLikeInvocation(node),
-                transform: static (ctx, cancellationToken) => AddNServiceBusFunctionsDetection.ParseInvocation((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel, cancellationToken))
+                predicate: static (node, _) => AddNServiceBusFunctionsParser.SyntaxLooksLikeInvocation(node),
+                transform: static (ctx, cancellationToken) => AddNServiceBusFunctionsParser.ParseInvocation((InvocationExpressionSyntax)ctx.Node, ctx.SemanticModel, cancellationToken))
             .Where(static spec => spec.HasValue)
             .Collect()
             .Select(static (matches, _) => matches.Length > 0)

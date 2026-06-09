@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Utility;
 
-static class AddNServiceBusFunctionsDetection
+static class AddNServiceBusFunctionsParser
 {
     public static bool SyntaxLooksLikeInvocation(SyntaxNode node) => node is InvocationExpressionSyntax
     {

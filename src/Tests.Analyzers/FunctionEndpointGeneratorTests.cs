@@ -199,7 +199,7 @@ public class FunctionEndpointGeneratorTests
                 namespace Demo;
 
                 public partial class Functions : IHandleMessages<ServiceBusReceivedMessage>
-               {
+                {
                    [NServiceBusFunction]
                    [Function("ProcessOrder")]
                    public partial Task Run(
@@ -228,11 +228,10 @@ public class FunctionEndpointGeneratorTests
                    public static void ConfigureProcessOrder2(EndpointConfiguration endpointConfiguration)
                    {
                    }
-               }
-               """)
-           .SuppressCompilationErrors()
-           .SuppressDiagnosticErrors()
-           .Run();
+                }
+                """)
+            .SuppressDiagnosticErrors()
+            .Run();
 
         var diagnosticCount = 0;
         foreach (var diagnostic in result.GeneratorDiagnostics)
@@ -595,7 +594,6 @@ public class FunctionEndpointGeneratorTests
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(TestSources.NoMessageActionsFunction)
-            .SuppressCompilationErrors()
             .Run();
 
         var diagnostics = result.GeneratorDiagnostics;

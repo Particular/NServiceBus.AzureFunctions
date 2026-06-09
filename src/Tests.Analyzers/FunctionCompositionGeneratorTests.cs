@@ -16,7 +16,6 @@ public class FunctionCompositionGeneratorTests
             .WithSource(TestSources.ValidFunction)
             .WithSource(TestSources.ValidSendOnlyEndpoint, "SendOnly.cs")
             .ControlOutput(All)
-            .SuppressCompilationErrors()
             .Run()
             .Approve()
             .AssertRunsAreEqual();

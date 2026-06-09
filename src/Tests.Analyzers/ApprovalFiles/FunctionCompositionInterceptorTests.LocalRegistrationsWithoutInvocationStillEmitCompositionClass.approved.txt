@@ -7,7 +7,7 @@
 // Suppress warnings about [Obsolete] usage in generated code.
 #pragma warning disable CS0612, CS0618
 
-namespace NServiceBus.Generated;
+namespace NServiceBus;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("NService.Core.Analyzer.Tests", "1.0.0")]
 internal static class NServiceBusGeneratedFunctionsComposition

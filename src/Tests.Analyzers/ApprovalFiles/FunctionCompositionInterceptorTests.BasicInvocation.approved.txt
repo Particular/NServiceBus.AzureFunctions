@@ -32,7 +32,7 @@ namespace NServiceBus
         extension (Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder)
         {
             [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "{PLATFORM-SPECIFIC-BASE64-DATA}")] // test.cs(8,17)
-            public void AddNServiceBusFunctions_AddNServiceBusFunctions_28b5be58af487266()
+            public void AddNServiceBusFunctions_AddNServiceBusFunctions_42bc88b0fbe346b7()
             {
                 System.ArgumentNullException.ThrowIfNull(builder);
                 if (!builder.Properties.TryAdd("NServiceBus.AzureFunctions.AddNServiceBusFunctions", true))
@@ -40,7 +40,7 @@ namespace NServiceBus
                     throw new global::System.Exception("`AddNServiceBusFunctions` can only be used once on the same functions application builder instance because subsequent calls would override each other.");
                 }
 
-                NServiceBus.Generated.NServiceBusGeneratedFunctionsComposition.Register(builder);
+                NServiceBus.NServiceBusGeneratedFunctionsComposition.Register(builder);
             }
         }
     }
@@ -55,7 +55,7 @@ namespace NServiceBus
 // Suppress warnings about [Obsolete] usage in generated code.
 #pragma warning disable CS0612, CS0618
 
-namespace NServiceBus.Generated;
+namespace NServiceBus;
 
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("NService.Core.Analyzer.Tests", "1.0.0")]
 internal static class NServiceBusGeneratedFunctionsComposition

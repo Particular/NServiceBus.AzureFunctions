@@ -2,6 +2,8 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 static class KnownTypeNames
 {
+    public const string GeneratedCompositionNamespace = "NServiceBus";
+    public const string GeneratedFunctionsCompositionFullName = "NServiceBus.NServiceBusGeneratedFunctionsComposition";
     public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";
     public const string FunctionContext = "Microsoft.Azure.Functions.Worker.FunctionContext";
     public const string NServiceBusFunctionAttribute = "NServiceBus.NServiceBusFunctionAttribute";
@@ -18,4 +20,7 @@ static class KnownTypeNames
     public const string AzureServiceBusFunctionsHostApplicationBuilderExtensions = "NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions";
     public const string AddNServiceBusAzureServiceBusFunction = "AddNServiceBusAzureServiceBusFunction";
     public const string AddNServiceBusAzureServiceBusSendOnlyEndpoint = "AddNServiceBusAzureServiceBusSendOnlyEndpoint";
+    public const string FunctionsApplicationBuilder = "Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder";
+    public const string GeneratedFunctionsCompositionClassName = "NServiceBusGeneratedFunctionsComposition";
+    public const string GeneratedFunctionsCompositionRegisterMethodName = "Register";
 }

@@ -81,7 +81,6 @@ public class SendOnlyEndpointGeneratorTests
                     }
                 }
                 """)
-            .SuppressCompilationErrors()
             .SuppressDiagnosticErrors()
             .Run();
 
@@ -197,7 +196,6 @@ public class SendOnlyEndpointGeneratorTests
     {
         var result = SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(source)
-            .SuppressCompilationErrors()
             .SuppressDiagnosticErrors()
             .Run();
 

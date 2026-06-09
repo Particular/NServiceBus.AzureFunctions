@@ -1,0 +1,106 @@
+namespace NServiceBus.AzureFunctions.Analyzer;
+
+using System;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+using Utility;
+
+public sealed partial class FunctionCompositionInterceptor
+{
+    internal class Emitter(SourceProductionContext sourceProductionContext)
+    {
+        public void Emit(InterceptableCompositionSpecs specs) => Emit(sourceProductionContext, specs);
+
+        static void Emit(SourceProductionContext context, InterceptableCompositionSpecs specs)
+        {
+            if (specs.Specs.Count == 0)
+            {
+                return;
+            }
+
+            var sourceWriter = new SourceWriter()
+                .ForInterceptor();
+
+            // The InterceptsLocationAttribute shim type lives under System.Runtime.CompilerServices
+            // (already emitted by ForInterceptor) and the interception class lives under NServiceBus
+            // (so the InterceptorsNamespaces MSBuild property must include NServiceBus).
+            sourceWriter.WriteLine("namespace NServiceBus");
+            sourceWriter.WriteLine("{");
+            sourceWriter.Indentation++;
+
+            sourceWriter.WriteLine();
+            sourceWriter.WriteLine("using System.Collections.Generic;");
+            sourceWriter.WriteLine();
+
+            sourceWriter.WithGeneratedCodeAttribute();
+            sourceWriter.WriteLine("static file class InterceptionsOfAddNServiceBusFunctionsMethod");
+            sourceWriter.WriteLine("{");
+            sourceWriter.Indentation++;
+
+            sourceWriter.WriteLine("extension (Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder builder)");
+            sourceWriter.WriteLine("{");
+            sourceWriter.Indentation++;
+
+            // Group specs by the resolved method name so multiple call sites share a single
+            // generated method with multiple [InterceptsLocation] attributes, mirroring the
+            // AddHandlerInterceptor behavior.
+            var groups = specs.Specs
+                .Select(spec => (MethodName: BuildMethodName(), Spec: spec))
+                .GroupBy(item => item.MethodName, StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToArray();
+
+            for (var index = 0; index < groups.Length; index++)
+            {
+                var group = groups[index];
+                (string MethodName, AddNServiceBusFunctionsInvocationSpec Spec)? first = null;
+                foreach (var item in group)
+                {
+                    first ??= item;
+                    sourceWriter.WriteLine($"{item.Spec.LocationSpec.Attribute} // {item.Spec.LocationSpec.DisplayLocation}");
+                }
+
+                if (!first.HasValue)
+                {
+                    continue;
+                }
+
+                var (methodName, firstSpec) = first.Value;
+                sourceWriter.WriteLine($"public void {methodName}()");
+                sourceWriter.WriteLine("{");
+                sourceWriter.Indentation++;
+
+                sourceWriter.WriteLine("System.ArgumentNullException.ThrowIfNull(builder);");
+                sourceWriter.WriteLine("""if (!builder.Properties.TryAdd("NServiceBus.AzureFunctions.AddNServiceBusFunctions", true))""");
+                sourceWriter.WriteLine("{");
+                sourceWriter.Indentation++;
+                sourceWriter.WriteLine("""throw new global::System.Exception("`AddNServiceBusFunctions` can only be used once on the same functions application builder instance because subsequent calls would override each other.");""");
+                sourceWriter.Indentation--;
+                sourceWriter.WriteLine("}");
+
+                sourceWriter.WriteLine();
+                sourceWriter.WriteLine($"{BuildRegisterCall()};");
+
+                sourceWriter.Indentation--;
+                sourceWriter.WriteLine("}");
+
+                if (index < groups.Length - 1)
+                {
+                    sourceWriter.WriteLine();
+                }
+            }
+
+            sourceWriter.CloseCurlies();
+            context.AddSource("InterceptionsOfAddNServiceBusFunctionsMethod.g.cs", sourceWriter.ToSourceText());
+        }
+
+        static string BuildMethodName() =>
+            InterceptorMethodNameBuilder.Build(
+                "AddNServiceBusFunctions_",
+                "AddNServiceBusFunctions",
+                KnownTypeNames.GeneratedFunctionsCompositionFullName);
+
+        static string BuildRegisterCall() =>
+            $"{KnownTypeNames.GeneratedFunctionsCompositionFullName}.{KnownTypeNames.GeneratedFunctionsCompositionRegisterMethodName}(builder)";
+    }
+}

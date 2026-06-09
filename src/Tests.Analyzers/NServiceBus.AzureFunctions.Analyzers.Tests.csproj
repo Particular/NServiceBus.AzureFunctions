@@ -6,6 +6,10 @@
     <AssemblyOriginatorKeyFile>..\NServiceBusTests.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);NServiceBus</InterceptorsNamespaces>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.AzureFunctions.Analyzer\NServiceBus.AzureFunctions.Analyzer.csproj" />
     <ProjectReference Include="..\NServiceBus.AzureFunctions.AzureServiceBus\NServiceBus.AzureFunctions.AzureServiceBus.csproj" />

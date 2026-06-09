@@ -35,7 +35,8 @@ public class SetUpFixture
         MetadataReference.CreateFromFile(typeof(EndpointConfiguration).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(typeof(NServiceBusFunctionAttribute).GetTypeInfo().Assembly.Location),
         MetadataReference.CreateFromFile(typeof(AzureServiceBusMessageProcessor).GetTypeInfo().Assembly.Location),
-        MetadataReference.CreateFromFile(typeof(TopicTopology).GetTypeInfo().Assembly.Location)
+        MetadataReference.CreateFromFile(typeof(TopicTopology).GetTypeInfo().Assembly.Location),
+        MetadataReference.CreateFromFile(typeof(HostApplicationBuilderExtensions).GetTypeInfo().Assembly.Location)
     ];
 
     [OneTimeSetUp]

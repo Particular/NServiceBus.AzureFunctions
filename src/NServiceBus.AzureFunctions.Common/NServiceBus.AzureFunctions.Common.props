@@ -1,9 +1,0 @@
-<Project>
-
-  <ItemGroup>
-    <CompilerVisibleProperty Include="OutputType" />
-    <CompilerVisibleProperty Include="FunctionsExecutionModel" />
-    <CompilerVisibleProperty Include="RootNamespace" />
-  </ItemGroup>
-
-</Project>

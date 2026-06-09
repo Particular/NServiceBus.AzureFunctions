@@ -5,26 +5,16 @@ using System.Linq;
 using System.Threading;
 using Core.Analyzer;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 public sealed partial class FunctionCompositionGenerator
 {
     static class Parser
     {
-        internal static HostProjectSpec ParseHostProject(AnalyzerConfigOptionsProvider provider)
-        {
-            var options = provider.GlobalOptions;
-            var isHostProject = ProjectDetection.IsIsolatedHostFunctionsProject(options);
-            var effectiveRootNameSpace = ProjectDetection.GetRootNamespace(options);
-
-            return new HostProjectSpec(isHostProject, effectiveRootNameSpace);
-        }
-
-        internal static CompositionSpec? ParseComposition(Compilation compilation, HostProjectSpec hostProject, bool hasLocalFunctions, bool hasLocalSendOnlyEndpoints, CancellationToken cancellationToken = default)
+        internal static CompositionSpec? ParseComposition(Compilation compilation, bool hasLocalFunctions, bool hasLocalSendOnlyEndpoints, bool hasAddNServiceBusFunctionsInvocation, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!hostProject.IsHostProject)
+            if (!hasLocalFunctions && !hasLocalSendOnlyEndpoints && !hasAddNServiceBusFunctionsInvocation)
             {
                 return null;
             }
@@ -58,16 +48,13 @@ public sealed partial class FunctionCompositionGenerator
                     includeWithoutLookup: true);
             }
 
-            if (registrations.Count == 0)
-            {
-                return null;
-            }
-
             var orderedRegistrations = registrations
                 .OrderBy(static registration => registration.FullClassName, StringComparer.Ordinal)
                 .ToImmutableEquatableArray();
 
-            return new CompositionSpec(orderedRegistrations, hostProject.RootNamespace);
+            // Emit an empty composition when AddNServiceBusFunctions is used without any
+            // discovered registrations so the interceptor still has a valid call target.
+            return new CompositionSpec(orderedRegistrations);
         }
 
         static void AddGeneratedRegistrationClasses(
@@ -103,6 +90,5 @@ public sealed partial class FunctionCompositionGenerator
         SendOnly
     }
 
-    internal readonly record struct HostProjectSpec(bool IsHostProject, string? RootNamespace);
-    internal sealed record CompositionSpec(ImmutableEquatableArray<GeneratedRegistrationClassSpec> RegistrationClasses, string? RootNamespace);
+    internal sealed record CompositionSpec(ImmutableEquatableArray<GeneratedRegistrationClassSpec> RegistrationClasses);
 }

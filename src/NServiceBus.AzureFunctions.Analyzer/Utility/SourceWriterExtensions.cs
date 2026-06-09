@@ -21,6 +21,29 @@ static class SourceWriterExtensions
             return writer;
         }
 
+        public SourceWriter ForInterceptor()
+        {
+            writer.PreAmble();
+            writer.WriteLine("namespace System.Runtime.CompilerServices");
+            writer.WriteLine("{");
+            writer.Indentation++;
+            writer.WriteLine("[global::System.Diagnostics.Conditional(\"DEBUG\")]");
+            writer.WriteLine("[global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]");
+            writer.WriteLine("sealed file class InterceptsLocationAttribute : global::System.Attribute");
+            writer.WriteLine("{");
+            writer.Indentation++;
+            writer.WriteLine("public InterceptsLocationAttribute(int version, string data)");
+            writer.WriteLine("{");
+            writer.Indentation++;
+            writer.WriteLine("_ = version;");
+            writer.WriteLine("_ = data;");
+            writer.Indentation--;
+            writer.WriteLine("}");
+            writer.CloseCurlies();
+            writer.WriteLine();
+            return writer;
+        }
+
         public SourceWriter WithGeneratedCodeAttribute() => writer.WithGeneratedCodeAttribute(typeof(SourceWriter).Assembly.GetName());
 
         public SourceWriter WithGeneratedCodeAttribute(AssemblyName assemblyName)

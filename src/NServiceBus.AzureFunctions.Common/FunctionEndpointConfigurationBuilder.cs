@@ -97,7 +97,7 @@ public static class FunctionEndpointConfigurationBuilder
 
     static Task NoOpDiagnosticsWriter(string diagnostics, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    static string ResolveDefaultHostIdentifier(IConfiguration configuration)
+    static string ResolveDefaultHostIdentifier(ConfigurationManager configuration)
     {
         // this would be set if running inside a function app
         var websiteInstanceId = configuration[WebsiteInstanceIdKey];

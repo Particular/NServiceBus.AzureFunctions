@@ -10,7 +10,7 @@ public class TestStorageFeature : Feature
         var endpointName = context.Settings.EndpointName();
         context.Services.AddSingleton(provider => new TestStorage(endpointName, provider.GetRequiredService<GlobalTestStorage>()));
 
-        context.Pipeline.Register(typeof(IncomingTestBehavior), "Log received messages");
-        context.Pipeline.Register(typeof(OutgoingTestBehavior), "Forward test case name to outgoing messages");
+        context.Pipeline.Register<IncomingTestBehavior>("Log received messages");
+        context.Pipeline.Register<OutgoingTestBehavior>("Forward test case name to outgoing messages");
     }
 }

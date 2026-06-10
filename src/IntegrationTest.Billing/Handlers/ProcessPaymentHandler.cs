@@ -4,6 +4,7 @@ using IntegrationTest.Shared;
 using Microsoft.Extensions.Logging;
 using NServiceBus;
 
+[Handler]
 public class ProcessPaymentHandler(ILogger<ProcessPaymentHandler> logger) : IHandleMessages<OrderSubmitted>
 {
     public async Task Handle(OrderSubmitted message, IMessageHandlerContext context)

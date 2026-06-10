@@ -415,7 +415,7 @@ public class MessageProcessorTests
         }
     }
 
-    async Task<ProcessingResult> ProcessMessage(
+    static async Task<ProcessingResult> ProcessMessage(
         ServiceBusReceivedMessage? message = null,
         TestableMessageActions? messageActions = null,
         ICache<string, bool>? completedMessagesCache = null,

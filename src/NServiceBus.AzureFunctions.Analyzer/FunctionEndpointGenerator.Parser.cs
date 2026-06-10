@@ -486,70 +486,8 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
-            var parameters = configureMethod.Parameters;
-
-            if (parameters.Length == 0 || !SymbolEqualityComparer.Default.Equals(parameters[0].Type, knownTypes.EndpointConfiguration))
-            {
-                return null;
-            }
-
-            var delegateParameters = knownTypes.DelegateType.DelegateInvokeMethod?.Parameters;
-            if (delegateParameters is null)
-            {
-                return null;
-            }
-
-            for (var i = 1; i < parameters.Length; i++)
-            {
-                var matched = false;
-                for (var j = 1; j < delegateParameters.Value.Length; j++)
-                {
-                    if (parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
-                    {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched)
-                {
-                    return null;
-                }
-            }
-
-            var containingTypeFullyQualified = configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var delegateParamNames = new string[delegateParameters.Value.Length];
-            for (var i = 0; i < delegateParameters.Value.Length; i++)
-            {
-                delegateParamNames[i] = delegateParameters.Value[i].Type.ToCamelCaseParameterName();
-            }
-
-            var parameterTypeNames = new string[parameters.Length];
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                if (i == 0)
-                {
-                    parameterTypeNames[i] = delegateParamNames[0];
-                    continue;
-                }
-
-                var resolved = false;
-                for (var j = 1; j < delegateParameters.Value.Length; j++)
-                {
-                    if (parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
-                    {
-                        parameterTypeNames[i] = delegateParamNames[j];
-                        resolved = true;
-                        break;
-                    }
-                }
-
-                if (!resolved)
-                {
-                    parameterTypeNames[i] = parameters[i].Type.ToCamelCaseParameterName();
-                }
-            }
-
-            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray(), delegateParamNames.ToImmutableEquatableArray());
+            var resolution = ConfigureMethodResolver.Resolve(configureMethod, knownTypes.EndpointConfiguration, knownTypes.DelegateType);
+            return resolution.Spec;
         }
 
         static bool ImplementsIHandleMessages(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -593,7 +531,7 @@ public sealed partial class FunctionEndpointGenerator
 
     }
 
-    internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames, ImmutableEquatableArray<string> DelegateParameterNames);
+
 
     internal sealed record FunctionSpec(
         string ContainingNamespace,

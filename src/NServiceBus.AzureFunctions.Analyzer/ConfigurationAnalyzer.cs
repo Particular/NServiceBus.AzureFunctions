@@ -140,30 +140,13 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        for (var i = 1; i < method.Parameters.Length; i++)
+        if (knownSymbols.DelegateType is null)
         {
-            var delegateParameters = knownSymbols.DelegateType?.DelegateInvokeMethod?.Parameters;
-            if (delegateParameters is null)
-            {
-                return false;
-            }
-
-            var matched = false;
-            for (var j = 1; j < delegateParameters.Value.Length; j++)
-            {
-                if (method.Parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
-                {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched)
-            {
-                return false;
-            }
+            return false;
         }
 
-        return true;
+        var resolution = ConfigureMethodResolver.Resolve(method, knownSymbols.EndpointConfiguration!, knownSymbols.DelegateType);
+        return resolution.IsSuccess;
     }
 
     static bool HasSendOnlyEndpointAttribute(IMethodSymbol method, INamedTypeSymbol? sendOnlyEndpointAttribute)

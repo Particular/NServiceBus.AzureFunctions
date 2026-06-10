@@ -520,7 +520,7 @@ public sealed partial class FunctionEndpointGenerator
             var delegateParamNames = new string[delegateParameters.Value.Length];
             for (var i = 0; i < delegateParameters.Value.Length; i++)
             {
-                delegateParamNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(delegateParameters.Value[i].Type);
+                delegateParamNames[i] = delegateParameters.Value[i].Type.ToCamelCaseParameterName();
             }
 
             var parameterTypeNames = new string[parameters.Length];
@@ -545,7 +545,7 @@ public sealed partial class FunctionEndpointGenerator
 
                 if (!resolved)
                 {
-                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameters[i].Type);
+                    parameterTypeNames[i] = parameters[i].Type.ToCamelCaseParameterName();
                 }
             }
 

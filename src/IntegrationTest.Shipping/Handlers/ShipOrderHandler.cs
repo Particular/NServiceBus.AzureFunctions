@@ -5,7 +5,7 @@ public class ShipOrderHandler(ILogger<ShipOrderHandler> logger) : IHandleMessage
 {
     public Task Handle(PaymentCleared message, IMessageHandlerContext context)
     {
-        logger.LogWarning($"Handling {nameof(PaymentCleared)} in {nameof(ShipOrderHandler)}");
+        logger.LogWarning("Handling {MessageType} in {HandlerType}", nameof(PaymentCleared), nameof(ShipOrderHandler));
 
         return Task.CompletedTask;
     }

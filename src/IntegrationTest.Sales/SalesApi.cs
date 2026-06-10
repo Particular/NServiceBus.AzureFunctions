@@ -22,7 +22,7 @@ class SalesApi(
         HttpRequestData req,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation($"Sales HTTP api triggered. Injected component from: {component.EndpointName} and {globalComponent.EndpointName}");
+        logger.LogInformation("Sales HTTP api triggered. Injected component from: {ComponentEndpoint} and {GlobalEndpoint}", component.EndpointName, globalComponent.EndpointName);
 
         await session.StartTestWithMessage(nameof(SubmitOrder), new SubmitOrder());
 

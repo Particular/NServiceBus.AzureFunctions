@@ -516,7 +516,7 @@ public sealed partial class FunctionEndpointGenerator
                 }
                 else
                 {
-                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
+                    parameterTypeNames[i] = parameterType.ToCamelCaseParameterName();
                 }
             }
 

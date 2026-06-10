@@ -98,7 +98,7 @@ public sealed partial class SendOnlyEndpointGenerator
                 }
                 else
                 {
-                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
+                    parameterTypeNames[i] = parameterType.ToCamelCaseParameterName();
                 }
             }
 

@@ -1,12 +1,11 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
-using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using NServiceBus.Core.Analyzer;
 
-internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames, ImmutableEquatableArray<string> DelegateParameterNames);
+readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames, ImmutableEquatableArray<string> DelegateParameterNames);
 
-internal readonly record struct ConfigureMethodResolution(ConfigureMethodSpec? Spec, ImmutableEquatableArray<string> Problems)
+readonly record struct ConfigureMethodResolution(ConfigureMethodSpec? Spec, ImmutableEquatableArray<string> Problems)
 {
     public bool IsSuccess => Spec is not null;
 }

@@ -72,7 +72,8 @@ public sealed partial class SendOnlyEndpointGenerator
 
             for (var i = 1; i < method.Parameters.Length; i++)
             {
-                if (!IsAllowedConfigureMethodParameterType(method.Parameters[i].Type, knownTypes))
+                if (!method.Parameters[i].Type.IsAllowedConfigureMethodParameterType(
+                        knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IConfiguration, knownTypes.IConfigurationBuilder, knownTypes.IHostEnvironment))
                 {
                     problems.Add("parameters after EndpointConfiguration must be IServiceCollection, IConfigurationManager, IConfiguration, IConfigurationBuilder, or IHostEnvironment");
                     break;
@@ -125,9 +126,6 @@ public sealed partial class SendOnlyEndpointGenerator
 
             return null;
         }
-
-        static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, SendOnlyEndpointGeneratorKnownTypes knownTypes)
-            => parameterType.IsAllowedConfigureMethodParameterType(knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IConfiguration, knownTypes.IConfigurationBuilder, knownTypes.IHostEnvironment);
     }
 
     internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);

@@ -496,13 +496,8 @@ public sealed partial class FunctionEndpointGenerator
             for (var i = 1; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
-                var isAllowedOptionalParameter =
-                    SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IServiceCollection)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfigurationManager)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfigurationBuilder)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
-                if (!isAllowedOptionalParameter)
+                if (!parameter.Type.IsAllowedConfigureMethodParameterType(
+                        knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IConfiguration, knownTypes.IConfigurationBuilder, knownTypes.IHostEnvironment))
                 {
                     return null;
                 }

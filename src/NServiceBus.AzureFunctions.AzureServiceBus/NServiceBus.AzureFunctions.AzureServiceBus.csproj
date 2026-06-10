@@ -5,7 +5,7 @@
     <IsAotCompatible>true</IsAotCompatible>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
-    <Description>Azure Functions hosting for NServiceBus endpoints with Azure Serivce Bus triggers</Description>
+    <Description>Azure Functions hosting for NServiceBus endpoints with Azure Service Bus triggers</Description>
   </PropertyGroup>
 
   <ItemGroup>

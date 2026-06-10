@@ -29,8 +29,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationBuilder),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
@@ -147,7 +145,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         for (var i = 1; i < method.Parameters.Length; i++)
         {
             if (!method.Parameters[i].Type.IsAllowedConfigureMethodParameterType(
-                    knownSymbols.IServiceCollection!, knownSymbols.IConfigurationManager!, knownSymbols.IConfiguration!, knownSymbols.IConfigurationBuilder!, knownSymbols.IHostEnvironment!))
+                    knownSymbols.IServiceCollection!, knownSymbols.IConfigurationManager!, knownSymbols.IHostEnvironment!))
             {
                 return false;
             }
@@ -213,8 +211,6 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? EndpointConfiguration,
         INamedTypeSymbol? IServiceCollection,
         INamedTypeSymbol? IConfigurationManager,
-        INamedTypeSymbol? IConfiguration,
-        INamedTypeSymbol? IConfigurationBuilder,
         INamedTypeSymbol? IHostEnvironment,
         INamedTypeSymbol? SendOptions,
         INamedTypeSymbol? ReplyOptions,

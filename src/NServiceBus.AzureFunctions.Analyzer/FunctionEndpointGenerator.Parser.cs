@@ -497,30 +497,59 @@ public sealed partial class FunctionEndpointGenerator
             {
                 var parameter = parameters[i];
                 if (!parameter.Type.IsAllowedConfigureMethodParameterType(
-                        knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IConfiguration, knownTypes.IConfigurationBuilder, knownTypes.IHostEnvironment))
+                        knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IHostEnvironment))
                 {
                     return null;
                 }
             }
 
             var containingTypeFullyQualified = configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            var delegateParameterTypes = new INamedTypeSymbol[]
+            {
+                knownTypes.EndpointConfiguration,
+                knownTypes.IServiceCollection,
+                knownTypes.IConfigurationManager,
+                knownTypes.IHostEnvironment,
+            };
+            var delegateParameterNames = new string[delegateParameterTypes.Length];
+            for (var i = 0; i < delegateParameterTypes.Length; i++)
+            {
+                delegateParameterNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(delegateParameterTypes[i]);
+            }
+            var optionalDelegateParameters = new (INamedTypeSymbol Type, string Name)[]
+            {
+                (knownTypes.IServiceCollection, delegateParameterNames[1]),
+                (knownTypes.IConfigurationManager, delegateParameterNames[2]),
+                (knownTypes.IHostEnvironment, delegateParameterNames[3]),
+            };
             var parameterTypeNames = new string[parameters.Length];
             for (var i = 0; i < parameters.Length; i++)
             {
                 var parameterType = parameters[i].Type;
-                // Map IConfiguration and IConfigurationBuilder to the delegate's IConfigurationManager argument name
-                if (SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfiguration)
-                    || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfigurationBuilder))
+                if (i == 0)
                 {
-                    parameterTypeNames[i] = "configurationManager";
+                    parameterTypeNames[i] = delegateParameterNames[0];
+                    continue;
                 }
-                else
+
+                var resolved = false;
+                foreach (var (delegateType, canonicalName) in optionalDelegateParameters)
                 {
-                    parameterTypeNames[i] = parameterType.ToCamelCaseParameterName();
+                    if (TypeSymbolExtensions.TryResolveDelegateParameterName(parameterType, delegateType, canonicalName) is string name)
+                    {
+                        parameterTypeNames[i] = name;
+                        resolved = true;
+                        break;
+                    }
+                }
+
+                if (!resolved)
+                {
+                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
                 }
             }
 
-            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray());
+            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray(), delegateParameterNames.ToImmutableEquatableArray());
         }
 
         static bool ImplementsIHandleMessages(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -564,7 +593,7 @@ public sealed partial class FunctionEndpointGenerator
 
     }
 
-    internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);
+    internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames, ImmutableEquatableArray<string> DelegateParameterNames);
 
     internal sealed record FunctionSpec(
         string ContainingNamespace,
@@ -596,8 +625,6 @@ public sealed partial class FunctionEndpointGenerator
         INamedTypeSymbol iHandleMessages,
         INamedTypeSymbol iServiceCollection,
         INamedTypeSymbol iConfigurationManager,
-        INamedTypeSymbol iConfiguration,
-        INamedTypeSymbol iConfigurationBuilder,
         INamedTypeSymbol iHostEnvironment,
         ImmutableDictionary<ParameterRole, INamedTypeSymbol> additionalParameterSymbols)
     {
@@ -609,8 +636,6 @@ public sealed partial class FunctionEndpointGenerator
         public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
         public INamedTypeSymbol IServiceCollection { get; } = iServiceCollection;
         public INamedTypeSymbol IConfigurationManager { get; } = iConfigurationManager;
-        public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
-        public INamedTypeSymbol IConfigurationBuilder { get; } = iConfigurationBuilder;
         public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
         public ImmutableDictionary<ParameterRole, INamedTypeSymbol> AdditionalParameterSymbols { get; } = additionalParameterSymbols;
 
@@ -626,8 +651,6 @@ public sealed partial class FunctionEndpointGenerator
             var iHandleMessages = compilation.GetTypeByMetadataName(KnownTypeNames.IHandleMessages);
             var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
             var iConfigurationManager = compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager);
-            var iConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration);
-            var iConfigurationBuilder = compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationBuilder);
             var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
 
             if (functionAttribute is null
@@ -638,8 +661,6 @@ public sealed partial class FunctionEndpointGenerator
                 || iHandleMessages is null
                 || iServiceCollection is null
                 || iConfigurationManager is null
-                || iConfiguration is null
-                || iConfigurationBuilder is null
                 || iHostEnvironment is null)
             {
                 knownTypes = default;
@@ -667,8 +688,6 @@ public sealed partial class FunctionEndpointGenerator
                 iHandleMessages,
                 iServiceCollection,
                 iConfigurationManager,
-                iConfiguration,
-                iConfigurationBuilder,
                 iHostEnvironment,
                 additionalBuilder.ToImmutable());
 

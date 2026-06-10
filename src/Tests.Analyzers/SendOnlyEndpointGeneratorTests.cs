@@ -188,7 +188,7 @@ public class SendOnlyEndpointGeneratorTests
             }
             """);
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain("parameters after EndpointConfiguration must be IServiceCollection, IConfigurationManager, IConfiguration, IConfigurationBuilder, or IHostEnvironment"));
+        Assert.That(diagnostic.GetMessage(), Does.Contain($"parameters after EndpointConfiguration must be {TypeSymbolExtensions.AllowedConfigureParameterTypesDescription}"));
     }
 
     [Test]

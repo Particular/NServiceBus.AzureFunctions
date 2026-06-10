@@ -527,8 +527,6 @@ public sealed partial class FunctionEndpointGenerator
 
             return false;
         }
-
-
     }
 
     internal sealed record FunctionSpec(

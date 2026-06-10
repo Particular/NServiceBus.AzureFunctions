@@ -188,7 +188,7 @@ public class SendOnlyEndpointGeneratorTests
             }
             """);
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain("parameters after EndpointConfiguration must be compatible with the"));
+        Assert.That(diagnostic.GetMessage(), Does.Contain("parameters after EndpointConfiguration must be compatible with: IServiceCollection, IConfigurationManager, IHostEnvironment"));
     }
 
     [Test]

@@ -1,6 +1,7 @@
 namespace NServiceBus.AzureFunctions.Analyzer;
 
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using NServiceBus.Core.Analyzer;
 
@@ -89,7 +90,8 @@ public sealed partial class SendOnlyEndpointGenerator
                 }
                 if (!matched)
                 {
-                    problems.Add($"parameters after EndpointConfiguration must be compatible with the {KnownTypeNames.FunctionEndpointConfiguration} delegate");
+                    var allowedTypes = string.Join(", ", delegateParameters.Value.Skip(1).Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                    problems.Add($"parameters after EndpointConfiguration must be compatible with: {allowedTypes}");
                     break;
                 }
             }

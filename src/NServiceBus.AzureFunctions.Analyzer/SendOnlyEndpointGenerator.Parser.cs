@@ -75,7 +75,7 @@ public sealed partial class SendOnlyEndpointGenerator
                 if (!method.Parameters[i].Type.IsAllowedConfigureMethodParameterType(
                         knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IConfiguration, knownTypes.IConfigurationBuilder, knownTypes.IHostEnvironment))
                 {
-                    problems.Add("parameters after EndpointConfiguration must be IServiceCollection, IConfigurationManager, IConfiguration, IConfigurationBuilder, or IHostEnvironment");
+                    problems.Add($"parameters after EndpointConfiguration must be {TypeSymbolExtensions.AllowedConfigureParameterTypesDescription}");
                     break;
                 }
             }

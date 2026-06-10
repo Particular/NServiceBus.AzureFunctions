@@ -4,6 +4,8 @@ using Microsoft.CodeAnalysis;
 
 static class TypeSymbolExtensions
 {
+    public const string AllowedConfigureParameterTypesDescription = "IServiceCollection, IConfigurationManager, IConfiguration, IConfigurationBuilder, or IHostEnvironment";
+
     extension(ITypeSymbol type)
     {
         public bool IsAllowedConfigureMethodParameterType(

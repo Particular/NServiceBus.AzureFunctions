@@ -187,8 +187,8 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             var containingType = method.ContainingType;
-            var configureMethodName = $"Configure{functionName}";
-            var configureMethod = GetConfigureMethodSpec(containingType, functionName, knownTypes, diagnostics);
+            var configureMethodName = KnownTypeNames.ConfigureMethodName(functionName);
+            var configureMethod = GetConfigureMethodSpec(containingType, configureMethodName, knownTypes, diagnostics);
             if (configureMethod is null)
             {
                 problems.Add($"missing '{configureMethodName}' configuration method");
@@ -462,9 +462,8 @@ public sealed partial class FunctionEndpointGenerator
             return builder.ToString();
         }
 
-        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
+        static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string configureMethodName, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
         {
-            var configureMethodName = $"Configure{endpointName}";
 
             IMethodSymbol? configureMethod = null;
             foreach (var member in functionClassType.GetMembers())

@@ -59,7 +59,7 @@ public sealed partial class SendOnlyEndpointGenerator
                 problems.Add("method must be static");
             }
 
-            var expectedMethodName = $"Configure{endpointName}";
+            var expectedMethodName = KnownTypeNames.ConfigureMethodName(endpointName);
             if (!string.Equals(method.Name, expectedMethodName, StringComparison.OrdinalIgnoreCase))
             {
                 problems.Add($"method name must be '{expectedMethodName}'");

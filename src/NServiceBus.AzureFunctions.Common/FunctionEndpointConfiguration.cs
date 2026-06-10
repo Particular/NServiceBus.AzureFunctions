@@ -1,5 +1,6 @@
 namespace NServiceBus;
 
+using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,8 +17,10 @@ using Microsoft.Extensions.Hosting;
 /// <param name="services">The endpoint-scoped service collection.</param>
 /// <param name="configuration">The application configuration.</param>
 /// <param name="environment">The hosting environment.</param>
+/// <param name="properties">A shared dictionary that can be used to exchange data between function endpoints during the composition phase.</param>
 public delegate void FunctionEndpointConfiguration(
     EndpointConfiguration endpoint,
     IServiceCollection services,
     IConfigurationManager configuration,
-    IHostEnvironment environment);
+    IHostEnvironment environment,
+    IDictionary<object, object> properties);

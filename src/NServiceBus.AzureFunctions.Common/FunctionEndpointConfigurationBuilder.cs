@@ -31,7 +31,7 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointConfiguration = CreateDefaultEndpointConfiguration(
             endpointName,
             builder,
-            (configuration, endpointServices) => functionManifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
+            (configuration, endpointServices) => functionManifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment, builder.Properties));
 
         if (endpointConfiguration.IsSendOnly)
         {
@@ -62,7 +62,7 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointConfiguration = CreateDefaultEndpointConfiguration(
             manifest.Name,
             builder,
-            (configuration, endpointServices) => manifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
+            (configuration, endpointServices) => manifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment, builder.Properties));
 
         endpointConfiguration.SendOnly();
 

@@ -45,6 +45,7 @@ public class OutgoingTestBehavior : IBehavior<IOutgoingPhysicalMessageContext, I
 
         order++;
 
+        context.Extensions.Set("TestStorageOrder", order);
         context.Headers.Add("TestStorageOrder", order.ToString());
 
         return next(context);

@@ -531,8 +531,6 @@ public sealed partial class FunctionEndpointGenerator
 
     }
 
-
-
     internal sealed record FunctionSpec(
         string ContainingNamespace,
         string ContainingClassName,

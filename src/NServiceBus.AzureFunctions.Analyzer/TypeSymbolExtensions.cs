@@ -28,11 +28,14 @@ static class TypeSymbolExtensions
     public static string ToCamelCaseParameterName(ITypeSymbol type)
     {
         var name = type.Name;
-        // Strip leading 'I' for interfaces (I + uppercase, e.g. IConfiguration → Configuration)
-        if (name.Length > 1 && name[0] == 'I' && char.IsUpper(name[1]))
+        var start = name.Length > 1 && name[0] == 'I' && char.IsUpper(name[1]) ? 1 : 0;
+        var length = name.Length - start;
+        var chars = new char[length];
+        chars[0] = char.ToLowerInvariant(name[start]);
+        for (var i = 1; i < length; i++)
         {
-            name = name[1..];
+            chars[i] = name[start + i];
         }
-        return char.ToLowerInvariant(name[0]) + name[1..];
+        return new string(chars);
     }
 }

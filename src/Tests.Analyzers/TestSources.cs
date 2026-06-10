@@ -247,8 +247,6 @@ static class TestSources
         using System.Threading.Tasks;
         using Azure.Messaging.ServiceBus;
         using Microsoft.Azure.Functions.Worker;
-        using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.Hosting;
         using NServiceBus;
 
         namespace Demo;
@@ -265,7 +263,7 @@ static class TestSources
 
             public static void ConfigureProcessOrder(
                 EndpointConfiguration endpointConfiguration,
-                IConfigurationManager configuration)
+                Microsoft.Extensions.Configuration.IConfigurationManager configuration)
             {
             }
         }
@@ -275,8 +273,6 @@ static class TestSources
         using NServiceBus;
         namespace Demo;
 
-        using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.DependencyInjection;
         using Microsoft.Extensions.Hosting;
 
         public static class ClientEndpoint
@@ -284,7 +280,7 @@ static class TestSources
             [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(
                 EndpointConfiguration endpointConfiguration,
-                IConfigurationManager configuration,
+                Microsoft.Extensions.Configuration.IConfigurationManager configuration,
                 IHostEnvironment environment)
             {
             }
@@ -296,8 +292,6 @@ static class TestSources
         using System.Threading.Tasks;
         using Azure.Messaging.ServiceBus;
         using Microsoft.Azure.Functions.Worker;
-        using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.Hosting;
         using NServiceBus;
 
         namespace Demo;
@@ -314,7 +308,7 @@ static class TestSources
 
             public static void ConfigureProcessOrder(
                 EndpointConfiguration endpointConfiguration,
-                IConfiguration configuration)
+                Microsoft.Extensions.Configuration.IConfiguration configuration)
             {
             }
         }
@@ -325,8 +319,6 @@ static class TestSources
         using System.Threading.Tasks;
         using Azure.Messaging.ServiceBus;
         using Microsoft.Azure.Functions.Worker;
-        using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.Hosting;
         using NServiceBus;
 
         namespace Demo;
@@ -343,7 +335,7 @@ static class TestSources
 
             public static void ConfigureProcessOrder(
                 EndpointConfiguration endpointConfiguration,
-                IConfigurationBuilder configuration)
+                Microsoft.Extensions.Configuration.IConfigurationBuilder configuration)
             {
             }
         }
@@ -353,8 +345,6 @@ static class TestSources
         using NServiceBus;
         namespace Demo;
 
-        using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.DependencyInjection;
         using Microsoft.Extensions.Hosting;
 
         public static class ClientEndpoint
@@ -362,7 +352,7 @@ static class TestSources
             [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(
                 EndpointConfiguration endpointConfiguration,
-                IConfiguration configuration,
+                Microsoft.Extensions.Configuration.IConfiguration configuration,
                 IHostEnvironment environment)
             {
             }
@@ -373,8 +363,6 @@ static class TestSources
         using NServiceBus;
         namespace Demo;
 
-        using Microsoft.Extensions.Configuration;
-        using Microsoft.Extensions.DependencyInjection;
         using Microsoft.Extensions.Hosting;
 
         public static class ClientEndpoint
@@ -382,7 +370,7 @@ static class TestSources
             [NServiceBusSendOnlyFunction("client")]
             public static void ConfigureClient(
                 EndpointConfiguration endpointConfiguration,
-                IConfigurationBuilder configuration,
+                Microsoft.Extensions.Configuration.IConfigurationBuilder configuration,
                 IHostEnvironment environment)
             {
             }

@@ -79,7 +79,7 @@ public static class GeneratedFunctionRegistrations_LocalRegistrationsWithoutInvo
     {
         yield return new global::NServiceBus.FunctionManifest(
             "ProcessOrder", "sales-queue", "AzureServiceBus",
-            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfigurationmanager, ihostenvironment),
+            (endpointConfiguration, serviceCollection, configurationManager, hostEnvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointConfiguration, configurationManager, hostEnvironment),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction);
         yield break;
     }

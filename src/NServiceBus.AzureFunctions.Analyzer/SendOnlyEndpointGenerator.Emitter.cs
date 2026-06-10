@@ -61,7 +61,7 @@ public sealed partial class SendOnlyEndpointGenerator
         static string GenerateConfigureMethodCall(ConfigureMethodSpec configureMethod)
         {
             var argumentList = string.Join(", ", configureMethod.ParameterTypeNames);
-            return $"(endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => {configureMethod.ContainingTypeFullyQualified}.{configureMethod.MethodName}({argumentList})";
+            return $"(endpointConfiguration, serviceCollection, configurationManager, hostEnvironment) => {configureMethod.ContainingTypeFullyQualified}.{configureMethod.MethodName}({argumentList})";
         }
     }
 }

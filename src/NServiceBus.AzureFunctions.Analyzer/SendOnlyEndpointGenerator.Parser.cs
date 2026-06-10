@@ -89,16 +89,16 @@ public sealed partial class SendOnlyEndpointGenerator
             var parameterTypeNames = new string[method.Parameters.Length];
             for (var i = 0; i < method.Parameters.Length; i++)
             {
-                var type = method.Parameters[i].Type;
+                var parameterType = method.Parameters[i].Type;
                 // Map IConfiguration and IConfigurationBuilder to the delegate's IConfigurationManager argument name
-                if (SymbolEqualityComparer.Default.Equals(type, knownTypes.IConfiguration)
-                    || SymbolEqualityComparer.Default.Equals(type, knownTypes.IConfigurationBuilder))
+                if (SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfiguration)
+                    || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfigurationBuilder))
                 {
-                    parameterTypeNames[i] = "iconfigurationmanager";
+                    parameterTypeNames[i] = "configurationManager";
                 }
                 else
                 {
-                    parameterTypeNames[i] = type.Name.ToLowerInvariant();
+                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
                 }
             }
 

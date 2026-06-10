@@ -51,7 +51,7 @@ public static class GeneratedFunctionRegistrations_GeneratesFunctionEndpointInGl
     {
         yield return new global::NServiceBus.FunctionManifest(
             "ProcessOrder", "sales-queue", "AzureServiceBus",
-            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::Functions.ConfigureProcessOrder(endpointconfiguration, iconfigurationmanager, ihostenvironment),
+            (endpointConfiguration, serviceCollection, configurationManager, hostEnvironment) => global::Functions.ConfigureProcessOrder(endpointConfiguration, configurationManager, hostEnvironment),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction);
         yield break;
     }

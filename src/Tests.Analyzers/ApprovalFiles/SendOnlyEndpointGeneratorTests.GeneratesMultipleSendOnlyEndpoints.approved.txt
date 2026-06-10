@@ -26,12 +26,12 @@ public static class GeneratedSendOnlyEndpointRegistrations_GeneratesMultipleSend
         yield return new global::NServiceBus.SendOnlyEndpointManifest(
             "client",
             null,
-            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::Demo.ClientEndpoint.ConfigureClient(endpointconfiguration, iservicecollection),
+            (endpointConfiguration, serviceCollection, configurationManager, hostEnvironment) => global::Demo.ClientEndpoint.ConfigureClient(endpointConfiguration, serviceCollection),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusSendOnlyEndpoint);
         yield return new global::NServiceBus.SendOnlyEndpointManifest(
             "sender",
             null,
-            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::Demo.SenderEndpoint.ConfigureSender(endpointconfiguration, iconfigurationmanager, ihostenvironment),
+            (endpointConfiguration, serviceCollection, configurationManager, hostEnvironment) => global::Demo.SenderEndpoint.ConfigureSender(endpointConfiguration, configurationManager, hostEnvironment),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusSendOnlyEndpoint);
         yield break;
     }

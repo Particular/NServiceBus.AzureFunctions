@@ -507,16 +507,16 @@ public sealed partial class FunctionEndpointGenerator
             var parameterTypeNames = new string[parameters.Length];
             for (var i = 0; i < parameters.Length; i++)
             {
-                var type = parameters[i].Type;
+                var parameterType = parameters[i].Type;
                 // Map IConfiguration and IConfigurationBuilder to the delegate's IConfigurationManager argument name
-                if (SymbolEqualityComparer.Default.Equals(type, knownTypes.IConfiguration)
-                    || SymbolEqualityComparer.Default.Equals(type, knownTypes.IConfigurationBuilder))
+                if (SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfiguration)
+                    || SymbolEqualityComparer.Default.Equals(parameterType, knownTypes.IConfigurationBuilder))
                 {
-                    parameterTypeNames[i] = "iconfigurationmanager";
+                    parameterTypeNames[i] = "configurationManager";
                 }
                 else
                 {
-                    parameterTypeNames[i] = type.Name.ToLowerInvariant();
+                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
                 }
             }
 

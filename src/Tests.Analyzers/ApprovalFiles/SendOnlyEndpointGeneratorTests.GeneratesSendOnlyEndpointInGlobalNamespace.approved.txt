@@ -26,7 +26,7 @@ public static class GeneratedSendOnlyEndpointRegistrations_GeneratesSendOnlyEndp
         yield return new global::NServiceBus.SendOnlyEndpointManifest(
             "client",
             null,
-            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::ClientEndpoint.ConfigureClient(endpointconfiguration, iservicecollection),
+            (endpointConfiguration, serviceCollection, configurationManager, hostEnvironment) => global::ClientEndpoint.ConfigureClient(endpointConfiguration, serviceCollection),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusSendOnlyEndpoint);
         yield break;
     }

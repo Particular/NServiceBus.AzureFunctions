@@ -20,4 +20,19 @@ static class TypeSymbolExtensions
                || SymbolEqualityComparer.Default.Equals(type, iConfigurationBuilder)
                || SymbolEqualityComparer.Default.Equals(type, iHostEnvironment);
     }
+
+    /// <summary>
+    /// Converts a type name to a camelCase parameter name.
+    /// Interface names following the I+PascalCase convention have the I prefix stripped.
+    /// </summary>
+    public static string ToCamelCaseParameterName(ITypeSymbol type)
+    {
+        var name = type.Name;
+        // Strip leading 'I' for interfaces (I + uppercase, e.g. IConfiguration → Configuration)
+        if (name.Length > 1 && name[0] == 'I' && char.IsUpper(name[1]))
+        {
+            name = name[1..];
+        }
+        return char.ToLowerInvariant(name[0]) + name[1..];
+    }
 }

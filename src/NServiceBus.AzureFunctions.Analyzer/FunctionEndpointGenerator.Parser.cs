@@ -493,51 +493,51 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
+            var delegateParameters = knownTypes.DelegateType.DelegateInvokeMethod?.Parameters;
+            if (delegateParameters is null)
+            {
+                return null;
+            }
+
             for (var i = 1; i < parameters.Length; i++)
             {
-                var parameter = parameters[i];
-                if (!parameter.Type.IsAllowedConfigureMethodParameterType(
-                        knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IHostEnvironment))
+                var matched = false;
+                for (var j = 1; j < delegateParameters.Value.Length; j++)
+                {
+                    if (parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched)
                 {
                     return null;
                 }
             }
 
             var containingTypeFullyQualified = configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var delegateParameterTypes = new INamedTypeSymbol[]
+            var delegateParamNames = new string[delegateParameters.Value.Length];
+            for (var i = 0; i < delegateParameters.Value.Length; i++)
             {
-                knownTypes.EndpointConfiguration,
-                knownTypes.IServiceCollection,
-                knownTypes.IConfigurationManager,
-                knownTypes.IHostEnvironment,
-            };
-            var delegateParameterNames = new string[delegateParameterTypes.Length];
-            for (var i = 0; i < delegateParameterTypes.Length; i++)
-            {
-                delegateParameterNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(delegateParameterTypes[i]);
+                delegateParamNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(delegateParameters.Value[i].Type);
             }
-            var optionalDelegateParameters = new (INamedTypeSymbol Type, string Name)[]
-            {
-                (knownTypes.IServiceCollection, delegateParameterNames[1]),
-                (knownTypes.IConfigurationManager, delegateParameterNames[2]),
-                (knownTypes.IHostEnvironment, delegateParameterNames[3]),
-            };
+
             var parameterTypeNames = new string[parameters.Length];
             for (var i = 0; i < parameters.Length; i++)
             {
-                var parameterType = parameters[i].Type;
                 if (i == 0)
                 {
-                    parameterTypeNames[i] = delegateParameterNames[0];
+                    parameterTypeNames[i] = delegateParamNames[0];
                     continue;
                 }
 
                 var resolved = false;
-                foreach (var (delegateType, canonicalName) in optionalDelegateParameters)
+                for (var j = 1; j < delegateParameters.Value.Length; j++)
                 {
-                    if (TypeSymbolExtensions.TryResolveDelegateParameterName(parameterType, delegateType, canonicalName) is string name)
+                    if (parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
                     {
-                        parameterTypeNames[i] = name;
+                        parameterTypeNames[i] = delegateParamNames[j];
                         resolved = true;
                         break;
                     }
@@ -545,11 +545,11 @@ public sealed partial class FunctionEndpointGenerator
 
                 if (!resolved)
                 {
-                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
+                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameters[i].Type);
                 }
             }
 
-            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray(), delegateParameterNames.ToImmutableEquatableArray());
+            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray(), delegateParamNames.ToImmutableEquatableArray());
         }
 
         static bool ImplementsIHandleMessages(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -623,9 +623,7 @@ public sealed partial class FunctionEndpointGenerator
         INamedTypeSymbol cancellationToken,
         INamedTypeSymbol endpointConfiguration,
         INamedTypeSymbol iHandleMessages,
-        INamedTypeSymbol iServiceCollection,
-        INamedTypeSymbol iConfigurationManager,
-        INamedTypeSymbol iHostEnvironment,
+        INamedTypeSymbol delegateType,
         ImmutableDictionary<ParameterRole, INamedTypeSymbol> additionalParameterSymbols)
     {
         public INamedTypeSymbol FunctionAttribute { get; } = functionAttribute;
@@ -634,9 +632,7 @@ public sealed partial class FunctionEndpointGenerator
         public INamedTypeSymbol CancellationToken { get; } = cancellationToken;
         public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
         public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
-        public INamedTypeSymbol IServiceCollection { get; } = iServiceCollection;
-        public INamedTypeSymbol IConfigurationManager { get; } = iConfigurationManager;
-        public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
+        public INamedTypeSymbol DelegateType { get; } = delegateType;
         public ImmutableDictionary<ParameterRole, INamedTypeSymbol> AdditionalParameterSymbols { get; } = additionalParameterSymbols;
 
         public static bool TryGet(Compilation compilation, TriggerDefinition triggerDefinition, out FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -649,9 +645,7 @@ public sealed partial class FunctionEndpointGenerator
             var cancellationToken = compilation.GetTypeByMetadataName(KnownTypeNames.CancellationToken);
             var endpointConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType);
             var iHandleMessages = compilation.GetTypeByMetadataName(KnownTypeNames.IHandleMessages);
-            var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
-            var iConfigurationManager = compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager);
-            var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
+            var delegateType = compilation.GetTypeByMetadataName(KnownTypeNames.FunctionEndpointConfiguration);
 
             if (functionAttribute is null
                 || triggerAttribute is null
@@ -659,9 +653,7 @@ public sealed partial class FunctionEndpointGenerator
                 || cancellationToken is null
                 || endpointConfiguration is null
                 || iHandleMessages is null
-                || iServiceCollection is null
-                || iConfigurationManager is null
-                || iHostEnvironment is null)
+                || delegateType is null)
             {
                 knownTypes = default;
                 return false;
@@ -686,9 +678,7 @@ public sealed partial class FunctionEndpointGenerator
                 cancellationToken,
                 endpointConfiguration,
                 iHandleMessages,
-                iServiceCollection,
-                iConfigurationManager,
-                iHostEnvironment,
+                delegateType,
                 additionalBuilder.ToImmutable());
 
             return true;

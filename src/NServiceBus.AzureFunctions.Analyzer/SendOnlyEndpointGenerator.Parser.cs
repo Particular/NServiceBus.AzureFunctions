@@ -70,12 +70,26 @@ public sealed partial class SendOnlyEndpointGenerator
                 problems.Add("first parameter must be EndpointConfiguration");
             }
 
+            var delegateParameters = knownTypes.DelegateType.DelegateInvokeMethod?.Parameters;
+            if (delegateParameters is null)
+            {
+                return null;
+            }
+
             for (var i = 1; i < method.Parameters.Length; i++)
             {
-                if (!method.Parameters[i].Type.IsAllowedConfigureMethodParameterType(
-                        knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IHostEnvironment))
+                var matched = false;
+                for (var j = 1; j < delegateParameters.Value.Length; j++)
                 {
-                    problems.Add($"parameters after EndpointConfiguration must be {TypeSymbolExtensions.AllowedConfigureParameterTypesDescription}");
+                    if (method.Parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched)
+                {
+                    problems.Add($"parameters after EndpointConfiguration must be compatible with the {KnownTypeNames.FunctionEndpointConfiguration} delegate");
                     break;
                 }
             }
@@ -86,40 +100,27 @@ public sealed partial class SendOnlyEndpointGenerator
                 return null;
             }
 
-            var delegateParameterTypes = new INamedTypeSymbol[]
+            var delegateParamNames = new string[delegateParameters.Value.Length];
+            for (var i = 0; i < delegateParameters.Value.Length; i++)
             {
-                knownTypes.EndpointConfiguration,
-                knownTypes.IServiceCollection,
-                knownTypes.IConfigurationManager,
-                knownTypes.IHostEnvironment,
-            };
-            var delegateParameterNames = new string[delegateParameterTypes.Length];
-            for (var i = 0; i < delegateParameterTypes.Length; i++)
-            {
-                delegateParameterNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(delegateParameterTypes[i]);
+                delegateParamNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(delegateParameters.Value[i].Type);
             }
-            var optionalDelegateParameters = new (INamedTypeSymbol Type, string Name)[]
-            {
-                (knownTypes.IServiceCollection, delegateParameterNames[1]),
-                (knownTypes.IConfigurationManager, delegateParameterNames[2]),
-                (knownTypes.IHostEnvironment, delegateParameterNames[3]),
-            };
+
             var parameterTypeNames = new string[method.Parameters.Length];
             for (var i = 0; i < method.Parameters.Length; i++)
             {
-                var parameterType = method.Parameters[i].Type;
                 if (i == 0)
                 {
-                    parameterTypeNames[i] = delegateParameterNames[0];
+                    parameterTypeNames[i] = delegateParamNames[0];
                     continue;
                 }
 
                 var resolved = false;
-                foreach (var (delegateType, canonicalName) in optionalDelegateParameters)
+                for (var j = 1; j < delegateParameters.Value.Length; j++)
                 {
-                    if (TypeSymbolExtensions.TryResolveDelegateParameterName(parameterType, delegateType, canonicalName) is string name)
+                    if (method.Parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
                     {
-                        parameterTypeNames[i] = name;
+                        parameterTypeNames[i] = delegateParamNames[j];
                         resolved = true;
                         break;
                     }
@@ -127,7 +128,7 @@ public sealed partial class SendOnlyEndpointGenerator
 
                 if (!resolved)
                 {
-                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(parameterType);
+                    parameterTypeNames[i] = TypeSymbolExtensions.ToCamelCaseParameterName(method.Parameters[i].Type);
                 }
             }
 
@@ -141,7 +142,7 @@ public sealed partial class SendOnlyEndpointGenerator
                     method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     method.Name,
                     parameterTypeNames.ToImmutableEquatableArray(),
-                    delegateParameterNames.ToImmutableEquatableArray()));
+                    delegateParamNames.ToImmutableEquatableArray()));
         }
 
         static string? ExtractConnectionSettingName(AttributeData attribute)
@@ -181,29 +182,21 @@ public sealed partial class SendOnlyEndpointGenerator
     readonly struct SendOnlyEndpointGeneratorKnownTypes(
         INamedTypeSymbol sendOnlyEndpointAttribute,
         INamedTypeSymbol endpointConfiguration,
-        INamedTypeSymbol iServiceCollection,
-        INamedTypeSymbol iConfigurationManager,
-        INamedTypeSymbol iHostEnvironment)
+        INamedTypeSymbol delegateType)
     {
         public INamedTypeSymbol SendOnlyEndpointAttribute { get; } = sendOnlyEndpointAttribute;
         public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
-        public INamedTypeSymbol IServiceCollection { get; } = iServiceCollection;
-        public INamedTypeSymbol IConfigurationManager { get; } = iConfigurationManager;
-        public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
+        public INamedTypeSymbol DelegateType { get; } = delegateType;
 
         public static bool TryGet(Compilation compilation, out SendOnlyEndpointGeneratorKnownTypes knownTypes)
         {
             var sendOnlyEndpointAttribute = compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyFunctionAttribute);
             var endpointConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType);
-            var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
-            var iConfigurationManager = compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager);
-            var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
+            var delegateType = compilation.GetTypeByMetadataName(KnownTypeNames.FunctionEndpointConfiguration);
 
             if (sendOnlyEndpointAttribute is null
                 || endpointConfiguration is null
-                || iServiceCollection is null
-                || iConfigurationManager is null
-                || iHostEnvironment is null)
+                || delegateType is null)
             {
                 knownTypes = default;
                 return false;
@@ -212,9 +205,7 @@ public sealed partial class SendOnlyEndpointGenerator
             knownTypes = new SendOnlyEndpointGeneratorKnownTypes(
                 sendOnlyEndpointAttribute,
                 endpointConfiguration,
-                iServiceCollection,
-                iConfigurationManager,
-                iHostEnvironment);
+                delegateType);
 
             return true;
         }

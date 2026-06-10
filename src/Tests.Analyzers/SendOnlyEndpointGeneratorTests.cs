@@ -188,7 +188,7 @@ public class SendOnlyEndpointGeneratorTests
             }
             """);
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain($"parameters after EndpointConfiguration must be {TypeSymbolExtensions.AllowedConfigureParameterTypesDescription}"));
+        Assert.That(diagnostic.GetMessage(), Does.Contain("parameters after EndpointConfiguration must be compatible with the"));
     }
 
     [Test]

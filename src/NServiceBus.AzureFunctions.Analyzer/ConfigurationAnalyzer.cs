@@ -27,9 +27,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         {
             var knownSymbols = new KnownSymbols(
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.FunctionEndpointConfiguration),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
@@ -144,8 +142,22 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
         for (var i = 1; i < method.Parameters.Length; i++)
         {
-            if (!method.Parameters[i].Type.IsAllowedConfigureMethodParameterType(
-                    knownSymbols.IServiceCollection!, knownSymbols.IConfigurationManager!, knownSymbols.IHostEnvironment!))
+            var delegateParameters = knownSymbols.DelegateType?.DelegateInvokeMethod?.Parameters;
+            if (delegateParameters is null)
+            {
+                return false;
+            }
+
+            var matched = false;
+            for (var j = 1; j < delegateParameters.Value.Length; j++)
+            {
+                if (method.Parameters[i].Type.IsAssignableToDelegateParameter((INamedTypeSymbol)delegateParameters.Value[j].Type))
+                {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched)
             {
                 return false;
             }
@@ -209,9 +221,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,
-        INamedTypeSymbol? IServiceCollection,
-        INamedTypeSymbol? IConfigurationManager,
-        INamedTypeSymbol? IHostEnvironment,
+        INamedTypeSymbol? DelegateType,
         INamedTypeSymbol? SendOptions,
         INamedTypeSymbol? ReplyOptions,
         INamedTypeSymbol? AzureServiceBusServerlessTransport,

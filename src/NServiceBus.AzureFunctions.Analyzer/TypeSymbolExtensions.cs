@@ -4,49 +4,36 @@ using Microsoft.CodeAnalysis;
 
 static class TypeSymbolExtensions
 {
-    public const string AllowedConfigureParameterTypesDescription = "IServiceCollection, IConfigurationManager, or IHostEnvironment (or types they are assignable to)";
-
     extension(ITypeSymbol type)
     {
-        public bool IsAllowedConfigureMethodParameterType(
-            INamedTypeSymbol iServiceCollection,
-            INamedTypeSymbol iConfigurationManager,
-            INamedTypeSymbol iHostEnvironment)
-            => IsAssignableTo(iServiceCollection, type)
-               || IsAssignableTo(iConfigurationManager, type)
-               || IsAssignableTo(iHostEnvironment, type);
-    }
-
-    static bool IsAssignableTo(INamedTypeSymbol sourceType, ITypeSymbol targetType)
-    {
-        if (SymbolEqualityComparer.Default.Equals(sourceType, targetType))
+        public bool IsAssignableToDelegateParameter(INamedTypeSymbol delegateType)
         {
-            return true;
-        }
-
-        foreach (var iface in sourceType.AllInterfaces)
-        {
-            if (SymbolEqualityComparer.Default.Equals(iface, targetType))
+            if (SymbolEqualityComparer.Default.Equals(type, delegateType))
             {
                 return true;
             }
-        }
 
-        var baseType = sourceType.BaseType;
-        while (baseType is not null)
-        {
-            if (SymbolEqualityComparer.Default.Equals(baseType, targetType))
+            foreach (var iface in delegateType.AllInterfaces)
             {
-                return true;
+                if (SymbolEqualityComparer.Default.Equals(iface, type))
+                {
+                    return true;
+                }
             }
-            baseType = baseType.BaseType;
+
+            var baseType = delegateType.BaseType;
+            while (baseType is not null)
+            {
+                if (SymbolEqualityComparer.Default.Equals(baseType, type))
+                {
+                    return true;
+                }
+                baseType = baseType.BaseType;
+            }
+
+            return false;
         }
-
-        return false;
     }
-
-    public static string? TryResolveDelegateParameterName(ITypeSymbol userType, INamedTypeSymbol delegateType, string canonicalName)
-        => IsAssignableTo(delegateType, userType) ? canonicalName : null;
 
     public static string ToCamelCaseParameterName(ITypeSymbol type)
     {

@@ -14,9 +14,7 @@ static class KnownTypeNames
     public const string SendOptions = "NServiceBus.SendOptions";
     public const string ReplyOptions = "NServiceBus.ReplyOptions";
     public const string AzureServiceBusServerlessTransport = "NServiceBus.AzureServiceBusServerlessTransport";
-    public const string IServiceCollection = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
-    public const string IConfigurationManager = "Microsoft.Extensions.Configuration.IConfigurationManager";
-    public const string IHostEnvironment = "Microsoft.Extensions.Hosting.IHostEnvironment";
+    public const string FunctionEndpointConfiguration = "NServiceBus.FunctionEndpointConfiguration";
     public const string AzureServiceBusFunctionsHostApplicationBuilderExtensions = "NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions";
     public const string AddNServiceBusAzureServiceBusFunction = "AddNServiceBusAzureServiceBusFunction";
     public const string AddNServiceBusAzureServiceBusSendOnlyEndpoint = "AddNServiceBusAzureServiceBusSendOnlyEndpoint";

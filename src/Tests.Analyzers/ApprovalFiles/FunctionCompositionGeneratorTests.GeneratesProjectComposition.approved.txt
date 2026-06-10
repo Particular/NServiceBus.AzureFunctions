@@ -21,7 +21,7 @@ public partial class Functions
 
     public static void ConfigureProcessOrder(
         EndpointConfiguration endpointConfiguration,
-        IConfiguration iconfiguration,
+        IConfigurationManager iconfigurationmanager,
         IHostEnvironment ihostenvironment)
     {
     }
@@ -126,7 +126,7 @@ public static class GeneratedFunctionRegistrations_GeneratesProjectComposition_4
     {
         yield return new global::NServiceBus.FunctionManifest(
             "ProcessOrder", "sales-queue", "AzureServiceBus",
-            (endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfiguration, ihostenvironment),
+            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::Demo.Functions.ConfigureProcessOrder(endpointconfiguration, iconfigurationmanager, ihostenvironment),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusFunction);
         yield break;
     }
@@ -160,7 +160,7 @@ public static class GeneratedSendOnlyEndpointRegistrations_GeneratesProjectCompo
         yield return new global::NServiceBus.SendOnlyEndpointManifest(
             "client",
             null,
-            (endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => global::Demo.ClientEndpoint.ConfigureClient(endpointconfiguration, iservicecollection),
+            (endpointconfiguration, iservicecollection, iconfigurationmanager, ihostenvironment) => global::Demo.ClientEndpoint.ConfigureClient(endpointconfiguration, iservicecollection),
             global::NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions.AddNServiceBusAzureServiceBusSendOnlyEndpoint);
         yield break;
     }

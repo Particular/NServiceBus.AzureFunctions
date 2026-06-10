@@ -74,7 +74,7 @@ public sealed partial class SendOnlyEndpointGenerator
             {
                 if (!IsAllowedConfigureMethodParameterType(method.Parameters[i].Type, knownTypes))
                 {
-                    problems.Add("parameters after EndpointConfiguration must be IServiceCollection, IConfiguration, or IHostEnvironment");
+                    problems.Add("parameters after EndpointConfiguration must be IServiceCollection, IConfigurationManager, IConfiguration, IConfigurationBuilder, or IHostEnvironment");
                     break;
                 }
             }
@@ -88,7 +88,17 @@ public sealed partial class SendOnlyEndpointGenerator
             var parameterTypeNames = new string[method.Parameters.Length];
             for (var i = 0; i < method.Parameters.Length; i++)
             {
-                parameterTypeNames[i] = method.Parameters[i].Type.Name.ToLowerInvariant();
+                var type = method.Parameters[i].Type;
+                // Map IConfiguration and IConfigurationBuilder to the delegate's IConfigurationManager argument name
+                if (SymbolEqualityComparer.Default.Equals(type, knownTypes.IConfiguration)
+                    || SymbolEqualityComparer.Default.Equals(type, knownTypes.IConfigurationBuilder))
+                {
+                    parameterTypeNames[i] = "iconfigurationmanager";
+                }
+                else
+                {
+                    parameterTypeNames[i] = type.Name.ToLowerInvariant();
+                }
             }
 
             var connectionSettingName = ExtractConnectionSettingName(sendOnlyEndpointAttribute);
@@ -117,7 +127,7 @@ public sealed partial class SendOnlyEndpointGenerator
         }
 
         static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, SendOnlyEndpointGeneratorKnownTypes knownTypes)
-            => parameterType.IsAllowedConfigureMethodParameterType(knownTypes.IServiceCollection, knownTypes.IConfiguration, knownTypes.IHostEnvironment);
+            => parameterType.IsAllowedConfigureMethodParameterType(knownTypes.IServiceCollection, knownTypes.IConfigurationManager, knownTypes.IConfiguration, knownTypes.IConfigurationBuilder, knownTypes.IHostEnvironment);
     }
 
     internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);
@@ -144,13 +154,17 @@ public sealed partial class SendOnlyEndpointGenerator
         INamedTypeSymbol sendOnlyEndpointAttribute,
         INamedTypeSymbol endpointConfiguration,
         INamedTypeSymbol iServiceCollection,
+        INamedTypeSymbol iConfigurationManager,
         INamedTypeSymbol iConfiguration,
+        INamedTypeSymbol iConfigurationBuilder,
         INamedTypeSymbol iHostEnvironment)
     {
         public INamedTypeSymbol SendOnlyEndpointAttribute { get; } = sendOnlyEndpointAttribute;
         public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
         public INamedTypeSymbol IServiceCollection { get; } = iServiceCollection;
+        public INamedTypeSymbol IConfigurationManager { get; } = iConfigurationManager;
         public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
+        public INamedTypeSymbol IConfigurationBuilder { get; } = iConfigurationBuilder;
         public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
 
         public static bool TryGet(Compilation compilation, out SendOnlyEndpointGeneratorKnownTypes knownTypes)
@@ -158,13 +172,17 @@ public sealed partial class SendOnlyEndpointGenerator
             var sendOnlyEndpointAttribute = compilation.GetTypeByMetadataName(KnownTypeNames.NServiceBusSendOnlyFunctionAttribute);
             var endpointConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType);
             var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
-            var iconfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration);
+            var iConfigurationManager = compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager);
+            var iConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration);
+            var iConfigurationBuilder = compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationBuilder);
             var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
 
             if (sendOnlyEndpointAttribute is null
                 || endpointConfiguration is null
                 || iServiceCollection is null
-                || iconfiguration is null
+                || iConfigurationManager is null
+                || iConfiguration is null
+                || iConfigurationBuilder is null
                 || iHostEnvironment is null)
             {
                 knownTypes = default;
@@ -175,7 +193,9 @@ public sealed partial class SendOnlyEndpointGenerator
                 sendOnlyEndpointAttribute,
                 endpointConfiguration,
                 iServiceCollection,
-                iconfiguration,
+                iConfigurationManager,
+                iConfiguration,
+                iConfigurationBuilder,
                 iHostEnvironment);
 
             return true;

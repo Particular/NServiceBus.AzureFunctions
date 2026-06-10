@@ -28,7 +28,9 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             var knownSymbols = new KnownSymbols(
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationManager),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfigurationBuilder),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
@@ -157,7 +159,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         => sendOnlyEndpointAttribute is not null && method.HasAttribute(sendOnlyEndpointAttribute);
 
     static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, KnownSymbols knownSymbols)
-        => parameterType.IsAllowedConfigureMethodParameterType(knownSymbols.IServiceCollection!, knownSymbols.IConfiguration!, knownSymbols.IHostEnvironment!);
+        => parameterType.IsAllowedConfigureMethodParameterType(knownSymbols.IServiceCollection!, knownSymbols.IConfigurationManager!, knownSymbols.IConfiguration!, knownSymbols.IConfigurationBuilder!, knownSymbols.IHostEnvironment!);
 
     static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext) => endpointContext == EndpointConfigurationContext.SendOnlyEndpoint ? SendOnlyEndpoints : AzureFunctionsEndpoints;
 
@@ -212,7 +214,9 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,
         INamedTypeSymbol? IServiceCollection,
+        INamedTypeSymbol? IConfigurationManager,
         INamedTypeSymbol? IConfiguration,
+        INamedTypeSymbol? IConfigurationBuilder,
         INamedTypeSymbol? IHostEnvironment,
         INamedTypeSymbol? SendOptions,
         INamedTypeSymbol? ReplyOptions,

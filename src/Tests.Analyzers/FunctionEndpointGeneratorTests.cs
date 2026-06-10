@@ -25,6 +25,30 @@ public class FunctionEndpointGeneratorTests
             .AssertRunsAreEqual();
 
     [Test]
+    public void GeneratesFunctionEndpointWithIConfigurationManagerParameter() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.ValidFunctionWithIConfigurationManager)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
+    public void GeneratesFunctionEndpointWithIConfigurationParameter() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.ValidFunctionWithIConfiguration)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
+    public void GeneratesFunctionEndpointWithIConfigurationBuilderParameter() =>
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(TestSources.ValidFunctionWithIConfigurationBuilder)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
     public void GeneratesNoRegistrationsForOrdinaryFunctionsOnly() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
             .WithSource(TestSources.OrdinaryFunctionOnly)
@@ -110,7 +134,7 @@ public class FunctionEndpointGeneratorTests
 
               public static void ConfigureProcessOrder(
                   EndpointConfiguration endpointConfiguration,
-                  IConfiguration iconfiguration,
+                  IConfigurationManager iconfigurationmanager,
                   IHostEnvironment ihostenvironment)
               {
               }
@@ -143,7 +167,7 @@ public class FunctionEndpointGeneratorTests
 
               public static void ConfigureProcessOrder(
                   EndpointConfiguration endpointConfiguration,
-                  IConfiguration iconfiguration,
+                  IConfigurationManager iconfigurationmanager,
                   IHostEnvironment ihostenvironment)
               {
               }
@@ -178,7 +202,7 @@ public class FunctionEndpointGeneratorTests
 
              public static void ConfigureProcessOrder(
                  EndpointConfiguration endpointConfiguration,
-                 IConfiguration iconfiguration,
+                 IConfigurationManager iconfigurationmanager,
                  IHostEnvironment ihostenvironment)
              {
              }
@@ -271,7 +295,7 @@ public class FunctionEndpointGeneratorTests
 
            public static void ConfigureProcessOrder(
                EndpointConfiguration endpointConfiguration,
-               IConfiguration iconfiguration)
+               IConfigurationManager iconfigurationmanager)
            {
            }
        }

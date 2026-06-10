@@ -11,7 +11,7 @@ public class GlobalTestStorage
 
     public void Add(string testName, MessageReceived msg)
     {
-        var bag = data.GetOrAdd(testName, _ => new ConcurrentBag<MessageReceived>());
+        var bag = data.GetOrAdd(testName, _ => []);
         bag.Add(msg);
     }
 
@@ -40,7 +40,7 @@ public class TestStorage(string endpointName, GlobalTestStorage globalStorage)
         where T : class
     {
         var sendingEndpoint = context.MessageHeaders.GetValueOrDefault(Headers.OriginatingEndpoint, "<unknown>");
-        var storageOrder = context.Extensions.Get<int>("TestStorageOrder");
+        var storageOrder = context.Extensions.Get<TestStorageContext>().ReceivedOrder;
 
         var rec = new MessageReceived(message.GetType().FullName!, storageOrder, sendingEndpoint, endpointName);
         globalStorage.Add(testName, rec);

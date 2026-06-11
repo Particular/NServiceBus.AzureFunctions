@@ -10,4 +10,13 @@
     <RoslynPackagePathVersion>$(RoslynPackageVersion.Split(`.`)[0]).$(RoslynPackageVersion.Split(`.`)[1])</RoslynPackagePathVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
+    <MinVerAutoIncrement>minor</MinVerAutoIncrement>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectCapability Include="DynamicFileNestingEnabled" />
+  </ItemGroup>
+  
 </Project>

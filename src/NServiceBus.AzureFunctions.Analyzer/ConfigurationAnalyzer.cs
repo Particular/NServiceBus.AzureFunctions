@@ -27,9 +27,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
         {
             var knownSymbols = new KnownSymbols(
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration),
-                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment),
+                compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.FunctionEndpointConfiguration),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.SendOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.ReplyOptions),
                 compilationStartContext.Compilation.GetTypeByMetadataName(KnownTypeNames.AzureServiceBusServerlessTransport),
@@ -142,22 +140,17 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        for (var i = 1; i < method.Parameters.Length; i++)
+        if (knownSymbols.DelegateType is null)
         {
-            if (!IsAllowedConfigureMethodParameterType(method.Parameters[i].Type, knownSymbols))
-            {
-                return false;
-            }
+            return false;
         }
 
-        return true;
+        var resolution = ConfigureMethodResolver.Resolve(method, knownSymbols.EndpointConfiguration!, knownSymbols.DelegateType);
+        return resolution.IsSuccess;
     }
 
     static bool HasSendOnlyEndpointAttribute(IMethodSymbol method, INamedTypeSymbol? sendOnlyEndpointAttribute)
         => sendOnlyEndpointAttribute is not null && method.HasAttribute(sendOnlyEndpointAttribute);
-
-    static bool IsAllowedConfigureMethodParameterType(ITypeSymbol parameterType, KnownSymbols knownSymbols)
-        => parameterType.IsAllowedConfigureMethodParameterType(knownSymbols.IServiceCollection!, knownSymbols.IConfiguration!, knownSymbols.IHostEnvironment!);
 
     static string GetEndpointContextLabel(EndpointConfigurationContext endpointContext) => endpointContext == EndpointConfigurationContext.SendOnlyEndpoint ? SendOnlyEndpoints : AzureFunctionsEndpoints;
 
@@ -211,9 +204,7 @@ public sealed class ConfigurationAnalyzer : DiagnosticAnalyzer
 
     readonly record struct KnownSymbols(
         INamedTypeSymbol? EndpointConfiguration,
-        INamedTypeSymbol? IServiceCollection,
-        INamedTypeSymbol? IConfiguration,
-        INamedTypeSymbol? IHostEnvironment,
+        INamedTypeSymbol? DelegateType,
         INamedTypeSymbol? SendOptions,
         INamedTypeSymbol? ReplyOptions,
         INamedTypeSymbol? AzureServiceBusServerlessTransport,

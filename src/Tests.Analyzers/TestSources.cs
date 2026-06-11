@@ -44,7 +44,7 @@ static class TestSources
 
             public static void ConfigureProcessOrder(
                 EndpointConfiguration endpointConfiguration,
-                IConfiguration iconfiguration,
+                IConfigurationManager iconfigurationmanager,
                 IHostEnvironment ihostenvironment)
             {
             }
@@ -119,7 +119,7 @@ static class TestSources
 
             public static void ConfigureProcessOrder(
                 EndpointConfiguration endpointConfiguration,
-                IConfiguration iconfiguration,
+                IConfigurationManager iconfigurationmanager,
                 IHostEnvironment ihostenvironment)
             {
             }
@@ -168,7 +168,7 @@ static class TestSources
             public static void ConfigureClient(
                 EndpointConfiguration endpointConfiguration,
                 IServiceCollection services,
-                IConfiguration configuration,
+                IConfigurationManager configuration,
                 IHostEnvironment environment)
             {
             }
@@ -211,7 +211,7 @@ static class TestSources
             [NServiceBusSendOnlyFunction("sender")]
             public static void ConfigureSender(
                 EndpointConfiguration endpointConfiguration,
-                IConfiguration configuration,
+                IConfigurationManager configuration,
                 IHostEnvironment environment)
             {
             }
@@ -237,6 +237,141 @@ static class TestSources
         {
             [NServiceBusSendOnlyFunction("client", Connection = "MyCustomConnection")]
             public static void ConfigureClient(EndpointConfiguration endpointConfiguration, IServiceCollection services)
+            {
+            }
+        }
+        """;
+
+    public const string ValidFunctionWithIConfigurationManager = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using NServiceBus;
+
+        namespace Demo;
+
+        public partial class Functions
+        {
+            [NServiceBusFunction]
+            [Function("ProcessOrder")]
+            public partial Task Run(
+                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
+                FunctionContext context,
+                CancellationToken cancellationToken);
+
+            public static void ConfigureProcessOrder(
+                EndpointConfiguration endpointConfiguration,
+                Microsoft.Extensions.Configuration.IConfigurationManager configuration)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithIConfigurationManager = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                Microsoft.Extensions.Configuration.IConfigurationManager configuration,
+                IHostEnvironment environment)
+            {
+            }
+        }
+        """;
+
+    public const string ValidFunctionWithIConfiguration = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using NServiceBus;
+
+        namespace Demo;
+
+        public partial class Functions
+        {
+            [NServiceBusFunction]
+            [Function("ProcessOrder")]
+            public partial Task Run(
+                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
+                FunctionContext context,
+                CancellationToken cancellationToken);
+
+            public static void ConfigureProcessOrder(
+                EndpointConfiguration endpointConfiguration,
+                Microsoft.Extensions.Configuration.IConfiguration configuration)
+            {
+            }
+        }
+        """;
+
+    public const string ValidFunctionWithIConfigurationBuilder = """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using NServiceBus;
+
+        namespace Demo;
+
+        public partial class Functions
+        {
+            [NServiceBusFunction]
+            [Function("ProcessOrder")]
+            public partial Task Run(
+                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
+                FunctionContext context,
+                CancellationToken cancellationToken);
+
+            public static void ConfigureProcessOrder(
+                EndpointConfiguration endpointConfiguration,
+                Microsoft.Extensions.Configuration.IConfigurationBuilder configuration)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithIConfiguration = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                Microsoft.Extensions.Configuration.IConfiguration configuration,
+                IHostEnvironment environment)
+            {
+            }
+        }
+        """;
+
+    public const string ValidSendOnlyEndpointWithIConfigurationBuilder = """
+        using NServiceBus;
+        namespace Demo;
+
+        using Microsoft.Extensions.Hosting;
+
+        public static class ClientEndpoint
+        {
+            [NServiceBusSendOnlyFunction("client")]
+            public static void ConfigureClient(
+                EndpointConfiguration endpointConfiguration,
+                Microsoft.Extensions.Configuration.IConfigurationBuilder configuration,
+                IHostEnvironment environment)
             {
             }
         }

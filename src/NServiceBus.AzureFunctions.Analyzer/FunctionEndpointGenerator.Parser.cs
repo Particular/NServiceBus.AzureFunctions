@@ -187,7 +187,7 @@ public sealed partial class FunctionEndpointGenerator
             }
 
             var containingType = method.ContainingType;
-            var configureMethodName = $"Configure{functionName}";
+            var configureMethodName = KnownTypeNames.ConfigureMethodName(functionName);
             var configureMethod = GetConfigureMethodSpec(containingType, functionName, knownTypes, diagnostics);
             if (configureMethod is null)
             {
@@ -464,7 +464,7 @@ public sealed partial class FunctionEndpointGenerator
 
         static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
         {
-            var configureMethodName = $"Configure{endpointName}";
+            var configureMethodName = KnownTypeNames.ConfigureMethodName(endpointName);
 
             IMethodSymbol? configureMethod = null;
             foreach (var member in functionClassType.GetMembers())
@@ -486,34 +486,8 @@ public sealed partial class FunctionEndpointGenerator
                 return null;
             }
 
-            var parameters = configureMethod.Parameters;
-
-            if (parameters.Length == 0 || !SymbolEqualityComparer.Default.Equals(parameters[0].Type, knownTypes.EndpointConfiguration))
-            {
-                return null;
-            }
-
-            for (var i = 1; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-                var isAllowedOptionalParameter =
-                    SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IServiceCollection)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IConfiguration)
-                    || SymbolEqualityComparer.Default.Equals(parameter.Type, knownTypes.IHostEnvironment);
-                if (!isAllowedOptionalParameter)
-                {
-                    return null;
-                }
-            }
-
-            var containingTypeFullyQualified = configureMethod.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            var parameterTypeNames = new string[parameters.Length];
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                parameterTypeNames[i] = parameters[i].Type.Name.ToLowerInvariant();
-            }
-
-            return new ConfigureMethodSpec(containingTypeFullyQualified, configureMethod.Name, parameterTypeNames.ToImmutableEquatableArray());
+            var resolution = ConfigureMethodResolver.Resolve(configureMethod, knownTypes.EndpointConfiguration, knownTypes.DelegateType);
+            return resolution.Spec;
         }
 
         static bool ImplementsIHandleMessages(INamedTypeSymbol classSymbol, FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -553,11 +527,7 @@ public sealed partial class FunctionEndpointGenerator
 
             return false;
         }
-
-
     }
-
-    internal readonly record struct ConfigureMethodSpec(string ContainingTypeFullyQualified, string MethodName, ImmutableEquatableArray<string> ParameterTypeNames);
 
     internal sealed record FunctionSpec(
         string ContainingNamespace,
@@ -587,9 +557,7 @@ public sealed partial class FunctionEndpointGenerator
         INamedTypeSymbol cancellationToken,
         INamedTypeSymbol endpointConfiguration,
         INamedTypeSymbol iHandleMessages,
-        INamedTypeSymbol iServiceCollection,
-        INamedTypeSymbol iConfiguration,
-        INamedTypeSymbol iHostEnvironment,
+        INamedTypeSymbol delegateType,
         ImmutableDictionary<ParameterRole, INamedTypeSymbol> additionalParameterSymbols)
     {
         public INamedTypeSymbol FunctionAttribute { get; } = functionAttribute;
@@ -598,9 +566,7 @@ public sealed partial class FunctionEndpointGenerator
         public INamedTypeSymbol CancellationToken { get; } = cancellationToken;
         public INamedTypeSymbol EndpointConfiguration { get; } = endpointConfiguration;
         public INamedTypeSymbol IHandleMessages { get; } = iHandleMessages;
-        public INamedTypeSymbol IServiceCollection { get; } = iServiceCollection;
-        public INamedTypeSymbol IConfiguration { get; } = iConfiguration;
-        public INamedTypeSymbol IHostEnvironment { get; } = iHostEnvironment;
+        public INamedTypeSymbol DelegateType { get; } = delegateType;
         public ImmutableDictionary<ParameterRole, INamedTypeSymbol> AdditionalParameterSymbols { get; } = additionalParameterSymbols;
 
         public static bool TryGet(Compilation compilation, TriggerDefinition triggerDefinition, out FunctionEndpointGeneratorKnownTypes knownTypes)
@@ -613,9 +579,7 @@ public sealed partial class FunctionEndpointGenerator
             var cancellationToken = compilation.GetTypeByMetadataName(KnownTypeNames.CancellationToken);
             var endpointConfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.EndpointConfigurationType);
             var iHandleMessages = compilation.GetTypeByMetadataName(KnownTypeNames.IHandleMessages);
-            var iServiceCollection = compilation.GetTypeByMetadataName(KnownTypeNames.IServiceCollection);
-            var iconfiguration = compilation.GetTypeByMetadataName(KnownTypeNames.IConfiguration);
-            var iHostEnvironment = compilation.GetTypeByMetadataName(KnownTypeNames.IHostEnvironment);
+            var delegateType = compilation.GetTypeByMetadataName(KnownTypeNames.FunctionEndpointConfiguration);
 
             if (functionAttribute is null
                 || triggerAttribute is null
@@ -623,9 +587,7 @@ public sealed partial class FunctionEndpointGenerator
                 || cancellationToken is null
                 || endpointConfiguration is null
                 || iHandleMessages is null
-                || iServiceCollection is null
-                || iconfiguration is null
-                || iHostEnvironment is null)
+                || delegateType is null)
             {
                 knownTypes = default;
                 return false;
@@ -650,9 +612,7 @@ public sealed partial class FunctionEndpointGenerator
                 cancellationToken,
                 endpointConfiguration,
                 iHandleMessages,
-                iServiceCollection,
-                iconfiguration,
-                iHostEnvironment,
+                delegateType,
                 additionalBuilder.ToImmutable());
 
             return true;

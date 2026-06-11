@@ -5,25 +5,25 @@ using Contracts;
 
 public class GlobalTestStorage
 {
-    readonly ConcurrentDictionary<string, List<MessageReceived>> data = [];
+    readonly ConcurrentDictionary<string, ConcurrentBag<MessageReceived>> data = [];
 
     public void Clear(string testName) => data.TryRemove(testName, out _);
 
     public void Add(string testName, MessageReceived msg)
     {
-        var list = data.GetOrAdd(testName, _ = new List<MessageReceived>());
-        list.Add(msg);
+        var bag = data.GetOrAdd(testName, _ => []);
+        bag.Add(msg);
     }
 
     public Payload CreatePayload(string testName)
     {
-        var list = data.GetValueOrDefault(testName);
-        if (list is null)
+        var bag = data.GetValueOrDefault(testName);
+        if (bag is null)
         {
             return new Payload([]);
         }
 
-        var sortedMessages = list
+        var sortedMessages = bag
             .OrderBy(m => m.Order)
             .ThenBy(m => m.MessageType)
             .ThenBy(m => m.SendingEndpoint)
@@ -40,7 +40,7 @@ public class TestStorage(string endpointName, GlobalTestStorage globalStorage)
         where T : class
     {
         var sendingEndpoint = context.MessageHeaders.GetValueOrDefault(Headers.OriginatingEndpoint, "<unknown>");
-        var storageOrder = context.Extensions.Get<int>("TestStorageOrder");
+        var storageOrder = context.Extensions.Get<TestStorageContext>().ReceivedOrder;
 
         var rec = new MessageReceived(message.GetType().FullName!, storageOrder, sendingEndpoint, endpointName);
         globalStorage.Add(testName, rec);

@@ -2,6 +2,7 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 static class KnownTypeNames
 {
+    public static string ConfigureMethodName(string endpointName) => $"Configure{endpointName}";
     public const string GeneratedCompositionNamespace = "NServiceBus";
     public const string GeneratedFunctionsCompositionFullName = "NServiceBus.NServiceBusGeneratedFunctionsComposition";
     public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";
@@ -14,9 +15,7 @@ static class KnownTypeNames
     public const string SendOptions = "NServiceBus.SendOptions";
     public const string ReplyOptions = "NServiceBus.ReplyOptions";
     public const string AzureServiceBusServerlessTransport = "NServiceBus.AzureServiceBusServerlessTransport";
-    public const string IServiceCollection = "Microsoft.Extensions.DependencyInjection.IServiceCollection";
-    public const string IConfiguration = "Microsoft.Extensions.Configuration.IConfiguration";
-    public const string IHostEnvironment = "Microsoft.Extensions.Hosting.IHostEnvironment";
+    public const string FunctionEndpointConfiguration = "NServiceBus.FunctionEndpointConfiguration";
     public const string AzureServiceBusFunctionsHostApplicationBuilderExtensions = "NServiceBus.Configuration.AdvancedExtensibility.AzureServiceBusFunctionsHostApplicationBuilderExtensions";
     public const string AddNServiceBusAzureServiceBusFunction = "AddNServiceBusAzureServiceBusFunction";
     public const string AddNServiceBusAzureServiceBusSendOnlyEndpoint = "AddNServiceBusAzureServiceBusSendOnlyEndpoint";

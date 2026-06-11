@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <AnalyzerTargetFramework>netstandard2.0</AnalyzerTargetFramework>
+    <AnalysisLevel>10.0</AnalysisLevel>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <!-- Package needs to stay on 5.0.x to ensure we run on the 10.0.10x SDK and Visual Studio 18.0 -->

@@ -31,7 +31,7 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointConfiguration = CreateDefaultEndpointConfiguration(
             endpointName,
             builder,
-            (configuration, endpointServices) => functionManifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
+            (configuration, endpointServices) => functionManifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment, builder.Properties));
 
         if (endpointConfiguration.IsSendOnly)
         {
@@ -62,7 +62,7 @@ public static class FunctionEndpointConfigurationBuilder
         var endpointConfiguration = CreateDefaultEndpointConfiguration(
             manifest.Name,
             builder,
-            (configuration, endpointServices) => manifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment));
+            (configuration, endpointServices) => manifest.Configuration(configuration, endpointServices, builder.Configuration, builder.Environment, builder.Properties));
 
         endpointConfiguration.SendOnly();
 
@@ -97,7 +97,7 @@ public static class FunctionEndpointConfigurationBuilder
 
     static Task NoOpDiagnosticsWriter(string diagnostics, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    static string ResolveDefaultHostIdentifier(IConfiguration configuration)
+    static string ResolveDefaultHostIdentifier(ConfigurationManager configuration)
     {
         // this would be set if running inside a function app
         var websiteInstanceId = configuration[WebsiteInstanceIdKey];

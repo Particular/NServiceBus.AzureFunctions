@@ -3,7 +3,9 @@ using IntegrationTest.Shared;
 using Microsoft.Azure.Functions.Worker;
 
 // Intentionally in the global namespace to make sure that the generator can handle it
+#pragma warning disable CA1050
 public partial class ShippingEndpoint
+#pragma warning restore CA1050
 {
     [NServiceBusFunction]
     [Function(nameof(Shipping))]

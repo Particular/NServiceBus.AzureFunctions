@@ -33,7 +33,7 @@ public partial class BillingFunctions
         FunctionContext functionContext,
         CancellationToken cancellationToken = default);
 
-    public static void ConfigureBillingBackend(EndpointConfiguration endpointConfiguration, IConfiguration configuration, IHostEnvironment environment)
+    public static void ConfigureBillingBackend(EndpointConfiguration endpointConfiguration, IConfigurationManager configuration, IHostEnvironment environment)
     {
         CommonEndpointConfig.Apply(endpointConfiguration);
 

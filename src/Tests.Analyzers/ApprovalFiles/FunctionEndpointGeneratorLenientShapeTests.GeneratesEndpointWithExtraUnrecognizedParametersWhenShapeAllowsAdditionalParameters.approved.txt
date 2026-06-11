@@ -54,7 +54,7 @@ public static class GeneratedFunctionRegistrations_GeneratesEndpointWithExtraUnr
     {
         yield return new global::NServiceBus.FunctionManifest(
             "ProcessOrder", "sales-queue", "StorageConn",
-            (endpointconfiguration, iservicecollection, iconfiguration, ihostenvironment) => global::Demo.Testing.Functions.ConfigureProcessOrder(endpointconfiguration),
+            (endpointConfiguration, serviceCollection, configurationManager, hostEnvironment, dictionary) => global::Demo.Testing.Functions.ConfigureProcessOrder(endpointConfiguration),
             global::Demo.Testing.TestFunctionManifestRegistration.Register);
         yield break;
     }

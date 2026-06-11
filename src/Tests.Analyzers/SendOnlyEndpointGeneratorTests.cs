@@ -41,6 +41,30 @@ public class SendOnlyEndpointGeneratorTests
             .AssertRunsAreEqual();
 
     [Test]
+    public void GeneratesSendOnlyEndpointWithIConfigurationManagerParameter() =>
+        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+            .WithSource(TestSources.ValidSendOnlyEndpointWithIConfigurationManager)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
+    public void GeneratesSendOnlyEndpointWithIConfigurationParameter() =>
+        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+            .WithSource(TestSources.ValidSendOnlyEndpointWithIConfiguration)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
+    public void GeneratesSendOnlyEndpointWithIConfigurationBuilderParameter() =>
+        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+            .WithSource(TestSources.ValidSendOnlyEndpointWithIConfigurationBuilder)
+            .Run()
+            .Approve()
+            .AssertRunsAreEqual();
+
+    [Test]
     public void GeneratesNoRegistrationsWhenNoSendOnlyEndpoints() =>
         SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(TestSources.NoSendOnlyEndpoints)
@@ -164,7 +188,7 @@ public class SendOnlyEndpointGeneratorTests
             }
             """);
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain("parameters after EndpointConfiguration must be IServiceCollection, IConfiguration, or IHostEnvironment"));
+        Assert.That(diagnostic.GetMessage(), Does.Contain("parameters after EndpointConfiguration must be compatible with: IServiceCollection, IConfigurationManager, IHostEnvironment"));
     }
 
     [Test]

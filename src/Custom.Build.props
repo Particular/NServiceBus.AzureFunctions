@@ -11,7 +11,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
     <MinVerAutoIncrement>patch</MinVerAutoIncrement>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectCapability Include="DynamicFileNestingEnabled" />
+  </ItemGroup>
 
 </Project>

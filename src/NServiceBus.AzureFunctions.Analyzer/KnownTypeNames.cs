@@ -5,7 +5,8 @@ static class KnownTypeNames
     public static string ConfigureMethodName(string endpointName)
     {
         var sanitized = new string([.. endpointName.Where(char.IsLetterOrDigit)]);
-        return $"Configure{(sanitized.Length > 0 ? sanitized : "Endpoint")}";
+
+        return sanitized.Length == 0 ? throw new ArgumentException($"Invalid {endpointName}") : $"Configure{sanitized}";
     }
     public const string GeneratedCompositionNamespace = "NServiceBus";
     public const string GeneratedFunctionsCompositionFullName = "NServiceBus.NServiceBusGeneratedFunctionsComposition";

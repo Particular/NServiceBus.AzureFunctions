@@ -2,7 +2,66 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 static class KnownTypeNames
 {
-    public static string ConfigureMethodName(string endpointName) => $"Configure{endpointName}";
+    const string ConfigurePrefix = "Configure";
+
+    public static string ConfigureMethodName(string endpointName)
+    {
+        if (endpointName == null)
+        {
+            throw new ArgumentNullException(nameof(endpointName));
+        }
+
+        var normalized = Normalize(endpointName);
+        if (normalized.Length == 0)
+        {
+            throw new ArgumentException(
+                $"Cannot generate a valid C# configuration method name from endpoint name '{endpointName}' because it does not contain any ASCII letters or digits.",
+                nameof(endpointName));
+        }
+
+        return $"{ConfigurePrefix}{normalized}";
+    }
+
+    public static string Normalize(string name)
+    {
+        if (name == null)
+        {
+            return string.Empty;
+        }
+
+        var buffer = new char[name.Length];
+        var count = 0;
+
+        foreach (var c in name)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                buffer[count++] = c;
+            }
+        }
+
+        return count == 0 ? string.Empty : count == name.Length ? name : new string(buffer, 0, count);
+    }
+
+    public static bool IsConfigureMethodFor(string methodName, string normalizedEndpointName)
+    {
+        if (!methodName.StartsWith(ConfigurePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (methodName.Length == ConfigurePrefix.Length)
+        {
+            return false;
+        }
+
+        var suffix = methodName.Substring(ConfigurePrefix.Length);
+        var normalizedSuffix = Normalize(suffix);
+
+        return normalizedSuffix.Length > 0
+            && string.Equals(normalizedSuffix, normalizedEndpointName, StringComparison.OrdinalIgnoreCase);
+    }
+
     public const string GeneratedCompositionNamespace = "NServiceBus";
     public const string GeneratedFunctionsCompositionFullName = "NServiceBus.NServiceBusGeneratedFunctionsComposition";
     public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";

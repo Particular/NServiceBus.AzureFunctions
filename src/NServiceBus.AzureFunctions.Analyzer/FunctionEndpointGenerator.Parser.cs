@@ -464,16 +464,17 @@ public sealed partial class FunctionEndpointGenerator
 
         static ConfigureMethodSpec? GetConfigureMethodSpec(INamedTypeSymbol functionClassType, string endpointName, FunctionEndpointGeneratorKnownTypes knownTypes, List<Diagnostic> diagnostics)
         {
-            var configureMethodName = KnownTypeNames.ConfigureMethodName(endpointName);
+            var normalizedEndpointName = KnownTypeNames.Normalize(endpointName);
 
             IMethodSymbol? configureMethod = null;
             foreach (var member in functionClassType.GetMembers())
             {
-                if (member is IMethodSymbol method && method.Name == configureMethodName)
+                if (member is IMethodSymbol method && KnownTypeNames.IsConfigureMethodFor(method.Name, normalizedEndpointName))
                 {
                     if (configureMethod is not null)
                     {
-                        diagnostics.Add(functionClassType.CreateDiagnostic(DiagnosticIds.MultipleConfigureMethodsDescriptor, configureMethodName, functionClassType.Name));
+                        var suggestedName = KnownTypeNames.ConfigureMethodName(endpointName);
+                        diagnostics.Add(functionClassType.CreateDiagnostic(DiagnosticIds.MultipleConfigureMethodsDescriptor, suggestedName, functionClassType.Name));
                         return null;
                     }
 

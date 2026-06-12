@@ -34,7 +34,7 @@ static class KnownTypeNames
 
         foreach (var c in name)
         {
-            if (c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9'))
+            if (char.IsLetterOrDigit(c))
             {
                 buffer[count++] = c;
             }

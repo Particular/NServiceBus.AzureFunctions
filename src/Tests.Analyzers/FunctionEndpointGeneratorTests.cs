@@ -24,6 +24,7 @@ public class FunctionEndpointGeneratorTests
     [TestCase("my-endpoint", "Configuremy_endpoint")]
     [TestCase("ProcessOrder", "CONFIGUREprocessORDER")]
     [TestCase("ProcessOrder", "configure_process_order")]
+    [TestCase("Lösung-Endpoint", "ConfigureLösungEndpoint")]
     public void FlexibleConfigureMethodNameMatches(string endpointName, string configureMethodName)
     {
         var source = $$"""

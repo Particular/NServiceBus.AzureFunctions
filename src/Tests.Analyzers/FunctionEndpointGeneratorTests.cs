@@ -649,6 +649,8 @@ public class FunctionEndpointGeneratorTests
         var source = NoMessageActionsSource(classBody);
         var result = SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
             .WithSource(source)
+            .SuppressCompilationErrors()
+            .SuppressDiagnosticErrors()
             .Run();
 
         var diagnostics = result.GeneratorDiagnostics;

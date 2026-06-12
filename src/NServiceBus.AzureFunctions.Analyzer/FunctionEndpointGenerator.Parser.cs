@@ -469,7 +469,7 @@ public sealed partial class FunctionEndpointGenerator
             IMethodSymbol? configureMethod = null;
             foreach (var member in functionClassType.GetMembers())
             {
-                if (member is IMethodSymbol method && method.Name == configureMethodName)
+                if (member is IMethodSymbol method && string.Equals(method.Name, configureMethodName, StringComparison.OrdinalIgnoreCase))
                 {
                     if (configureMethod is not null)
                     {

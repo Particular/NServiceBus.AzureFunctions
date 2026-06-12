@@ -2,7 +2,11 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 static class KnownTypeNames
 {
-    public static string ConfigureMethodName(string endpointName) => $"Configure{endpointName}";
+    public static string ConfigureMethodName(string endpointName)
+    {
+        var sanitized = new string([.. endpointName.Where(char.IsLetterOrDigit)]);
+        return $"Configure{(sanitized.Length > 0 ? sanitized : "Endpoint")}";
+    }
     public const string GeneratedCompositionNamespace = "NServiceBus";
     public const string GeneratedFunctionsCompositionFullName = "NServiceBus.NServiceBusGeneratedFunctionsComposition";
     public const string FunctionAttribute = "Microsoft.Azure.Functions.Worker.FunctionAttribute";

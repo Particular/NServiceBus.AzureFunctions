@@ -35,15 +35,12 @@ public class FunctionEndpointGeneratorTests
             [NServiceBusFunction]
             [Function("{{endpointName}}")]
             public partial Task Run(
-                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                [ServiceBusTrigger("sales-queue", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
                 ServiceBusMessageActions messageActions,
                 FunctionContext context,
                 CancellationToken cancellationToken);
 
-            public static void {{configureMethodName}}(
-                EndpointConfiguration endpointConfiguration,
-                IConfigurationManager iconfigurationmanager,
-                IHostEnvironment ihostenvironment)
+            public static void {{configureMethodName}}(EndpointConfiguration endpointConfiguration)
             {
             }
         }

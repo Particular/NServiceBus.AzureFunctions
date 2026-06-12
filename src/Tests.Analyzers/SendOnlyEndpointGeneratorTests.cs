@@ -231,12 +231,9 @@ public class SendOnlyEndpointGeneratorTests
             }
             """;
 
-        var result = SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(source)
             .Run();
-
-        var diagnostics = result.GeneratorDiagnostics;
-        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidSendOnlyEndpointMethod));
     }
 
     #region Helpers

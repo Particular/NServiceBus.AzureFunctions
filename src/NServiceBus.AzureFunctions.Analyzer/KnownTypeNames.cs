@@ -2,6 +2,8 @@ namespace NServiceBus.AzureFunctions.Analyzer;
 
 static class KnownTypeNames
 {
+    const string ConfigurePrefix = "Configure";
+
     public static string ConfigureMethodName(string endpointName)
     {
         if (endpointName == null)
@@ -9,12 +11,28 @@ static class KnownTypeNames
             throw new ArgumentNullException(nameof(endpointName));
         }
 
-        // Unfortunately, we cannot use SearchValues and ReplaceAny because we are stuck with NetStandard2.0 and those APIs are only available in .NET.
-        // Pooling is not helpful here because it would make things slower
-        var buffer = new char[endpointName.Length];
+        var normalized = Normalize(endpointName);
+        if (normalized.Length == 0)
+        {
+            throw new ArgumentException(
+                $"Cannot generate a valid C# configuration method name from endpoint name '{endpointName}' because it does not contain any ASCII letters or digits.",
+                nameof(endpointName));
+        }
+
+        return $"{ConfigurePrefix}{normalized}";
+    }
+
+    public static string Normalize(string name)
+    {
+        if (name == null)
+        {
+            return string.Empty;
+        }
+
+        var buffer = new char[name.Length];
         var count = 0;
 
-        foreach (var c in endpointName)
+        foreach (var c in name)
         {
             if (c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9'))
             {
@@ -22,14 +40,26 @@ static class KnownTypeNames
             }
         }
 
-        if (count == 0)
+        return count == 0 ? string.Empty : count == name.Length ? name : new string(buffer, 0, count);
+    }
+
+    public static bool IsConfigureMethodFor(string methodName, string normalizedEndpointName)
+    {
+        if (!methodName.StartsWith(ConfigurePrefix, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException(
-                $"Cannot generate a valid C# configuration method name from endpoint name '{endpointName}' because it does not contain any ASCII letters, digits, or underscores.",
-                nameof(endpointName));
+            return false;
         }
 
-        return count == endpointName.Length ? $"Configure{endpointName}" : $"Configure{new string(buffer, 0, count)}";
+        if (methodName.Length == ConfigurePrefix.Length)
+        {
+            return false;
+        }
+
+        var suffix = methodName.Substring(ConfigurePrefix.Length);
+        var normalizedSuffix = Normalize(suffix);
+
+        return normalizedSuffix.Length > 0
+            && string.Equals(normalizedSuffix, normalizedEndpointName, StringComparison.OrdinalIgnoreCase);
     }
 
     public const string GeneratedCompositionNamespace = "NServiceBus";

@@ -128,7 +128,7 @@ public class SendOnlyEndpointGeneratorTests
             }
             """);
 
-        Assert.That(diagnostic.GetMessage(), Does.Contain("method name must be 'Configureclient'"));
+        Assert.That(diagnostic.GetMessage(), Does.Contain("method name must follow the 'Configure{EndpointName}' convention matching 'Configureclient'"));
     }
 
     [Test]
@@ -210,12 +210,19 @@ public class SendOnlyEndpointGeneratorTests
 
         var message = diagnostic.GetMessage();
         Assert.That(message, Does.Contain("method must be static"));
-        Assert.That(message, Does.Contain("method name must be 'Configureclient'"));
+        Assert.That(message, Does.Contain("method name must follow the 'Configure{EndpointName}' convention matching 'Configureclient'"));
         Assert.That(message, Does.Contain("first parameter must be EndpointConfiguration"));
     }
 
-    [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
-    public void SanitizesConfigureMethod(string endpointName, string configureMethodName)
+    [TestCase("my-endpoint", "Configuremyendpoint")]
+    [TestCase("process.order", "Configureprocessorder")]
+    [TestCase("my_endpoint", "Configuremyendpoint")]
+    [TestCase("ProcessOrder", "configureprocessorder")]
+    [TestCase("my-endpoint", "ConfigureMy_Endpoint")]
+    [TestCase("my-endpoint", "Configuremy_endpoint")]
+    [TestCase("ProcessOrder", "CONFIGUREprocessORDER")]
+    [TestCase("ProcessOrder", "configure_process_order")]
+    public void FlexibleConfigureMethodNameMatches(string endpointName, string configureMethodName)
     {
         var source = $$"""
             using NServiceBus;
@@ -231,9 +238,11 @@ public class SendOnlyEndpointGeneratorTests
             }
             """;
 
-        SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+        var result = SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
             .WithSource(source)
             .Run();
+
+        Assert.That(result.GeneratorDiagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidSendOnlyEndpointMethod));
     }
 
     #region Helpers

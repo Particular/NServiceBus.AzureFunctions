@@ -59,10 +59,11 @@ public sealed partial class SendOnlyEndpointGenerator
                 problems.Add("method must be static");
             }
 
-            var expectedMethodName = KnownTypeNames.ConfigureMethodName(endpointName);
-            if (!string.Equals(method.Name, expectedMethodName, StringComparison.OrdinalIgnoreCase))
+            var normalizedEndpointName = KnownTypeNames.Normalize(endpointName);
+            if (!KnownTypeNames.IsConfigureMethodFor(method.Name, normalizedEndpointName))
             {
-                problems.Add($"method name must be '{expectedMethodName}'");
+                var expectedMethodName = KnownTypeNames.ConfigureMethodName(endpointName);
+                problems.Add($"method name must follow the 'Configure{{EndpointName}}' convention matching '{expectedMethodName}'");
             }
 
             var resolution = ConfigureMethodResolver.Resolve(method, knownTypes.EndpointConfiguration, knownTypes.DelegateType);

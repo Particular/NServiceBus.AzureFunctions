@@ -16,6 +16,44 @@ public class FunctionEndpointGeneratorTests
             .Approve()
             .AssertRunsAreEqual();
 
+    [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
+    public void GeneratesFunctionEndpoint(string endpointName, string configureMethodName)
+    {
+        var source = $$"""
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
+        namespace Demo;
+
+        public partial class Functions
+        {
+            [NServiceBusFunction]
+            [Function("{{endpointName}}")]
+            public partial Task Run(
+                [ServiceBusTrigger("sales-queue", Connection = "AzureServiceBus", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
+                FunctionContext context,
+                CancellationToken cancellationToken);
+
+            public static void {{configureMethodName}}(
+                EndpointConfiguration endpointConfiguration,
+                IConfigurationManager iconfigurationmanager,
+                IHostEnvironment ihostenvironment)
+            {
+            }
+        }
+        """;
+
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(source)
+            .Run();
+    }
+
     [Test]
     public void GeneratesFunctionEndpointInGlobalNamespace() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
@@ -625,37 +663,6 @@ public class FunctionEndpointGeneratorTests
     }
 
     #endregion
-
-    [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
-    public void MatchesConfigureMethod(string endpointName, string configureMethodName)
-    {
-        var classBody = $$"""
-            public partial class Functions
-            {
-                [NServiceBusFunction]
-                [Function("{{endpointName}}")]
-                public partial Task Run(
-                    [TestTrigger("sales-queue", ConnSetting = "StorageConn", AutoCompleteMessages = false)] string message,
-                    FunctionContext context,
-                    CancellationToken cancellationToken);
-
-                public static void {{configureMethodName}}(
-                    EndpointConfiguration endpointConfiguration)
-                {
-                }
-            }
-            """;
-
-        var source = NoMessageActionsSource(classBody);
-        var result = SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
-            .WithSource(source)
-            .SuppressCompilationErrors()
-            .SuppressDiagnosticErrors()
-            .Run();
-
-        var diagnostics = result.GeneratorDiagnostics;
-        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidFunctionMethod));
-    }
 
     #region Helpers
 

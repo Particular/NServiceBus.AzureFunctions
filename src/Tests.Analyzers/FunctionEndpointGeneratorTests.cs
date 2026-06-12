@@ -17,7 +17,7 @@ public class FunctionEndpointGeneratorTests
             .AssertRunsAreEqual();
 
     [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
-    public void GeneratesFunctionEndpoint(string endpointName, string configureMethodName)
+    public void SanitizesConfigureMethod(string endpointName, string configureMethodName)
     {
         var source = $$"""
         using System.Threading;

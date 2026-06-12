@@ -215,7 +215,7 @@ public class SendOnlyEndpointGeneratorTests
     }
 
     [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
-    public void MatchesConfigureMethod(string endpointName, string configureMethodName)
+    public void SanitizesConfigureMethod(string endpointName, string configureMethodName)
     {
         var source = $$"""
             using NServiceBus;

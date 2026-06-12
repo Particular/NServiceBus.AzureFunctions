@@ -16,7 +16,7 @@ static class KnownTypeNames
 
         foreach (var c in endpointName)
         {
-            if (c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_')
+            if (c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9'))
             {
                 buffer[count++] = c;
             }

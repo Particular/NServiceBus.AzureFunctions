@@ -16,6 +16,49 @@ public class FunctionEndpointGeneratorTests
             .Approve()
             .AssertRunsAreEqual();
 
+    [TestCase("my-endpoint", "Configuremyendpoint")]
+    [TestCase("process.order", "Configureprocessorder")]
+    [TestCase("my_endpoint", "Configuremyendpoint")]
+    [TestCase("ProcessOrder", "configureprocessorder")]
+    [TestCase("my-endpoint", "ConfigureMy_Endpoint")]
+    [TestCase("my-endpoint", "Configuremy_endpoint")]
+    [TestCase("ProcessOrder", "CONFIGUREprocessORDER")]
+    [TestCase("ProcessOrder", "configure_process_order")]
+    [TestCase("Lösung-Endpoint", "ConfigureLösungEndpoint")]
+    public void FlexibleConfigureMethodNameMatches(string endpointName, string configureMethodName)
+    {
+        var source = $$"""
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Azure.Messaging.ServiceBus;
+        using Microsoft.Azure.Functions.Worker;
+        using Microsoft.Extensions.Configuration;
+        using Microsoft.Extensions.Hosting;
+        using NServiceBus;
+
+        namespace Demo;
+
+        public partial class Functions
+        {
+            [NServiceBusFunction]
+            [Function("{{endpointName}}")]
+            public partial Task Run(
+                [ServiceBusTrigger("sales-queue", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+                ServiceBusMessageActions messageActions,
+                FunctionContext context,
+                CancellationToken cancellationToken);
+
+            public static void {{configureMethodName}}(EndpointConfiguration endpointConfiguration)
+            {
+            }
+        }
+        """;
+
+        SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
+            .WithSource(source)
+            .Run();
+    }
+
     [Test]
     public void GeneratesFunctionEndpointInGlobalNamespace() =>
         SourceGeneratorTest.ForIncrementalGenerator<FunctionEndpointGenerator>()
@@ -655,6 +698,8 @@ public class FunctionEndpointGeneratorTests
             using Microsoft.Azure.Functions.Worker;
             using NServiceBus;
 
+            #nullable enable
+
             namespace Demo.Testing;
 
             [System.AttributeUsage(System.AttributeTargets.Parameter)]
@@ -668,6 +713,11 @@ public class FunctionEndpointGeneratorTests
             public static class TestFunctionManifestRegistration
             {
                 public static void Register(global::Microsoft.Azure.Functions.Worker.Builder.FunctionsApplicationBuilder _, global::NServiceBus.FunctionManifest __) { }
+            }
+
+            public class TestProcessor
+            {
+                public Task Process(string message, FunctionContext context, CancellationToken cancellationToken) => Task.CompletedTask;
             }
 
             {{classBody}}

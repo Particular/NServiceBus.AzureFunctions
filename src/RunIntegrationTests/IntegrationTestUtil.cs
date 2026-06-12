@@ -8,7 +8,10 @@ using NUnit.Framework;
 class IntegrationTestUtil
 {
     static readonly string AppBaseUrl;
-    static readonly HttpClient http = new();
+    static readonly HttpClient http = new()
+    {
+        Timeout = TimeSpan.FromSeconds(30)
+    };
 
     static IntegrationTestUtil()
     {
@@ -18,8 +21,6 @@ class IntegrationTestUtil
 
     public static async Task WaitForAppToBeReady()
     {
-        http.Timeout = TimeSpan.FromSeconds(5);
-
         var versionUrl = $"{AppBaseUrl}/api/testing";
 
         var timeout = TimeSpan.FromMinutes(5);
@@ -32,8 +33,7 @@ class IntegrationTestUtil
             {
                 try
                 {
-
-                    var info = await http.GetFromJsonAsync<InfoResult>(versionUrl, cts.Token);
+                    var info = await GetInfo(versionUrl, cts.Token);
 
                     if (info is not null && info.Uptime > TimeSpan.Zero)
                     {
@@ -48,7 +48,11 @@ class IntegrationTestUtil
                     await TestContext.Error.WriteLineAsync("Got cancellation signal");
                     throw;
                 }
-                catch (Exception e) when (e is HttpRequestException or TimeoutException or TaskCanceledException or IOException or ObjectDisposedException)
+                catch (OperationCanceledException e)
+                {
+                    await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: readiness probe timed out after 5 seconds\" accessing {versionUrl}, will retry after 5s delay");
+                }
+                catch (Exception e) when (e is HttpRequestException or TimeoutException or IOException or ObjectDisposedException)
                 {
                     await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: {e.Message}\" accessing {versionUrl}, will retry after 5s delay");
                 }
@@ -62,6 +66,14 @@ class IntegrationTestUtil
         throw new Exception($"/api/testing failed to respond within {timeout}");
     }
 
+    static async Task<InfoResult?> GetInfo(string versionUrl, CancellationToken cancellationToken)
+    {
+        using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        attemptCts.CancelAfter(TimeSpan.FromSeconds(5));
+
+        return await http.GetFromJsonAsync<InfoResult>(versionUrl, attemptCts.Token);
+    }
+
     public static async Task InvokeApi(string apiPath)
     {
         if (!apiPath.StartsWith('/'))
@@ -70,8 +82,28 @@ class IntegrationTestUtil
         }
 
         var invokeUrl = $"{AppBaseUrl}{apiPath}";
+        var timeout = TimeSpan.FromMinutes(2);
+        var stopwatch = Stopwatch.StartNew();
+        using var cts = new CancellationTokenSource(timeout);
 
-        _ = await http.GetStringAsync(invokeUrl);
+        while (true)
+        {
+            try
+            {
+                using var response = await http.GetAsync(invokeUrl, cts.Token);
+                response.EnsureSuccessStatusCode();
+                return;
+            }
+            catch (OperationCanceledException) when (cts.Token.IsCancellationRequested)
+            {
+                throw new Exception($"{invokeUrl} failed to respond within {timeout}");
+            }
+            catch (Exception e) when (e is HttpRequestException or TimeoutException or TaskCanceledException or IOException or ObjectDisposedException)
+            {
+                await TestContext.Error.WriteLineAsync($"Got \"{e.GetType().Name}: {e.Message}\" accessing {invokeUrl} after {stopwatch.Elapsed}, will retry after 5s delay");
+                await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+            }
+        }
     }
 
     public static async Task<Payload> GetResults(string testName, int expectedMessages)

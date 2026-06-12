@@ -214,6 +214,31 @@ public class SendOnlyEndpointGeneratorTests
         Assert.That(message, Does.Contain("first parameter must be EndpointConfiguration"));
     }
 
+    [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
+    public void MatchesConfigureMethod(string endpointName, string configureMethodName)
+    {
+        var source = $$"""
+            using NServiceBus;
+
+            namespace Demo;
+
+            public static class ClientEndpoint
+            {
+                [NServiceBusSendOnlyFunction("{{endpointName}}")]
+                public static void {{configureMethodName}}(EndpointConfiguration endpointConfiguration)
+                {
+                }
+            }
+            """;
+
+        var result = SourceGeneratorTest.ForIncrementalGenerator<SendOnlyEndpointGenerator>()
+            .WithSource(source)
+            .Run();
+
+        var diagnostics = result.GeneratorDiagnostics;
+        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidSendOnlyEndpointMethod));
+    }
+
     #region Helpers
 
     static Diagnostic GetInvalidSendOnlyEndpointMethodDiagnostic(string source)

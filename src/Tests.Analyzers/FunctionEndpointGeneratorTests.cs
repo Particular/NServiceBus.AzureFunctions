@@ -626,6 +626,35 @@ public class FunctionEndpointGeneratorTests
 
     #endregion
 
+    [TestCaseSource(typeof(TestSources), nameof(TestSources.EndpointNameSanitizationCases))]
+    public void MatchesConfigureMethod(string endpointName, string configureMethodName)
+    {
+        var classBody = $$"""
+            public partial class Functions
+            {
+                [NServiceBusFunction]
+                [Function("{{endpointName}}")]
+                public partial Task Run(
+                    [TestTrigger("sales-queue", ConnSetting = "StorageConn", AutoCompleteMessages = false)] string message,
+                    FunctionContext context,
+                    CancellationToken cancellationToken);
+
+                public static void {{configureMethodName}}(
+                    EndpointConfiguration endpointConfiguration)
+                {
+                }
+            }
+            """;
+
+        var source = NoMessageActionsSource(classBody);
+        var result = SourceGeneratorTest.ForIncrementalGenerator<NoMessageActionsGenerator>()
+            .WithSource(source)
+            .Run();
+
+        var diagnostics = result.GeneratorDiagnostics;
+        Assert.That(diagnostics, Has.None.Matches<Diagnostic>(d => d.Id == DiagnosticIds.InvalidFunctionMethod));
+    }
+
     #region Helpers
 
     static Diagnostic GetInvalidFunctionMethodDiagnostic<TGenerator>(string source) where TGenerator : IIncrementalGenerator, new()

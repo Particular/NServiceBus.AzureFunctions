@@ -1,7 +1,20 @@
 namespace NServiceBus.AzureFunctions.Analyzers.Tests;
 
+using System.Collections.Generic;
+using NUnit.Framework;
+
 static class TestSources
 {
+    public static IEnumerable<TestCaseData> EndpointNameSanitizationCases
+    {
+        get
+        {
+            yield return new TestCaseData("my-endpoint", "Configuremyendpoint");
+            yield return new TestCaseData("process.order", "Configureprocessorder");
+            yield return new TestCaseData("my_endpoint", "Configuremyendpoint");
+            yield return new TestCaseData("ProcessOrder", "configureprocessorder");
+        }
+    }
     public const string OrdinaryFunctionOnly = """
         using System.Threading;
         using System.Threading.Tasks;

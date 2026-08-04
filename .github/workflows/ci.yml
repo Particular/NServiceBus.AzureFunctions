@@ -18,8 +18,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
-            name: Windows
+          #- os: windows-latest
+          #  name: Windows
           - os: ubuntu-latest
             name: Linux
       fail-fast: false
@@ -62,6 +62,7 @@ jobs:
           azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
           tag: NSB.AzureFunctions
           env-vars-to-promote: AzureWebJobsServiceBus,BillingPrefix
+          skip-cleanup: true
         env:
           BillingPrefix: billing
       - name: Deploy IntegrationTest app

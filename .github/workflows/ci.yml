@@ -60,14 +60,14 @@ jobs:
           env-vars-to-promote: AzureWebJobsServiceBus,BillingPrefix
         env:
           BillingPrefix: billing
+      - name: Wait for build
+        wait: build
       - name: Deploy IntegrationTest app
         uses: azure/webapps-deploy@v3.0.8
         with:
           app-name: ${{ steps.setup-functions.outputs.app-name }}
           publish-profile: ${{ steps.setup-functions.outputs.publish-profile }}
           package: src/IntegrationTestApp/bin/Release
-      - name: Wait for build
-        wait: build   
       - parallel:
         - name: Upload packages
           if: matrix.name == 'Windows'

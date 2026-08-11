@@ -58,7 +58,7 @@ jobs:
               tag: ASBWorkerFunctions
           - name: Setup functions app
             id: setup-functions
-            uses: Particular/setup-azurefunctions-action@e71e94e369d241c9864dd3d5d937865f5c080458
+            uses: Particular/setup-azurefunctions-action@v2.1.0
             with:
               azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
               tag: NSB.AzureFunctions

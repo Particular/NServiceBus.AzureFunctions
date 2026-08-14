@@ -28,48 +28,67 @@ jobs:
         env:
           SECRETS_AVAILABLE: ${{ secrets.SECRETS_AVAILABLE }}
         run: exit $(If ($env:SECRETS_AVAILABLE -eq 'true') { 0 } Else { 1 })
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
+
+      - parallel:
+          - name: Checkout
+            uses: actions/checkout@v7.0.1
+            with:
+              fetch-depth: 0
+          - name: Azure login
+            uses: azure/login@v3.0.1
+            with:
+              creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6.0.0
         with:
           global-json-file: global.json
+
       - name: Build
+        id: build
         run: dotnet build src --configuration Release
-      - name: Upload packages
-        if: matrix.name == 'Windows'
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: NuGet packages
-          path: nugets/
-          retention-days: 7
-      - name: Azure login
-        uses: azure/login@v3.0.1
-        with:
-          creds: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-      - name: Setup Azure Service Bus
-        uses: Particular/setup-azureservicebus-action@v2.5.0
-        with:
-          connection-string-name: AzureWebJobsServiceBus
-          azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-          tag: ASBWorkerFunctions
-      - name: Setup functions app
-        id: setup-functions
-        uses: Particular/setup-azurefunctions-action@v2.0.2
-        with:
-          azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
-          tag: NSB.AzureFunctions
-          env-vars-to-promote: AzureWebJobsServiceBus,BillingPrefix
-        env:
-          BillingPrefix: billing
-      - name: Deploy IntegrationTest app
-        uses: azure/webapps-deploy@v3.0.8
-        with:
-          app-name: ${{ steps.setup-functions.outputs.app-name }}
-          publish-profile: ${{ steps.setup-functions.outputs.publish-profile }}
-          package: src/IntegrationTestApp/bin/Release
+        background: true
+
+      - parallel:
+          - name: Setup Azure Service Bus
+            uses: Particular/setup-azureservicebus-action@v2.5.0
+            with:
+              connection-string-name: AzureWebJobsServiceBus
+              azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
+              tag: ASBWorkerFunctions
+          - name: Setup functions app
+            id: setup-functions
+            uses: Particular/setup-azurefunctions-action@v2.1.0
+            with:
+              azure-credentials: ${{ secrets.AZURE_ACI_CREDENTIALS }}
+              tag: NSB.AzureFunctions
+              env-vars-to-promote: BillingPrefix
+            env:
+              BillingPrefix: billing
+
+      - name: Promote AzureWebJobsServiceBus to Functions app
+        run: |
+          Import-Module '${{ steps.setup-functions.outputs.azure-functions-tools-module-path }}' -Force
+          Set-FunctionAppSettings -AppName '${{ steps.setup-functions.outputs.app-name }}' -EnvVarNames 'AzureWebJobsServiceBus'
+
+      - name: Wait for build
+        wait: build
+
+      - parallel:
+          - name: Deploy IntegrationTest app
+            uses: azure/webapps-deploy@v3.0.8
+            with:
+              app-name: ${{ steps.setup-functions.outputs.app-name }}
+              publish-profile: ${{ steps.setup-functions.outputs.publish-profile }}
+              package: src/IntegrationTestApp/bin/Release
+          - name: Upload packages
+            if: matrix.name == 'Windows'
+            uses: actions/upload-artifact@v7.0.1
+            with:
+              name: NuGet packages
+              path: nugets/
+              retention-days: 7
+
       - name: Run tests
         uses: Particular/run-tests-action@v1.7.0
         env:

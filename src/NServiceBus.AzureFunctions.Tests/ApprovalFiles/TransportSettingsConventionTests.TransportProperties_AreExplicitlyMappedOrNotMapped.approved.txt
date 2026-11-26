@@ -16,3 +16,5 @@ Unmapped properties:
   - TimeToWaitBeforeTriggeringCircuitBreaker
   - UseWebSockets
   - WebProxy
+  - EnableSessions
+  - AssertTopologyExists

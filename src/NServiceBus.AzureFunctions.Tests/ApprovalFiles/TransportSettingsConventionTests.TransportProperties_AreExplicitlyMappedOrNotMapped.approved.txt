@@ -7,7 +7,9 @@ Mapped properties:
   - ThrowOnMissingTopicWhenPublishing
 
 Unmapped properties:
+  - AssertTopologyExists
   - AutoDeleteOnIdle
+  - EnableSessions
   - MaxAutoLockRenewalDuration
   - OutgoingNativeMessageCustomization
   - PrefetchCount
@@ -16,5 +18,3 @@ Unmapped properties:
   - TimeToWaitBeforeTriggeringCircuitBreaker
   - UseWebSockets
   - WebProxy
-  - EnableSessions
-  - AssertTopologyExists
